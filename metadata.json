@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Bunon next js",
+  "description": "Premium headless e-commerce store for traditional and modern sarees, powered by WooCommerce.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

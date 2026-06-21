@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "953166315338",
+    "project_id": "bunon-app-fd2b9",
+    "storage_bucket": "bunon-app-fd2b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:953166315338:android:17620ed9e2d4c464c9cbb3",
+        "android_client_info": {
+          "package_name": "com.bunon.fabrics"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "953166315338-r03bk01i0lm0ap48pd6uu0kb1afufeqs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBz97TP9NZJW7glTSfDT7tkjA5rlFVqU5c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "953166315338-bm165iv0r8d9ue4eupjebt7tfrgd28rr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
