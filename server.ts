@@ -16,7 +16,7 @@ const dbPool = mysql.createPool({
   host: process.env.DASH_DB_HOST || "127.0.0.1",
   port: Number(process.env.DASH_DB_PORT) || 3306,
   user: process.env.DASH_DB_USER || "bunonfabrics_dash_db",
-  password: process.env.DASH_DB_PASSWORD ? process.env.DASH_DB_PASSWORD.replace(/"/g, '') : "naim#707207AA",
+  password: process.env.DASH_DB_PASSWORD?.replace(/\"/g, '') || "",
   database: process.env.DASH_DB_NAME || "bunonfabrics_dash_db",
   waitForConnections: true,
   connectionLimit: 10,
@@ -442,8 +442,8 @@ async function startServer() {
   app.post("/api/verify-coupon", async (req, res) => {
     try {
       const { code, cartTotal } = req.body;
-      const CK = 'ck_9f0dd49451d3542b61bdb25e50059506fd3783dc'; 
-      const CS = 'cs_fb0f04310745b43550e5d1a86c56258e3d5a3677';
+      const CK = process.env.WC_KEY || ""; 
+      const CS = process.env.WC_SECRET || "";
       const STORE_URL = 'https://bunonfabrics.com';
 
       if (!code) return res.status(400).json({ valid: false, message: "কুপন কোড দিন!" });
