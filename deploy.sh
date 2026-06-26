@@ -20,7 +20,7 @@ npm run build
 
 # Run the database setup script to ensure tables exist
 echo "🛠️ Ensuring database tables exist..."
-node setup_db.cjs
+node "$(dirname "$0")/setup_db.cjs"
 
 # Restart the PM2 process
 echo "♻️ Recreating PM2 process (bunon-site)..."
