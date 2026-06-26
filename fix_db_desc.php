@@ -6,7 +6,12 @@ set_time_limit(300);
 $host    = '127.0.0.1';
 $db      = 'bunonfabrics_dash_db'; 
 $user    = 'bunonfabrics_dash_db'; 
-$pass    = 'naim#707207AA'; 
+$envPath = __DIR__ . '/.env';
+$env = [];
+if (file_exists($envPath)) {
+    $env = parse_ini_file($envPath);
+}
+$pass = isset($env['DASH_DB_PASSWORD']) ? str_replace('"', '', $env['DASH_DB_PASSWORD']) : '';
 $charset = 'utf8mb4';
 
 try {

@@ -7,7 +7,12 @@ header('Content-Type: application/json; charset=utf-8');
 $host    = 'localhost';
 $db      = 'bunonfabrics_dash_db'; 
 $user    = 'bunonfabrics_dash_db'; 
-$pass    = 'naim#707207AA'; 
+$envPath = __DIR__ . '/.env';
+$env = [];
+if (file_exists($envPath)) {
+    $env = parse_ini_file($envPath);
+}
+$pass = isset($env['DASH_DB_PASSWORD']) ? str_replace('"', '', $env['DASH_DB_PASSWORD']) : '';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";

@@ -6,7 +6,12 @@ header('Content-Type: application/json; charset=utf-8');
 // আপনার ডাটাবেস ক্রেডেনশিয়াল
 $wp_db   = 'Bunonfabrics_db';
 $wp_user = 'Bunonfabrics_db';
-$wp_pass = 'IZTvlvacRIm0EziRsw9A';
+$envPath = __DIR__ . '/.env';
+$env = [];
+if (file_exists($envPath)) {
+    $env = parse_ini_file($envPath);
+}
+$wp_pass = isset($env['WP_DB_PASSWORD']) ? str_replace('"', '', $env['WP_DB_PASSWORD']) : '';
 
 try {
     $pdo = new PDO("mysql:host=127.0.0.1;dbname=$wp_db;charset=utf8mb4", $wp_user, $wp_pass, [
