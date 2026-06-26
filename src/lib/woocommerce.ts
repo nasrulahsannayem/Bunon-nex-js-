@@ -65,7 +65,28 @@ const fetchFreshDataBackground = async () => {
     const res = await axios.get(`https://bunon.shop${CATALOG_URL}`);
     if (!res.data || !res.data.ok) throw new Error("Invalid response");
     
-    const rawProducts = res.data.data || [];
+    const rawProducts = (res.data.data || []).map((p: any) => {
+      // Rewrite images to go through local proxy caching
+      const localImages = (p.images || []).map((img: any) => {
+        if (img.src && (img.src.startsWith('http://') || img.src.startsWith('https://')) && !img.src.includes('bunon.shop/api/image-proxy')) {
+          return { ...img, src: `https://bunon.shop/api/image-proxy?url=${encodeURIComponent(img.src)}` };
+        }
+        return img;
+      });
+
+      let localThumbnail = p.thumbnail || '';
+      if (localThumbnail && (localThumbnail.startsWith('http://') || localThumbnail.startsWith('https://')) && !localThumbnail.includes('bunon.shop/api/image-proxy')) {
+        localThumbnail = `https://bunon.shop/api/image-proxy?url=${encodeURIComponent(localThumbnail)}`;
+      } else if (!localThumbnail && localImages.length > 0) {
+        localThumbnail = localImages[0].src;
+      }
+
+      return {
+        ...p,
+        images: localImages,
+        thumbnail: localThumbnail
+      };
+    });
     
     const catMap = new Map();
     catMap.set('All', { id: 'all', name: 'All Products', slug: 'All' });

@@ -16,6 +16,7 @@ import { syncEcomosProducts } from "./server/services/ecomos";
 import productRoutes from "./server/routes/products";
 import webhookRoutes from "./server/routes/webhook";
 import paymentRoutes from "./server/routes/payment";
+import imageProxyRoutes from "./server/routes/imageProxy";
 
 async function startServer() {
   const app = express();
@@ -35,6 +36,7 @@ async function startServer() {
   app.use("/api", productRoutes);
   app.use("/api", webhookRoutes);
   app.use("/api", paymentRoutes);
+  app.use("/api", imageProxyRoutes);
 
   // Fallback endpoint for generic API tracking
   app.post("/api/track/*", (req, res) => res.json({ status: "ok" }));
