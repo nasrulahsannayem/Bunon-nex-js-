@@ -165,12 +165,16 @@ router.post("/checkout/place-order", async (req, res) => {
         }).catch(err => console.error("Email trigger failed:", err));
       }
     }
-      // 🚀 FIX #8: Use productDbPool (wc_cart_recovery_queue lives in product DB, not dashboard DB)
-      await wpDbPool.execute(`
-        UPDATE wc_cart_recovery_queue 
-        SET status = 'converted' 
-        WHERE email = ? OR phone = ?
-      `, [customer.email, customer.phone]);
+      // 🚀 FIX #8: Update recovery queue, wrapped in try-catch so it doesn't break checkout!
+      try {
+        await wpDbPool.execute(`
+          UPDATE wc_cart_recovery_queue 
+          SET status = 'converted' 
+          WHERE email = ? OR phone = ?
+        `, [customer.email, customer.phone]);
+      } catch (recoveryErr: any) {
+        console.error('[PAYMENT] Failed to update cart recovery queue:', recoveryErr.message);
+      }
 
       // Remove incomplete order record by forwarding to dash
       try {
