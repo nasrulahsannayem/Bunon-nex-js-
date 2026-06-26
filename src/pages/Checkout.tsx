@@ -443,24 +443,24 @@ export default function Checkout() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-28 md:pb-32">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Secure Checkout</h1>
-            <p className="mt-1 text-sm text-gray-500">Complete your order — it only takes a minute.</p>
+    return (
+      <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-28 md:pb-32 flex justify-center">
+        <div className="max-w-[1600px] w-full px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Secure Checkout</h1>
+              <p className="mt-1 text-sm text-gray-500">Complete your order — it only takes a minute.</p>
+            </div>
+            <button 
+              type="button" 
+              onClick={handleCancelClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#e2136e] bg-[#e2136e]/5 hover:bg-[#e2136e]/10 border border-[#e2136e]/20 rounded-lg transition-all hover:scale-105 active:scale-95 shrink-0"
+            >
+              <X className="w-3.5 h-3.5" /> CANCEL
+            </button>
           </div>
-          <button 
-            type="button" 
-            onClick={handleCancelClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#e2136e] bg-[#e2136e]/5 hover:bg-[#e2136e]/10 border border-[#e2136e]/20 rounded-lg transition-all hover:scale-105 active:scale-95 shrink-0"
-          >
-            <X className="w-3.5 h-3.5" /> CANCEL
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 md:gap-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-6 xl:gap-8 w-full">
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 md:p-6 space-y-5">
             
             {/* Top Product Overview Summary (matches user screenshot) */}
