@@ -63,13 +63,19 @@ function wrapHtmlBody(title: string, bodyContent: string, email: string): string
  */
 export async function sendOrderConfirmationEmail(toEmail: string, orderData: any) {
   try {
-    const productsHtml = (orderData.items || []).map((item: any) => `
+    const productsHtml = (orderData.items || []).map((item: any) => {
+      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp');
+      return `
       <tr style="border-bottom: 1px solid #f3f4f6;">
-        <td style="padding: 10px 0; font-weight: 600;">${item.name}</td>
+        <td style="padding: 10px 0; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+          <img src="${imgUrl}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #eaeaea;" alt="${item.name}">
+          <span>${item.name}</span>
+        </td>
         <td style="padding: 10px 0; text-align: center;">${item.quantity}টি</td>
         <td style="padding: 10px 0; text-align: right; font-weight: 700;">৳${item.price}</td>
       </tr>
-    `).join('');
+      `;
+    }).join('');
 
     const bodyContent = `
       <p>আসসালামু আলাইকুম <strong>${orderData.firstName || 'সম্মানিত গ্রাহক'}</strong>,</p>
@@ -161,9 +167,24 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     }))));
     const magicCheckoutLink = `https://bunon.shop/checkout?restore_cart=${cartParam}&coupon=${generatedCoupon}`;
 
+    const abandonedItemsHtml = cartItems.slice(0, 3).map((item: any) => {
+      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp');
+      return `
+        <div style="display: inline-block; margin: 5px; text-align: center;">
+          <img src="${imgUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eaeaea;" alt="${item.name}">
+          <p style="font-size: 10px; color: #6b7280; margin-top: 5px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</p>
+        </div>
+      `;
+    }).join('');
+
     const bodyContent = `
       <p>আসসালামু আলাইকুম <strong>${name || 'প্রিয় গ্রাহক'}</strong>,</p>
-      <p>আপনার পছন্দের প্রিমিয়াম থ্রি-পিস বা ফেব্রিক্সগুলো এখনো আপনার শপিং কার্টে অপেক্ষারত রয়েছে। অর্ডারটি শেষ করতে পারেননি কোনো কারণে?</p>
+      <p>আপনার পছন্দের নিচের প্রিমিয়াম থ্রি-পিস বা ফেব্রিক্সগুলো এখনো আপনার শপিং কার্টে অপেক্ষারত রয়েছে। অর্ডারটি শেষ করতে পারেননি কোনো কারণে?</p>
+      
+      <div style="text-align: center; margin: 20px 0;">
+        ${abandonedItemsHtml}
+        ${cartItems.length > 3 ? `<p style="font-size: 12px; color: #9ca3af;">এবং আরও ${cartItems.length - 3}টি আইটেম...</p>` : ''}
+      </div>
       
       <p>আপনাকে সাহায্য করতে বুনন ফেব্রিক্স দিচ্ছে <strong>ফ্ল্যাট ${discountPercent}% ডিসকাউন্ট কুপন!</strong> অফারটি সীমিত সময়ের জন্য প্রযোজ্য।</p>
       
