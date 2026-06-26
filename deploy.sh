@@ -13,7 +13,7 @@ git fetch origin
 echo "🔄 Resetting local files to match GitHub..."
 git reset --hard origin/master
 
-# Build the project (This compiles server.ts into server.js!)
+# Build the project (This compiles server.ts into server.cjs!)
 echo "🏗️ Building the project (Compiling server.ts)..."
 npm install
 npm run build
