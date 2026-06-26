@@ -460,49 +460,75 @@ export default function Checkout() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8">
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 md:p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 md:gap-6">
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 md:p-6 space-y-5">
             
             {/* Top Product Overview Summary (matches user screenshot) */}
-            <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3.5">
+            <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3">
               {items.map((item, index) => (
                 <div key={index} className="flex items-center gap-3.5 justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <img 
                       src={item.images?.[0]?.src || item.thumbnail} 
-                      className="w-14 h-14 object-cover rounded-xl border border-gray-200 shrink-0 pointer-events-none" 
+                      className="w-12 h-12 object-cover rounded-xl border border-gray-200 shrink-0 pointer-events-none" 
                       alt="" 
                     />
                     <div className="min-w-0">
-                      <span className="inline-flex bg-brand-primary/10 text-brand-primary text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                      <span className="inline-flex bg-brand-primary/10 text-brand-primary text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider mb-0.5">
                         Product
                       </span>
-                      <h4 className="text-[13px] font-bold text-gray-900 truncate leading-snug">{item.name}</h4>
-                      <span className="text-[11px] text-gray-500 block mt-0.5">Quantity: {item.quantity}</span>
+                      <h4 className="text-[12px] font-bold text-gray-900 truncate leading-tight">{item.name}</h4>
+                      <span className="text-[10px] text-gray-500 block mt-0.5">Quantity: {item.quantity}</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="block text-[9px] text-gray-400 font-extrabold uppercase tracking-wide">Total Price</span>
-                    <span className="text-[15px] font-extrabold text-gray-900">৳{(Number(item.price) * item.quantity).toLocaleString()}</span>
+                    <span className="block text-[8px] text-gray-400 font-extrabold uppercase tracking-wide">Total Price</span>
+                    <span className="text-[13px] font-extrabold text-gray-900">৳{(Number(item.price) * item.quantity).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
+              
+              {/* Detailed Breakdown */}
+              <div className="border-t border-gray-200/60 pt-2.5 mt-1 space-y-1.5 text-[11px] text-gray-600">
+                <div className="flex justify-between items-center">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-gray-900">৳{calculatedSubtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Shipping</span>
+                  <span className="font-semibold text-gray-900">
+                    {shippingCost === 0 ? '৳0 (FREE)' : `৳${shippingCost}`}
+                  </span>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between items-center text-green-600 font-semibold">
+                    <span>Coupon Discount ({appliedCoupon.code})</span>
+                    <span>- ৳{couponDiscountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {onlineDiscount > 0 && (
+                  <div className="flex justify-between items-center text-[#e2136e] font-semibold">
+                    <span>Online Payment Discount</span>
+                    <span>- ৳{onlineDiscount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-gray-200 mt-1">
+                  <span className="text-xs font-bold text-gray-900">Total</span>
+                  <span className="text-sm font-extrabold text-brand-primary">৳{finalTotal.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
 
-            <section>
-              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
-                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">1</span>
-                যোগাযোগ তথ্য
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <section className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">আপনার নাম <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1">আপনার নাম <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="text" 
                       placeholder="এখানে আপনার সম্পূর্ণ নাম লিখুন" 
-                      className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                       value={formData.firstName}
                       onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                       onBlur={trackIncompleteOrderOnBlur}
@@ -512,14 +538,14 @@ export default function Checkout() {
                 
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-xs font-semibold text-gray-600 mb-1.5 font-sans">মোবাইল নম্বর <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1 font-sans">মোবাইল নম্বর <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="tel" 
                       inputMode="numeric"
                       placeholder="01XXXXXXXXX" 
                       maxLength={11}
-                      className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                       value={formData.phone}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
@@ -529,22 +555,14 @@ export default function Checkout() {
                     />
                   </label>
                 </div>
-              </div>
-            </section>
 
-            <section className="pt-6 border-t border-gray-100">
-              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
-                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">2</span>
-                ডেলিভারি ঠিকানা
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">জেলা নির্বাচন করুন <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1">জেলা নির্বাচন করুন <span className="text-red-500">*</span></span>
                     <div className="relative">
                       <select
                         required
-                        className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none shadow-sm"
+                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none shadow-sm"
                         value={formData.district}
                         onChange={(e) => {
                            setFormData({...formData, district: e.target.value});
@@ -563,19 +581,19 @@ export default function Checkout() {
                         <option value="Mymensingh">Mymensingh</option>
                         <option value="Other">Other</option>
                       </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                   </label>
                 </div>
                 
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">সম্পূর্ণ ঠিকানা <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1">সম্পূর্ণ ঠিকানা <span className="text-red-500">*</span></span>
                     <textarea 
                       required
                       rows={2}
                       placeholder="বাসা নম্বর, রোড নম্বর, এলাকা অথবা গ্রামের নাম লিখুন" 
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none shadow-sm"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none shadow-sm"
                       value={formData.address1}
                       onChange={(e) => setFormData({...formData, address1: e.target.value})}
                       onBlur={trackIncompleteOrderOnBlur}
@@ -585,13 +603,12 @@ export default function Checkout() {
               </div>
             </section>
 
-            <section className="pt-6 border-t border-gray-100">
-              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
-                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">3</span>
+            <section className="pt-5 border-t border-gray-100">
+              <h2 className="flex items-center gap-3 mb-3 text-sm md:text-base font-bold text-gray-900">
                 পেমেন্ট মেথড নির্বাচন করুন
               </h2>
 
-              <div className="mb-4 rounded-xl border border-[#E2136E]/15 bg-white shadow-sm p-1.5 md:p-2 overflow-hidden">
+              <div className="mb-3 rounded-xl border border-[#E2136E]/15 bg-white shadow-sm p-1.5 md:p-2 overflow-hidden">
                 <div className="border border-dashed border-[#E2136E]/40 bg-gradient-to-br from-[#fff5f8] to-[#fff0f5] rounded-lg p-2 md:p-2.5 flex items-center gap-2.5 md:gap-3">
                   <div className="w-8 h-8 md:w-9 md:h-9 rounded-full border border-[#E2136E] bg-white flex items-center justify-center text-[#E2136E] text-lg font-bold shrink-0 shadow-[0_4px_12px_rgba(226,19,110,0.15)] bunon-pulse">
                     <span className="font-serif">৳</span>
@@ -645,16 +662,16 @@ export default function Checkout() {
                       </span>
                       {pm.id === 'paystation' ? (
                         <span className="font-bold text-[7.5px] min-[360px]:text-[8.5px] min-[390px]:text-[9.5px] md:text-sm whitespace-nowrap text-center flex items-center gap-0.5 justify-center">
-                          <span style={{ color: isSelected ? '#f7941d' : '#374151' }}>নগদ</span>
+                          <span style={{ color: '#f7941d' }}>নগদ</span>
                           <span className="opacity-40" style={{ color: isSelected ? pm.color : '#9ca3af' }}>,</span>
-                          <span style={{ color: isSelected ? '#8c2d82' : '#374151' }}>রকেট</span>
+                          <span style={{ color: '#8c2d82' }}>রকেট</span>
                           <span className="opacity-40" style={{ color: isSelected ? pm.color : '#9ca3af' }}>,</span>
-                          <span style={{ color: isSelected ? '#0054a6' : '#374151' }}>ব্যাংক</span>
+                          <span style={{ color: '#0054a6' }}>ব্যাংক</span>
                         </span>
                       ) : (
                         <span className="font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate"
                           style={{
-                            color: isSelected ? pm.color : '#374151',
+                            color: pm.color,
                           }}
                         >
                           {pm.title}
@@ -668,173 +685,172 @@ export default function Checkout() {
           </div>
 
           <div className="relative">
-            <div className="sticky top-24 space-y-6">
-              
-              <div className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6">
-                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
-                    <Tag className="w-4 h-4 text-brand-primary pointer-events-none" /> 
-                    Have a coupon code?
-                 </h3>
-                 
-                 {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-green-50 border border-green-200 p-3 rounded-lg">
-                       <div>
-                          <p className="text-sm font-bold text-green-700 uppercase">{appliedCoupon.code}</p>
-                          <p className="text-xs text-green-600">Coupon applied successfully</p>
-                       </div>
-                       <button type="button" onClick={removeCoupon} className="text-red-500 hover:text-red-700 text-sm font-medium">Remove</button>
-                    </div>
-                 ) : (
-                    <div>
-                       <div className="flex gap-2">
-                          <input 
-                             type="text" 
-                             placeholder="Enter code here" 
-                             className="flex-1 h-11 px-3.5 rounded-lg border border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary text-sm uppercase"
-                             value={couponCode}
-                             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                             disabled={couponLoading}
-                          />
-                          <button 
-                             type="button"
-                             onClick={applyCoupon}
-                             disabled={couponLoading || !couponCode}
-                             className="h-11 px-5 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-black disabled:opacity-50 transition-colors"
-                          >
-                             {couponLoading ? 'Applying...' : 'Apply'}
-                          </button>
-                       </div>
-                       {couponMessage.text && (
-                          <p className={`text-xs mt-2 ${couponMessage.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
-                             {couponMessage.text}
-                          </p>
-                       )}
-                    </div>
-                 )}
-              </div>
-
-              <div className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-                
-                <div className="space-y-3 mb-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
-                  {items.map((item, index) => {
-                    const safeQuantity = Math.max(1, Number(item.quantity) || 1);
-                    // 🚀 FIXED 2: Used store.ts logic for exact cartItemId
-                    const cartItemId = item.selectedVariation ? `${item.id}-${item.selectedVariation.databaseId}` : item.id;
-                    
-                    return (
-                    <div key={`${item.id}-${index}`} className="flex gap-3 group items-center py-1">
-                      <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
-                        <img src={item.images?.[0]?.src || item.thumbnail} className="w-full h-full object-cover pointer-events-none" alt="" />
-                      </div>
+            <div className="sticky top-24">
+              <div className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6 space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+                  
+                  <div className="space-y-3 mb-4 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {items.map((item, index) => {
+                      const safeQuantity = Math.max(1, Number(item.quantity) || 1);
+                      const cartItemId = item.selectedVariation ? `${item.id}-${item.selectedVariation.databaseId}` : item.id;
                       
-                      <div className="flex flex-col justify-center flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <h4 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{item.name}</h4>
-                          <button 
-                            type="button" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (removeItem) removeItem(cartItemId);
-                            }}
-                            className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
-                            title="Remove item"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
-                          </button>
+                      return (
+                      <div key={`${item.id}-${index}`} className="flex gap-3 group items-center py-1">
+                        <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+                          <img src={item.images?.[0]?.src || item.thumbnail} className="w-full h-full object-cover pointer-events-none" alt="" />
                         </div>
                         
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="flex items-center bg-gray-50 border border-gray-200 rounded">
+                        <div className="flex flex-col justify-center flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className="text-[13px] font-semibold text-gray-900 leading-tight truncate">{item.name}</h4>
                             <button 
-                              type="button"
+                              type="button" 
                               onClick={(e) => {
                                 e.preventDefault();
-                                if (updateQuantity && safeQuantity > 1) {
-                                  // 🚀 FIXED 1: Send DELTA (-1) to match store.ts logic
-                                  updateQuantity(cartItemId, -1);
-                                }
+                                if (removeItem) removeItem(cartItemId);
                               }}
-                              className="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                              disabled={safeQuantity <= 1}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                              title="Remove item"
                             >
-                              <Minus className="w-2.5 h-2.5 pointer-events-none" />
-                            </button>
-                            <span className="w-5 text-center text-[11px] font-semibold text-gray-900">
-                              {safeQuantity}
-                            </span>
-                            <button 
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                if (updateQuantity) {
-                                  // 🚀 FIXED 1: Send DELTA (1) to match store.ts logic
-                                  updateQuantity(cartItemId, 1);
-                                }
-                              }}
-                              className="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
-                            >
-                              <Plus className="w-2.5 h-2.5 pointer-events-none" />
+                              <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
                             </button>
                           </div>
                           
-                          <span className="text-[13px] font-bold text-gray-900 tabular-nums">
-                            ৳{(Number(item.price) * safeQuantity).toLocaleString()}
-                          </span>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="flex items-center bg-gray-50 border border-gray-200 rounded">
+                              <button 
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (updateQuantity && safeQuantity > 1) {
+                                    updateQuantity(cartItemId, -1);
+                                  }
+                                }}
+                                className="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                disabled={safeQuantity <= 1}
+                              >
+                                <Minus className="w-2.5 h-2.5 pointer-events-none" />
+                              </button>
+                              <span className="w-5 text-center text-[11px] font-semibold text-gray-900">
+                                {safeQuantity}
+                              </span>
+                              <button 
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (updateQuantity) {
+                                    updateQuantity(cartItemId, 1);
+                                  }
+                                }}
+                                className="w-5 h-5 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
+                              >
+                                <Plus className="w-2.5 h-2.5 pointer-events-none" />
+                              </button>
+                            </div>
+                            
+                            <span className="text-[13px] font-bold text-gray-900 tabular-nums">
+                              ৳{(Number(item.price) * safeQuantity).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-4 space-y-3">
+                    <div className="flex justify-between items-center text-sm text-gray-500">
+                      <span>Subtotal</span>
+                      <span className="font-semibold text-gray-900 tabular-nums">৳{calculatedSubtotal.toLocaleString()}</span>
                     </div>
-                    );
-                  })}
+                    
+                    <div className="flex justify-between items-center text-sm text-gray-500">
+                      <span>
+                        Shipping 
+                        {shippingCost === 0 && <span className="text-[10px] text-emerald-600 font-bold ml-1 bg-emerald-100 px-1.5 py-0.5 rounded-full">(FREE)</span>}
+                      </span>
+                      <span className="font-semibold text-gray-900 tabular-nums">
+                        {shippingCost === 0 ? '৳0' : `৳${shippingCost}`}
+                      </span>
+                    </div>
+
+                    {appliedCoupon && (
+                      <div className="flex justify-between items-center text-sm text-green-600">
+                        <span className="flex flex-col">
+                          <span>Coupon Discount ({appliedCoupon.code})</span>
+                          {appliedCoupon.isOnlineOnly && formData.paymentMethod === 'cod' && (
+                            <span className="text-[10px] text-red-500 font-bold leading-tight">
+                              (শুধুমাত্র অনলাইন পেমেন্টে প্রযোজ্য)
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-bold tabular-nums">- ৳{couponDiscountAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    {onlineDiscount > 0 && (
+                      <div className="flex justify-between items-center text-[13px] text-[#e2136e] bg-[#e2136e]/5 px-2 py-1 -mx-2 rounded-md transition-all border border-dashed border-[#e2136e]/30">
+                        <span className="font-semibold">Online Payment Discount</span>
+                        <span className="font-bold tabular-nums">- ৳{onlineDiscount}</span>
+                      </div>
+                    )}
+
+                    <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+                      <span className="text-base font-bold text-gray-900">Total</span>
+                      <span className="text-xl font-bold text-brand-primary tabular-nums">৳{finalTotal.toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="border-t border-gray-100 pt-4 space-y-3">
-                  <div className="flex justify-between items-center text-sm text-gray-500">
-                    <span>Subtotal</span>
-                    <span className="font-semibold text-gray-900 tabular-nums">৳{calculatedSubtotal.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-sm text-gray-500">
-                    <span>
-                      Shipping 
-                      {shippingCost === 0 && <span className="text-[10px] text-emerald-600 font-bold ml-1 bg-emerald-100 px-1.5 py-0.5 rounded-full">(FREE)</span>}
-                    </span>
-                    <span className="font-semibold text-gray-900 tabular-nums">
-                      {shippingCost === 0 ? '৳0' : `৳${shippingCost}`}
-                    </span>
-                  </div>
-
-                  {appliedCoupon && (
-                    <div className="flex justify-between items-center text-sm text-green-600">
-                      <span className="flex flex-col">
-                        <span>Coupon Discount ({appliedCoupon.code})</span>
-                        {appliedCoupon.isOnlineOnly && formData.paymentMethod === 'cod' && (
-                          <span className="text-[10px] text-red-500 font-bold leading-tight">
-                            (শুধুমাত্র অনলাইন পেমেন্টে প্রযোজ্য)
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-bold tabular-nums">- ৳{couponDiscountAmount.toLocaleString()}</span>
-                    </div>
-                  )}
-
-                  {onlineDiscount > 0 && (
-                    <div className="flex justify-between items-center text-[13px] text-[#e2136e] bg-[#e2136e]/5 px-2 py-1 -mx-2 rounded-md transition-all border border-dashed border-[#e2136e]/30">
-                      <span className="font-semibold">Online Payment Discount</span>
-                      <span className="font-bold tabular-nums">- ৳{onlineDiscount}</span>
-                    </div>
-                  )}
-
-                  <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
-                    <span className="text-base font-bold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-brand-primary tabular-nums">৳{finalTotal.toLocaleString()}</span>
-                  </div>
+                {/* Coupon Code Block */}
+                <div className="pt-4 border-t border-gray-100">
+                   <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
+                      <Tag className="w-4 h-4 text-brand-primary pointer-events-none" /> 
+                      Have a coupon code?
+                   </h3>
+                   
+                   {appliedCoupon ? (
+                      <div className="flex items-center justify-between bg-green-50 border border-green-200 p-3 rounded-lg">
+                         <div>
+                            <p className="text-sm font-bold text-green-700 uppercase">{appliedCoupon.code}</p>
+                            <p className="text-xs text-green-600">Coupon applied successfully</p>
+                         </div>
+                         <button type="button" onClick={removeCoupon} className="text-red-500 hover:text-red-700 text-sm font-medium">Remove</button>
+                      </div>
+                   ) : (
+                      <div>
+                         <div className="flex gap-2">
+                            <input 
+                               type="text" 
+                               placeholder="Enter code here" 
+                               className="flex-1 h-11 px-3.5 rounded-lg border border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary text-sm uppercase"
+                               value={couponCode}
+                               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                               disabled={couponLoading}
+                            />
+                            <button 
+                               type="button"
+                               onClick={applyCoupon}
+                               disabled={couponLoading || !couponCode}
+                               className="h-11 px-5 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-black disabled:opacity-50 transition-colors"
+                            >
+                               {couponLoading ? 'Applying...' : 'Apply'}
+                            </button>
+                         </div>
+                         {couponMessage.text && (
+                            <p className={`text-xs mt-2 ${couponMessage.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+                               {couponMessage.text}
+                            </p>
+                         )}
+                      </div>
+                   )}
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-6 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="w-full mt-4 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
                   {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
                   {!loading && <ArrowRight className="w-5 h-5 pointer-events-none" />}
