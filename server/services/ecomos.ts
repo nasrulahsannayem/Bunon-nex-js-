@@ -14,7 +14,8 @@ export async function syncEcomosProducts() {
 
       const responseData = response.data?.data;
       if (!responseData) {
-          console.error("[EcomOS] Sync Warning: Invalid API response or no data", response.data);
+          const errorPreview = typeof response.data === 'string' ? '(Received HTML/Text response instead of JSON)' : response.data;
+          console.error("[EcomOS] Sync Warning: Invalid API response or no data", errorPreview);
           break;
       }
       
