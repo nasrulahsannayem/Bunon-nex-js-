@@ -112,6 +112,70 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ ok: false, msg: 'ফোন নম্বর প্রয়োজন' });
+
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    const [users]: any = await productDbPool.execute(
+      `SELECT * FROM bunon_users WHERE phone = ? LIMIT 1`,
+      [cleanPhone]
+    );
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ ok: false, msg: 'এই নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি।' });
+    }
+
+    const user = users[0];
+
+    if (!user.email || !user.email.includes('@')) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: 'আপনার অ্যাকাউন্টে কোনো ইমেইল যুক্ত নেই। অনুগ্রহ করে 09611900606 নম্বরে কল করে পাসওয়ার্ড রিসেট করুন।' 
+      });
+    }
+
+    // Generate random 6 digit password
+    const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update DB
+    await productDbPool.execute(
+      `UPDATE bunon_users SET password_hash = ? WHERE id = ?`,
+      [hashedPassword, user.id]
+    );
+
+    // Send Email
+    const { mailTransporter } = await import('../services/email');
+    await mailTransporter.sendMail({
+      from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
+      to: user.email,
+      subject: 'Password Reset - Bunon Fabrics',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #e2136e;">পাসওয়ার্ড রিসেট</h2>
+          <p>প্রিয় গ্রাহক,</p>
+          <p>আপনার অ্যাকাউন্ট (ফোন: ${user.phone}) এর জন্য নতুন একটি পাসওয়ার্ড তৈরি করা হয়েছে:</p>
+          <div style="background: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 2px;">
+            ${newPassword}
+          </div>
+          <p>দয়া করে এই পাসওয়ার্ড দিয়ে লগইন করুন এবং পরবর্তীতে আপনার প্রোফাইল থেকে পাসওয়ার্ড পরিবর্তন করে নিন (শীঘ্রই এই ফিচারটি আসছে)।</p>
+          <p>ধন্যবাদ,<br/>বুনন ফেব্রিক্স টিম</p>
+        </div>
+      `
+    });
+
+    res.json({ ok: true, msg: `আপনার ইমেইলে (${user.email.substring(0, 3)}***@...) নতুন পাসওয়ার্ড পাঠানো হয়েছে।` });
+
+  } catch (error: any) {
+    console.error('[Auth API] Forgot Password Error:', error.message);
+    res.status(500).json({ ok: false, msg: 'Server error' });
+  }
+});
+
 // Middleware to verify token
 export const verifyToken = (req: any, res: any, next: any) => {
   const token = req.headers.authorization?.split(' ')[1];
