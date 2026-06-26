@@ -1,100 +1,105 @@
-# 📂 Bunon.shop - Full Project Architecture & Ecosystem Analysis
+# Bunon Fabrics E-Commerce - Project Documentation
 
-এই ডকুমেন্টে `Bunon.shop` প্রজেক্টের সম্পূর্ণ আর্কিটেকচার, ফিচারসমূহ, ডেটাবেস মডেলস, API কানেকশনস এবং বর্তমান স্টেটাস (Bugs/Fixes) বিস্তারিতভাবে তুলে ধরা হলো।
+## 📌 Project Overview
+Bunon Fabrics is a modern, full-stack headless e-commerce web application. The frontend is built with React (Vite) offering a premium and snappy user interface, while the backend is an Express.js server that handles API requests, webhook processing, marketing automation, and local database syncing. 
 
----
-
-## 🚀 ১. প্রজেক্ট ওভারভিউ (Project Overview)
-**Bunon.shop** একটি আধুনিক, হাইব্রিড এবং সুপার-ফাস্ট ই-কমার্স প্ল্যাটফর্ম। 
-* **Frontend:** React + Vite (সিঙ্গেল পেজ অ্যাপ্লিকেশন হিসেবে কাজ করে)।
-* **Backend:** Node.js + Express (RESTful APIs প্রোভাইড করে)।
-* **Caching:** **Redis** (সব প্রোডাক্ট ডেটা ফাস্ট সার্ভ করার জন্য)।
-* **Databases (MySQL):** ৩টি আলাদা ডাটাবেস পোল ব্যবহার করা হচ্ছে:
-  - `bunonfabrics_dash_db` (অর্ডারস এবং ইউজারদের জন্য)
-  - `bunon_shop_db` (প্রোডাক্টস ক্যাশিং এর জন্য)
-  - `Bunonfabrics_db` (মূল ওয়ার্ডপ্রেস সাইট এবং মার্কেটিং ইমেইলের জন্য)
+This custom React stack serves as a blazing-fast frontend that directly replaces the default WooCommerce frontend while maintaining connection with the WooCommerce backend via a custom PHP API (`dash.bunonfabrics.com`) and Webhooks.
 
 ---
 
-## 🌟 ২. ফিচারসমূহ (Features List)
+## 🏗️ Architecture & Database Connectivity
+The project relies on multiple databases for different purposes. This segregation ensures high performance and modularity.
 
-১. **আল্ট্রা-ফাস্ট প্রোডাক্ট লোডিং:** প্রোডাক্ট সরাসরি ডাটাবেস থেকে না এসে **Redis Cache** থেকে আসে, তাই রেসপন্স টাইম মিলি-সেকেন্ড।
-২. **সিকিউর চেকআউট ও পেমেন্ট:** ফ্রন্টএন্ড থেকে আসা প্রাইস রিজেক্ট করে ব্যাকএন্ড নিজে প্রাইস ভেরিফাই করে। (COD, bKash, Paystation সাপোর্টেড)।
-৩. **অ্যাবান্ডনড কার্ট রিকভারি (Cart Recovery):** কেউ কার্টে প্রোডাক্ট রেখে চলে গেলে সিস্টেম স্বয়ংক্রিয়ভাবে ডিসকাউন্ট কুপনসহ রিকভারি ইমেইল পাঠায়।
-৪. **অটোমেটেড মার্কেটিং:** ডেইল প্রমোশন এবং নিউজলেটার স্বয়ংক্রিয়ভাবে কাস্টমারদের মেইলে পাঠানো হয়।
-৫. **মোবাইল লগইন সাপোর্ট:** OTP লগইন এবং Google OAuth লগইন সিস্টেম যুক্ত।
-৬. **অটো-সিঙ্ক (Webhooks):** ওয়ার্ডপ্রেসে কোনো প্রোডাক্ট আপডেট বা ডিলিট হলে, সাথে সাথে নোড সার্ভারের Redis ক্যাশ আপডেট হয়ে যায়।
-৭. **SEO Feed:** Google Merchant Center এর জন্য ডাইনামিক XML ফিড জেনারেট করে।
+### 1. `dbPool` (bf_orders, bf_order_items)
+- **Host:** `DASH_DB_HOST` (usually 127.0.0.1)
+- **Database:** `bunonfabrics_dash_db`
+- **Purpose:** 
+  - Handles the custom order management system.
+  - When a customer places an order via the React frontend, the data is saved into `bf_orders` and `bf_order_items`.
+  - It uses local Unix Sockets/Localhost for extreme high-speed insertions.
 
----
-
-## 🗄️ ৩. ডাটাবেস মডেলস এবং টেবিলসমূহ (Models / Schema)
-
-সিস্টেমে ব্যবহৃত প্রধান টেবিলগুলো হলো:
-
-1. **`wc_products_full`** 
-   - *কাজ:* ওয়ার্ডপ্রেসের সব প্রোডাক্টের ডাটা (নাম, দাম, ইমেজ, ক্যাটাগরি, স্টক) এখানে রাখা হয়। এই টেবিল থেকেই ডেটা **Redis** এ সিঙ্ক হয়।
-2. **`bunon_users`**
-   - *কাজ:* নতুন অ্যাপ ইউজার বা যারা অর্ডার করে তাদের ইনফরমেশন (Phone, Password Hash, Name, Email, Address) এখানে জমা হয়।
-3. **`bf_orders` & `bf_order_items`**
-   - *কাজ:* কাস্টমারদের সাকসেসফুল অর্ডার এবং অর্ডারের ভেতরের আইটেমগুলো সেভ করে রাখে।
-4. **`wc_marketing_emails`**
-   - *কাজ:* নিউজলেটার বা প্রমোশনাল মেইল পাওয়ার জন্য যারা সাবস্ক্রাইব করে তাদের লিস্ট।
-5. **`wc_cart_recovery_queue`**
-   - *কাজ:* কার্টে প্রোডাক্ট রেখে চলে যাওয়া কাস্টমারদের ডাটা, যেন পরে তাদের মেইল পাঠানো যায়।
-6. **`bf_email_logs`**
-   - *কাজ:* কোন কাস্টমারকে কখন কী মেইল পাঠানো হয়েছে তার লগ রাখে।
+### 2. `productDbPool` (bunon_shop_db)
+- **Host:** `DB_HOST` (usually 127.0.0.1)
+- **Database:** `bunon_shop_db`
+- **Purpose (Products):** 
+  - Stores cached products from WooCommerce in `wc_products_full`.
+  - Serves as the primary database for the frontend product catalog, making site loading instantaneous compared to hitting the WooCommerce API directly.
+- **Purpose (Marketing & Automation):**
+  - **`wc_marketing_emails`:** Stores customer emails and subscription status for daily newsletters.
+  - **`wc_cart_recovery_queue`:** Stores abandoned cart data (incomplete orders) where the user entered their phone/email but didn't complete checkout.
+  - **`bunon_users`:** Stores authenticated customer profiles (auto-generated when an order is placed).
 
 ---
 
-## 🔌 ৪. API এন্ডপয়েন্ট এবং তাদের কাজ (APIs)
+## ✨ Core Features & Modules
 
-আপনার ব্যাকএন্ডের প্রধান API রাউটগুলো নিচে দেওয়া হলো:
+### 1. 🛒 Express Checkout & Incomplete Order Capture (Abandoned Cart)
+- **Module:** `harvester.ts` & `payment.ts`
+- **How it works:** 
+  - As soon as a user types their Phone Number or Email on the checkout page, it is silently sent to the `/orders/save_to_wp.php` endpoint.
+  - This endpoint forwards the data to the central dashboard and simultaneously saves the cart data in `wc_cart_recovery_queue` (in `productDbPool`).
+  - If the user successfully places the order, `payment.ts` triggers an update to mark the recovery queue as `converted` and removes the incomplete order from the dashboard.
 
-### `server/routes/products.ts` (Product API)
-* `GET /api/products` - Redis থেকে সব প্রোডাক্ট পাঠায়।
-* `POST /api/verify-coupon` - কাস্টমার কুপন দিলে তা সরাসরি WooCommerce API থেকে ভেরিফাই করে।
-* `GET /api/feed` - SEO এবং Google Merchant-এর জন্য প্রোডাক্ট ফিড (XML) তৈরি করে।
+### 2. 🔁 Cart Recovery Automation (Cron Job)
+- **Module:** `recoveryCron.ts` & `email.ts`
+- **How it works:**
+  - A background process (Cron) runs to find customers in `wc_cart_recovery_queue` who haven't completed their order in the last 1 hour.
+  - It generates a dynamic discount coupon (e.g., 5%, 10%, 15%) and sends them a recovery email via Nodemailer.
+  - The email contains a "Magic Link" that restores their cart and automatically applies the discount coupon when they click it.
 
-### `server/routes/payment.ts` (Checkout API)
-* `POST /api/create-order` - কাস্টমার অর্ডার সাবমিট করলে প্রাইস ভেরিফাই করে `bf_orders` টেবিলে সেভ করে।
-* `POST /api/create-bkash-payment` - বিকাশ পেমেন্ট ইনিশিয়েট করে।
-* `POST /api/create-paystation-payment` - পে-স্টেশন গেটওয়ের সাথে কানেক্ট করে।
+### 3. 💌 Marketing & Daily Newsletter
+- **Module:** `dailyPromotionsCron.ts` & `marketing.ts`
+- **How it works:**
+  - Customers are automatically subscribed to marketing emails when they place an order or enter their email in the checkout form.
+  - A cron job (`sendDailyNewsletter`) fetches all subscribed emails from `wc_marketing_emails`.
+  - It picks random trending products from the local cache and sends a beautifully crafted promotional email.
+  - Customers can easily unsubscribe via the `/api/unsubscribe` endpoint.
 
-### `server/routes/auth.ts` (User Auth API)
-* `POST /api/auth/send-otp` - ইউজারকে লগইন করার জন্য Firebase/Custom SMS দিয়ে OTP পাঠায়।
-* `POST /api/auth/verify-otp` - OTP ভেরিফাই করে JWT টোকেন জেনারেট করে।
-* `GET /api/auth/profile` - ইউজারের পূর্বের অর্ডার ஹிস্ট্রি দেখায়।
+### 4. 💳 Payment Gateways Integration
+- **Module:** `payment.ts`
+- **Supported Gateways:** bKash (Tokenized API), PayStation, and Cash on Delivery (COD).
+- **How it works:**
+  - Upon selecting a digital payment method, the server initiates a session with the respective API.
+  - The customer is redirected to the gateway.
+  - Upon successful payment, the gateway triggers a callback (`/payment/bkash-callback` or `/payment/paystation-callback`), which updates the order status in `bf_orders` to `is_paid = 1`.
 
-### `server/routes/marketing.ts` (Marketing API)
-* `GET /api/unsubscribe` - ইউজার মার্কেটিং লিস্ট থেকে আনসাবস্ক্রাইব করলে `wc_marketing_emails` টেবিল আপডেট করে।
+### 5. ⚡ Webhook & Local Catalog Syncing
+- **Module:** `webhook.ts` & `store.ts`
+- **How it works:**
+  - Instead of constantly requesting WooCommerce for products, WooCommerce sends a Webhook to `/woocommerce/product` whenever a product is created, updated, or deleted.
+  - The Express server receives the payload and updates the `wc_products_full` table in `bunon_shop_db`.
+  - It immediately calls `syncLocalDatabase()` which updates the Redis RAM cache, ensuring the frontend always serves fresh data at 0ms latency.
 
-### `server/routes/webhook.ts` (Sync API)
-* `POST /api/woocommerce/product` - ওয়ার্ডপ্রেস থেকে প্রোডাক্ট আপডেট হলে এই API হিট হয় এবং সাথে সাথে `wc_products_full` ও Redis আপডেট করে।
-
----
-
-## 🛠️ ৫. বর্তমান স্টেটাস এবং সদ্য ফিক্স হওয়া সমস্যা (Current Status & Fixes)
-
-আপনার রিকুয়েস্ট অনুযায়ী কিছু বড় বাগ ফিক্স করা হয়েছে:
-
-✅ **১. Memory Leak (RAM Database) ফিক্সড:** 
-আগে `ramDatabase` ভ্যারিয়েবলে সব ডেটা রাখা হতো, যা ক্র্যাশ করার ঝুঁকিতে ছিল। এখন পুরোপুরি **Redis (`redisClient.ts`)** ইমপ্লিমেন্ট করা হয়েছে।
-✅ **২. Mobile Scroll Issue ফিক্সড:** 
-মোবাইল থেকে রিলেটেড প্রোডাক্টে ক্লিক করলে পেজ টপে আসতো না। `ProductDetail.tsx` এবং `ScrollToTop.tsx`-এ `useLayoutEffect` এবং হার্ড স্ক্রলিং লজিক দিয়ে এটি ফিক্স করা হয়েছে।
-✅ **৩. Security / API Abuse ফিক্সড:** 
-আগে API ওপেন ছিল। এখন `helmet` এবং `express-rate-limit` অ্যাড করে API-কে সিকিউর করা হয়েছে যেন হ্যাকাররা বট দিয়ে অ্যাটাক করতে না পারে।
-✅ **৪. Missing Password Warning:** 
-প্রোডাকশনে `.env` ফাইলে ডাটাবেস পাসওয়ার্ড বা Redis পাসওয়ার্ড না থাকলে সার্ভার স্টার্টআপে ওয়ার্নিং দেয়, যা আগে ছিল না।
-
-## ⚠️ ৬. সম্ভাব্য বাগ ও নজরে রাখার বিষয় (Things to Monitor)
-
-🔴 **১. PHP Legacy Code:** 
-`oms_bridge.php` এবং `products_api.php` তে এখনও কিছু লিগ্যাসি কোড থাকতে পারে যেখানে SQL Injection এর রিস্ক থাকতে পারে। (বর্তমানে নোড জেএস কোডে Prepared Statements আছে)।
-🔴 **২. Payment Gateway Keys:** 
-`.env` ফাইলে থাকা বিকাশ এবং পে-স্টেশনের API Keys যেন কোনোভাবেই পাবলিক না হয় সেদিকে খেয়াল রাখতে হবে।
-🔴 **৩. Multiple Database Pools:** 
-৩টি আলাদা ডাটাবেস পোল ব্যবহার করা হচ্ছে (`DASH`, `WP`, `SHOP`)। ট্রাফিক খুব বেশি হলে MySQL-এর max connections লিমিট ওভার হতে পারে। লিমিট `15` সেট করা আছে, প্রয়োজনে বাড়াতে হতে পারে।
+### 6. 🖼️ Image Proxy Server
+- **Module:** `imageProxy.ts`
+- **How it works:**
+  - Directly loading WooCommerce images can be slow and might cause Mixed Content errors.
+  - The frontend wraps all product image URLs through `/api/image-proxy?url=...`.
+  - The Express server downloads the image, saves it in a local `image/cache/` directory, and serves it directly to the user with a 1-year Cache-Control header.
 
 ---
-**Prepared By:** Antigravity AI ✨
+
+## 🐛 Resolved Bugs & Recent Fixes
+During the recent audit and debugging session, several critical optimizations and bug fixes were applied:
+
+1. **Popup Responsiveness on Mobile:** 
+   - **Issue:** The discount offer popup was overflowing and not scrollable on small mobile screens.
+   - **Fix:** Redesigned the popup modal in `Checkout.tsx` to be full-screen on mobile (`fixed inset-0`, `max-h-screen`) and properly scrollable without hiding buttons.
+2. **Express Rate Limit Trust Proxy:** 
+   - **Issue:** Express `express-rate-limit` was blocking legitimate users because it couldn't read the real client IP behind Nginx/Cloudflare.
+   - **Fix:** Added `app.set('trust proxy', 1);` in `server.ts` before applying rate limits.
+3. **Database Migration for Marketing Tools:** 
+   - **Issue:** The marketing and cart recovery queues were being saved in the WordPress database (`Bunonfabrics_db`), causing logical fragmentation.
+   - **Fix:** Migrated all marketing queries (`harvester.ts`, `marketing.ts`, `recoveryCron.ts`, `email.ts`) to use `productDbPool` (`bunon_shop_db`). `wpDbPool` was entirely removed as it was no longer needed, making the app much lighter and safer.
+4. **Duplicate Autofill API Calls:**
+   - **Fix:** Implemented Debounce strategies in `Checkout.tsx` to prevent the autofill script from spamming the `/orders/save_to_wp.php` endpoint on every keystroke.
+
+## 🚀 Deployment Instructions
+To deploy the latest changes to your live VPS, run the following commands in your project root directory:
+
+```bash
+git pull origin master
+npm install
+npm run build
+pm2 restart bunon-site
+```
