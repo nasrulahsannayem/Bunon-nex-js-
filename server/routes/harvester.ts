@@ -1,5 +1,5 @@
 import express from 'express';
-import { dbPool, productDbPool, wpDbPool } from '../db';
+import { dbPool, productDbPool } from '../db';
 import { sendOrderConfirmationEmail } from '../services/email';
 import { fixEmailTypos, isRoleBasedEmail } from '../utils/emailValidator';
 
@@ -52,7 +52,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     // Also register user's marketing profile if email is valid
     if (isValidMarketingEmail) {
       try {
-        await wpDbPool.execute(`
+        await productDbPool.execute(`
           INSERT INTO wc_marketing_emails (email, phone, name, status)
           VALUES (?, ?, ?, 'subscribed')
           ON DUPLICATE KEY UPDATE phone = VALUES(phone), name = VALUES(name)
@@ -66,7 +66,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     if (isValidMarketingEmail) {
       try {
         // If cleanPhone is empty, we still save it. We'll set phone to a placeholder or empty string
-        await wpDbPool.execute(`
+        await productDbPool.execute(`
           INSERT INTO wc_cart_recovery_queue (email, phone, customer_name, cart_data, status, attempts, created_at)
           VALUES (?, ?, ?, ?, 'pending', 0, NOW())
           ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), customer_name = VALUES(customer_name), 

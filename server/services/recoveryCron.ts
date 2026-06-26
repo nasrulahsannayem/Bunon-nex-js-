@@ -1,4 +1,4 @@
-import { wpDbPool } from '../db';
+import { productDbPool } from '../db';
 import { sendCartRecoveryEmail } from '../services/email';
 
 export async function processCartRecoveryCampaign() {
@@ -9,7 +9,7 @@ export async function processCartRecoveryCampaign() {
     const cutoffTime = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
     const sequenceCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago for next attempt
 
-    const [jobs]: any = await wpDbPool.execute(`
+    const [jobs]: any = await productDbPool.execute(`
       SELECT * FROM wc_cart_recovery_queue 
       WHERE status = 'pending' 
         AND (last_attempt_at IS NULL AND created_at <= ?)
@@ -30,7 +30,7 @@ export async function processCartRecoveryCampaign() {
 
       // If they placed an order or manually opted out, cancel the recovery job
       if (recentOrder && recentOrder.length > 0) {
-        await wpDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'converted' WHERE id = ?`, [job.id]);
+        await productDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'converted' WHERE id = ?`, [job.id]);
         continue;
       }
 
@@ -44,7 +44,7 @@ export async function processCartRecoveryCampaign() {
       } catch (e) {}
 
       if (cartItems.length === 0) {
-        await wpDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'cancelled' WHERE id = ?`, [job.id]);
+        await productDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'cancelled' WHERE id = ?`, [job.id]);
         continue;
       }
 

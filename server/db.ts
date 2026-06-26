@@ -33,14 +33,3 @@ export const productDbPool = mysql.createPool({
   queueLimit: 0
 });
 
-// 🚀 WORDPRESS DATABASE POOL (Connection to Bunonfabrics_db)
-export const wpDbPool = mysql.createPool({
-  host: process.env.WP_DB_HOST || "127.0.0.1",
-  port: Number(process.env.WP_DB_PORT) || 3306,
-  user: process.env.WP_DB_USER || "Bunonfabrics_db",
-  password: process.env.WP_DB_PASSWORD?.replace(/\"/g, '') || "",
-  database: process.env.WP_DB_NAME || "Bunonfabrics_db",
-  waitForConnections: true,
-  connectionLimit: CONNECTION_LIMIT,
-  queueLimit: 0
-});

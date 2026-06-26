@@ -1,5 +1,5 @@
 import express from "express";
-import { dbPool, productDbPool, wpDbPool } from "../db";
+import { dbPool, productDbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
@@ -171,7 +171,7 @@ router.post("/checkout/place-order", async (req, res) => {
     }
       // 🚀 FIX #8: Update recovery queue, wrapped in try-catch so it doesn't break checkout!
       try {
-        await wpDbPool.execute(`
+        await productDbPool.execute(`
           UPDATE wc_cart_recovery_queue 
           SET status = 'converted' 
           WHERE email = ? OR phone = ?
