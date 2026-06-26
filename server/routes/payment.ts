@@ -1,5 +1,5 @@
 import express from "express";
-import { dbPool, productDbPool } from "../db";
+import { dbPool, productDbPool, wpDbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
@@ -166,7 +166,7 @@ router.post("/checkout/place-order", async (req, res) => {
       }
     }
       // 🚀 FIX #8: Use productDbPool (wc_cart_recovery_queue lives in product DB, not dashboard DB)
-      await productDbPool.execute(`
+      await wpDbPool.execute(`
         UPDATE wc_cart_recovery_queue 
         SET status = 'converted' 
         WHERE email = ? OR phone = ?

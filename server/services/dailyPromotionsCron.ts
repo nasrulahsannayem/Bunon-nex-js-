@@ -1,4 +1,4 @@
-import { productDbPool } from '../db';
+import { wpDbPool } from '../db';
 import { mailTransporter } from './email';
 
 /**
@@ -38,7 +38,7 @@ export async function sendDailyNewsletter() {
   
   try {
     // Get all subscribed users (from marketing table OR users table, but marketing is safe)
-    const [subscribers]: any = await productDbPool.execute(
+    const [subscribers]: any = await wpDbPool.execute(
       `SELECT email, name FROM wc_marketing_emails WHERE status = 'subscribed'`
     );
 

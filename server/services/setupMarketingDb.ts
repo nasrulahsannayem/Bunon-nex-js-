@@ -1,9 +1,9 @@
-import { productDbPool } from "../db";
+import { productDbPool, wpDbPool } from "../db";
 
 export async function setupMarketingTables() {
   try {
     // 1. wc_marketing_emails table
-    await productDbPool.execute(`
+    await wpDbPool.execute(`
       CREATE TABLE IF NOT EXISTS wc_marketing_emails (
           id INT AUTO_INCREMENT PRIMARY KEY,
           email VARCHAR(255) NOT NULL UNIQUE,
@@ -16,7 +16,7 @@ export async function setupMarketingTables() {
     `);
 
     // 2. wc_cart_recovery_queue table
-    await productDbPool.execute(`
+    await wpDbPool.execute(`
       CREATE TABLE IF NOT EXISTS wc_cart_recovery_queue (
           id INT AUTO_INCREMENT PRIMARY KEY,
           email VARCHAR(255) NOT NULL,

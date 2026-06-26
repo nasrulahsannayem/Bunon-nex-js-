@@ -1,5 +1,5 @@
 import express from "express";
-import { productDbPool } from "../db";
+import { wpDbPool } from "../db";
 
 const router = express.Router();
 
@@ -13,13 +13,13 @@ router.get("/unsubscribe", async (req, res) => {
 
   try {
     // 1. Opt out from marketing list
-    await productDbPool.execute(
+    await wpDbPool.execute(
       `UPDATE wc_marketing_emails SET status = 'unsubscribed' WHERE email = ?`,
       [email]
     );
 
     // 2. Also opt out from recovery campaigns
-    await productDbPool.execute(
+    await wpDbPool.execute(
       `UPDATE wc_cart_recovery_queue SET status = 'cancelled' WHERE email = ?`,
       [email]
     );

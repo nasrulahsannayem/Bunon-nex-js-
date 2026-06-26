@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { productDbPool } from '../db';
+import { dbPool, productDbPool, wpDbPool } from '../db';
 import { ramDatabase } from '../store';
 
 // Initialize NodeMailer secure transporter using user's webmail credentials
@@ -143,7 +143,7 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
     });
 
     // Also auto subscribe them to marketing emails if they place an order
-    await productDbPool.execute(
+    await wpDbPool.execute(
       `INSERT INTO wc_marketing_emails (email, phone, name, status) 
        VALUES (?, ?, ?, 'subscribed') 
        ON DUPLICATE KEY UPDATE status='subscribed', name=?`,
@@ -179,7 +179,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
   }
   try {
     // Check if user is unsubscribed
-    const [subscriber]: any = await productDbPool.execute('SELECT status FROM wc_marketing_emails WHERE email = ?', [email]);
+    const [subscriber]: any = await wpDbPool.execute('SELECT status FROM wc_marketing_emails WHERE email = ?', [email]);
     if (subscriber && subscriber[0]?.status === 'unsubscribed') {
       console.log(`[Email] Skip recovery mail for ${email} because they are unsubscribed.`);
       return;
@@ -252,7 +252,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
 export async function sendDailyNewsletter() {
   try {
     // 1. Fetch active subscribers
-    const [subscribers]: any = await productDbPool.execute("SELECT email, name FROM wc_marketing_emails WHERE status = 'subscribed'");
+    const [subscribers]: any = await wpDbPool.execute("SELECT email, name FROM wc_marketing_emails WHERE status = 'subscribed'");
     if (!subscribers || subscribers.length === 0) return;
 
     // 2. Select 3 random hot products from local catalog
