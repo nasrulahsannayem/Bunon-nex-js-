@@ -79,7 +79,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
         >
           <img 
-            src={product.images[0]?.src || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp'} 
+            src={product.images[0]?.src || '/assets/images/woocommerce-placeholder-300x300.webp'} 
             alt={product.name} 
             className="absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-[1.03]"
             loading="lazy"

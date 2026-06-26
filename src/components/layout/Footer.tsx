@@ -67,7 +67,7 @@ export default function Footer() {
              </p>
              <span>60 Lake Circus Rd, Kalabagan, Dhaka. | Hotline: 09611900606</span>
           </div>
-          <img src="https://bunonfabrics.com/wp-content/uploads/2025/03/Payment-1-1024x98-1-1.png" className="h-5 opacity-50 grayscale hover:grayscale-0 transition-opacity" alt="Secure Payment" />
+          <img src="/assets/images/Payment-1-1024x98-1-1.png" className="h-5 opacity-50 grayscale hover:grayscale-0 transition-opacity" alt="Secure Payment" />
         </div>
       </div>
     </footer>

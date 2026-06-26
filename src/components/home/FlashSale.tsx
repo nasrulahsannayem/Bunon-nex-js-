@@ -29,7 +29,7 @@ export default function FlashSale() {
         {/* Image */}
         <div className="w-full lg:w-1/2 h-80 lg:h-[500px] overflow-hidden">
           <img 
-            src="https://bunonfabrics.com/wp-content/uploads/2025/10/bunon-saree-banner-4.webp" 
+            src="/assets/images/bunon-saree-banner-4.webp" 
             alt="Flash Sale" 
             className="w-full h-full object-cover grayscale transition-all duration-700 hover:grayscale-0 scale-105 hover:scale-100"
           />

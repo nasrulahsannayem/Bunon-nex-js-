@@ -74,7 +74,7 @@ router.get("/test-marketing-emails", async (req, res) => {
       total: 1230,
       paymentMethod: "bkash",
       items: [
-        { name: "Premium Cotton Printed Saree", quantity: 1, price: 1250, thumbnail: "https://bunonfabrics.com/wp-content/uploads/2025/03/couple-dress.webp" }
+        { name: "Premium Cotton Printed Saree", quantity: 1, price: 1250, thumbnail: "/assets/images/couple-dress.webp" }
       ]
     });
 
@@ -85,7 +85,7 @@ router.get("/test-marketing-emails", async (req, res) => {
       "01700000000",
       "Nasrul",
       [
-        { id: 101, name: "Traditional Silk Saree", price: 2450, quantity: 1, thumbnail: "https://bunonfabrics.com/wp-content/uploads/2025/03/saree.jpg" }
+        { id: 101, name: "Traditional Silk Saree", price: 2450, quantity: 1, thumbnail: "/assets/images/saree.jpg" }
       ],
       15 // 15% discount coupon
     );

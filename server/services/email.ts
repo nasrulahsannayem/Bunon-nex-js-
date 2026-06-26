@@ -64,7 +64,7 @@ function wrapHtmlBody(title: string, bodyContent: string, email: string): string
 export async function sendOrderConfirmationEmail(toEmail: string, orderData: any) {
   try {
     const productsHtml = (orderData.items || []).map((item: any) => {
-      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp');
+      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
       return `
       <tr style="border-bottom: 1px solid #f3f4f6;">
         <td style="padding: 10px 0; font-weight: 600; display: flex; align-items: center; gap: 10px;">
@@ -197,7 +197,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     const magicCheckoutLink = `https://bunon.shop/checkout?restore_cart=${cartParam}&coupon=${generatedCoupon}`;
 
     const abandonedItemsHtml = cartItems.slice(0, 3).map((item: any) => {
-      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp');
+      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
       return `
         <div style="display: inline-block; margin: 5px; text-align: center;">
           <img src="${imgUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eaeaea;" alt="${item.name}">

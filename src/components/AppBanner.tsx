@@ -51,7 +51,7 @@ return (
         
         {/* App Logo */}
         <img 
-          src="https://bunonfabrics.com/wp-content/uploads/2025/02/original-logo-with-black-background.png" 
+          src="/assets/images/original-logo-with-black-background.png" 
           alt="Bunon App" 
           className="w-10 h-10 min-w-[40px] rounded-lg object-contain bg-black border border-gray-100 shadow-sm flex-shrink-0"
           onError={(e) => {

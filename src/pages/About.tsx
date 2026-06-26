@@ -52,7 +52,7 @@ export default function About() {
            </div>
 
            <div className="w-full md:w-1/2 bg-gray-50 p-8 md:p-12 lg:p-16 border-t md:border-t-0 md:border-l border-gray-100">
-              <img src="https://bunonfabrics.com/wp-content/uploads/2025/02/original-logo-with-black-background.png" alt="Bunon Fabrics Logo" className="w-[120px] rounded-xl shadow-md mb-8" />
+              <img src="/assets/images/original-logo-with-black-background.png" alt="Bunon Fabrics Logo" className="w-[120px] rounded-xl shadow-md mb-8" />
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

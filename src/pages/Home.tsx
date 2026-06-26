@@ -83,10 +83,10 @@ export default function Home() {
   }, []);
 
   const testimonials = [
-    { name: 'Ayesha R., Dhaka', text: 'The Rupnandini saree made me feel like royalty. The craftsmanship is unbelievable!', img: 'https://bunonfabrics.com/wp-content/uploads/2025/02/IMG-20250224-WA0007.jpg' },
-    { name: 'Nazia K., Chattogram', text: 'I gifted a Bunon saree to my mother. Her tears said everything. It was perfect.', img: 'https://bunonfabrics.com/wp-content/uploads/2025/02/676afc30-c94c-407d-984d-e19845b088ec.jpeg' },
-    { name: 'Sara T., Sylhet', text: 'Bunon isn’t just a brand. It’s heritage wrapped in elegance. I\'m in love!', img: 'https://bunonfabrics.com/wp-content/uploads/2025/03/IMG-20250301-WA0005.jpg' },
-    { name: 'Jannat A., Narayanganj', text: 'Got my order in 2 days! Packaging was stunning. My husband was speechless.', img: 'https://bunonfabrics.com/wp-content/uploads/2025/04/475526699_18022258898644312_3512043635408462093_n.webp' },
+    { name: 'Ayesha R., Dhaka', text: 'The Rupnandini saree made me feel like royalty. The craftsmanship is unbelievable!', img: '/assets/images/IMG-20250224-WA0007.jpg' },
+    { name: 'Nazia K., Chattogram', text: 'I gifted a Bunon saree to my mother. Her tears said everything. It was perfect.', img: '/assets/images/676afc30-c94c-407d-984d-e19845b088ec.jpeg' },
+    { name: 'Sara T., Sylhet', text: 'Bunon isn’t just a brand. It’s heritage wrapped in elegance. I\'m in love!', img: '/assets/images/IMG-20250301-WA0005.jpg' },
+    { name: 'Jannat A., Narayanganj', text: 'Got my order in 2 days! Packaging was stunning. My husband was speechless.', img: '/assets/images/475526699_18022258898644312_3512043635408462093_n.webp' },
   ];
 
   // 🚀 ১. Best Selling Saree: মাদার ক্যাটাগরি "saree" দিয়ে রিয়েল ফিল্টারিং
@@ -144,9 +144,9 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative w-full h-[75vh] min-h-[500px] bg-black flex items-center justify-center text-center overflow-hidden">
-        <img src="https://bunonfabrics.com/wp-content/uploads/2025/06/Bestselling-Saree-banner-1pc.jpg" className="absolute inset-0 w-full h-full object-cover opacity-85 hidden md:block" alt="Bunon Luxury Saree" fetchpriority="high" />
+        <img src="/assets/images/Bestselling-Saree-banner-1pc.jpg" className="absolute inset-0 w-full h-full object-cover opacity-85 hidden md:block" alt="Bunon Luxury Saree" fetchpriority="high" />
         <video className="absolute inset-0 w-full h-full object-cover opacity-85 md:hidden pointer-events-none" autoPlay loop muted playsInline poster="/image/Bestselling-Saree-banner-1-mobie-768x912.jpg">
-          <source src="https://bunonfabrics.com/wp-content/uploads/2026/04/snaptik_7543269370093456658_v3-1.mp4" type="video/mp4" />
+          <source src="/assets/videos/snaptik_7543269370093456658_v3-1.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-[#080f28]/80 z-10" />
         <div className="relative z-20 px-4 max-w-3xl mx-auto w-full">
@@ -300,7 +300,7 @@ export default function Home() {
       {/* Promo Banner */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-12">
         <Link to="/shop" className="block rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group relative">
-          <img src="https://bunonfabrics.com/wp-content/uploads/2025/10/bunon-saree-banner-6.webp" alt="Promo" className="w-full h-auto group-hover:scale-[1.02] transition-transform duration-700" loading="lazy" />
+          <img src="/assets/images/bunon-saree-banner-6.webp" alt="Promo" className="w-full h-auto group-hover:scale-[1.02] transition-transform duration-700" loading="lazy" />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-brand-navy/10 transition-colors mix-blend-multiply" />
         </Link>
       </div>

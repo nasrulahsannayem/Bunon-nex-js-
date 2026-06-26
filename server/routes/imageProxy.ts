@@ -3,6 +3,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import https from 'https';
 
 const router = express.Router();
 
@@ -55,7 +56,8 @@ router.get('/image-proxy', async (req, res) => {
       timeout: 10000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      }
+      },
+      httpsAgent: new https.Agent({ rejectUnauthorized: false })
     });
 
     const writer = fs.createWriteStream(localFilePath);

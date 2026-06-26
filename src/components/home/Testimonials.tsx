@@ -6,25 +6,25 @@ const testimonials = [
     name: "Ayesha R.",
     location: "Dhaka",
     text: "The Rupnandini saree made me feel like royalty. The craftsmanship is unbelievable!",
-    avatar: "https://bunonfabrics.com/wp-content/uploads/2025/02/IMG-20250224-WA0007.jpg"
+    avatar: "/assets/images/IMG-20250224-WA0007.jpg"
   },
   {
     name: "Nazia K.",
     location: "Chattogram",
     text: "I gifted a Bunon saree to my mother. Her tears said everything. It was perfect.",
-    avatar: "https://bunonfabrics.com/wp-content/uploads/2025/02/676afc30-c94c-407d-984d-e19845b088ec.jpeg"
+    avatar: "/assets/images/676afc30-c94c-407d-984d-e19845b088ec.jpeg"
   },
   {
     name: "Sara T.",
     location: "Sylhet",
     text: "Bunon isn’t just a brand. It’s heritage wrapped in elegance. I'm in love!",
-    avatar: "https://bunonfabrics.com/wp-content/uploads/2025/03/IMG-20250301-WA0005.jpg"
+    avatar: "/assets/images/IMG-20250301-WA0005.jpg"
   },
   {
     name: "Jannat A.",
     location: "Narayanganj",
     text: "Got my order in 2 days! Packaging was stunning. My husband was speechless.",
-    avatar: "https://bunonfabrics.com/wp-content/uploads/2025/04/475526699_18022258898644312_3512043635408462093_n.webp"
+    avatar: "/assets/images/475526699_18022258898644312_3512043635408462093_n.webp"
   }
 ];
 

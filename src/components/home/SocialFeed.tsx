@@ -2,11 +2,11 @@ import { Instagram, Plus } from 'lucide-react';
 
 export default function SocialFeed() {
   const images = [
-    "https://bunonfabrics.com/wp-content/uploads/2025/02/IMG-20250224-WA0007.jpg",
-    "https://bunonfabrics.com/wp-content/uploads/2025/02/676afc30-c94c-407d-984d-e19845b088ec.jpeg",
-    "https://bunonfabrics.com/wp-content/uploads/2025/03/IMG-20250301-WA0005.jpg",
-    "https://bunonfabrics.com/wp-content/uploads/2025/04/475526699_18022258898644312_3512043635408462093_n.webp",
-    "https://bunonfabrics.com/wp-content/uploads/2025/06/product-jpeg-1000x1000-1.jpg"
+    "/assets/images/IMG-20250224-WA0007.jpg",
+    "/assets/images/676afc30-c94c-407d-984d-e19845b088ec.jpeg",
+    "/assets/images/IMG-20250301-WA0005.jpg",
+    "/assets/images/475526699_18022258898644312_3512043635408462093_n.webp",
+    "/assets/images/product-jpeg-1000x1000-1.jpg"
   ];
 
   return (

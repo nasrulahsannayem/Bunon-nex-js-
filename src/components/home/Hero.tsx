@@ -13,7 +13,7 @@ export default function Hero() {
         className="absolute inset-0 hidden md:block"
       >
         <img 
-          src="https://bunonfabrics.com/wp-content/uploads/2025/06/Bestselling-Saree-banner-1pc.jpg" 
+          src="/assets/images/Bestselling-Saree-banner-1pc.jpg" 
           className="w-full h-full object-cover opacity-60"
           alt="Banner"
         />
@@ -27,10 +27,10 @@ export default function Hero() {
           muted 
           playsInline 
           className="w-full h-full object-cover opacity-50"
-          poster="https://bunonfabrics.com/wp-content/uploads/2025/06/Bestselling-Saree-banner-1-mobie.jpg"
+          poster="/assets/images/Bestselling-Saree-banner-1-mobie.jpg"
         >
           <source 
-            src="https://bunonfabrics.com/wp-content/uploads/2026/04/snaptik_7543269370093456658_v3-1.mp4" 
+            src="/assets/videos/snaptik_7543269370093456658_v3-1.mp4" 
             type="video/mp4" 
           />
         </video>

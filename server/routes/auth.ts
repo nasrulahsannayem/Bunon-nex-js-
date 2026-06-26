@@ -149,26 +149,30 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     // Send Email
-    const { mailTransporter } = await import('../services/email');
-    await mailTransporter.sendMail({
-      from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
-      to: user.email,
-      subject: 'Password Reset - Bunon Fabrics',
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #e2136e;">পাসওয়ার্ড রিসেট</h2>
-          <p>প্রিয় গ্রাহক,</p>
-          <p>আপনার অ্যাকাউন্ট (ফোন: ${user.phone}) এর জন্য নতুন একটি পাসওয়ার্ড তৈরি করা হয়েছে:</p>
-          <div style="background: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 2px;">
-            ${newPassword}
+    try {
+      const { mailTransporter } = await import('../services/email');
+      await mailTransporter.sendMail({
+        from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
+        to: user.email,
+        subject: 'Password Reset - Bunon Fabrics',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #e2136e;">পাসওয়ার্ড রিসেট</h2>
+            <p>প্রিয় গ্রাহক,</p>
+            <p>আপনার অ্যাকাউন্ট (ফোন: ${user.phone}) এর জন্য নতুন একটি পাসওয়ার্ড তৈরি করা হয়েছে:</p>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 2px;">
+              ${newPassword}
+            </div>
+            <p>দয়া করে এই পাসওয়ার্ড দিয়ে লগইন করুন এবং পরবর্তীতে আপনার প্রোফাইল থেকে পাসওয়ার্ড পরিবর্তন করে নিন (শীঘ্রই এই ফিচারটি আসছে)।</p>
+            <p>ধন্যবাদ,<br/>বুনন ফেব্রিক্স টিম</p>
           </div>
-          <p>দয়া করে এই পাসওয়ার্ড দিয়ে লগইন করুন এবং পরবর্তীতে আপনার প্রোফাইল থেকে পাসওয়ার্ড পরিবর্তন করে নিন (শীঘ্রই এই ফিচারটি আসছে)।</p>
-          <p>ধন্যবাদ,<br/>বুনন ফেব্রিক্স টিম</p>
-        </div>
-      `
-    });
-
-    res.json({ ok: true, msg: `আপনার ইমেইলে (${user.email.substring(0, 3)}***@...) নতুন পাসওয়ার্ড পাঠানো হয়েছে।` });
+        `
+      });
+      res.json({ ok: true, msg: `আপনার ইমেইলে (${user.email.substring(0, 3)}***@...) নতুন পাসওয়ার্ড পাঠানো হয়েছে।` });
+    } catch (mailErr: any) {
+      console.error('[Auth API] Mail Send Error:', mailErr.message);
+      res.status(500).json({ ok: false, msg: 'পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল সার্ভারে সমস্যার কারণে ইমেইল পাঠানো সম্ভব হয়নি। অনুগ্রহ করে সাপোর্টে যোগাযোগ করুন।' });
+    }
 
   } catch (error: any) {
     console.error('[Auth API] Forgot Password Error:', error.message);

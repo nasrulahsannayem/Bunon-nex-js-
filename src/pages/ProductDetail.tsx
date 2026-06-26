@@ -218,7 +218,7 @@ export default function ProductDetail() {
                   {product.images.map((img, idx) => (
                     <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square relative">
                       <img 
-                        src={img.src || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp'} 
+                        src={img.src || '/assets/images/woocommerce-placeholder-300x300.webp'} 
                         className="w-full h-full object-cover" 
                         alt={`${product.name} - Image ${idx + 1}`}
                       />
