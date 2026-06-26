@@ -40,6 +40,29 @@ async function setupDB() {
 
     await connection.execute(createTableQuery);
     console.log("Table 'wc_products_full' created or already exists.");
+
+    const createEmailLogsTable = `
+      CREATE TABLE IF NOT EXISTS bf_email_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id VARCHAR(50),
+        recipient_email VARCHAR(191),
+        email_type VARCHAR(50),
+        status ENUM('pending', 'sent', 'failed') DEFAULT 'pending',
+        error_message TEXT,
+        attempts INT DEFAULT 0,
+        last_attempt DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    await connection.execute(createEmailLogsTable);
+    console.log("Table 'bf_email_logs' created or already exists.");
+    try {
+      await connection.execute(`ALTER TABLE bf_order_items MODIFY order_id INT(10) UNSIGNED`);
+      await connection.execute(`ALTER TABLE bf_order_items MODIFY woo_order_id BIGINT(20) UNSIGNED`);
+      console.log("Ensured bf_order_items has correct column sizes.");
+    } catch (e) {
+      console.log("Could not alter bf_order_items (maybe it does not exist yet).");
+    }
     
     await connection.end();
     console.log("Database setup completed.");

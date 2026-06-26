@@ -113,7 +113,7 @@ router.post("/checkout/place-order", async (req, res) => {
     }
 
     // 📩 Trigger order confirmation email sending if email exists
-    if (customer.email && customer.email.includes("@")) {
+    if (customer.email && customer.email.includes("@") && !customer.email.endsWith("@bunon.shop")) {
       const { sendOrderConfirmationEmail } = await import("../services/email");
       sendOrderConfirmationEmail(customer.email, {
         orderId: generatedOrderId,
@@ -128,14 +128,13 @@ router.post("/checkout/place-order", async (req, res) => {
         paymentMethod: paymentMethod,
         items: cart
       }).catch(err => console.error("Email trigger failed:", err));
-
+    }
       // Mark any cart recovery sequence for this email as converted
       await dbPool.execute(`
         UPDATE wc_cart_recovery_queue 
         SET status = 'converted' 
         WHERE email = ? OR phone = ?
       `, [customer.email, customer.phone]);
-    }
 
     // ❌ ব্যাকগ্রাউন্ডে অর্ডারটি EcomOS-এ পাঠানো আপাতত বন্ধ করা হলো
     // sendToEcomOS(ecomosOrderData); 

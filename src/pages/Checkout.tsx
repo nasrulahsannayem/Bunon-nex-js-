@@ -382,7 +382,7 @@ export default function Checkout() {
       const nameParts = formData.firstName.trim().split(/\s+/);
       const fName = nameParts[0] || 'Guest';
       const lName = nameParts.slice(1).join(' ') || 'Customer';
-      const savedEmail = getCookie('user_email') || getCookie('billing_email') || `${formData.phone}@bunon.shop`;
+      const savedEmail = getCookie('user_email') || getCookie('billing_email') || "";
 
       const fbpToken = getCookie('_fbp');
       const fbcToken = getCookie('_fbc');
@@ -393,7 +393,7 @@ export default function Checkout() {
         customer: {
           name: formData.firstName,
           phone: formData.phone,
-          email: savedEmail.toLowerCase(), 
+          email: savedEmail ? savedEmail.toLowerCase() : null, 
           city: formData.district,
           area: formData.address2 || '',
           address: formData.address1,

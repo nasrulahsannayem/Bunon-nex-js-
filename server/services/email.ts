@@ -138,9 +138,22 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
       [toEmail, orderData.phone, orderData.firstName, orderData.firstName]
     );
 
+    await dbPool.execute(
+      `INSERT INTO bf_email_logs (order_id, recipient_email, email_type, status) VALUES (?, ?, 'order_confirmation', 'sent')`,
+      [orderData.orderId, toEmail]
+    );
+
     console.log(`[Email] Order confirmation sent successfully to ${toEmail}`);
   } catch (err: any) {
     console.error('[Email] Failed to send order confirmation:', err.message);
+    try {
+      await dbPool.execute(
+        `INSERT INTO bf_email_logs (order_id, recipient_email, email_type, status, error_message) VALUES (?, ?, 'order_confirmation', 'failed', ?)`,
+        [orderData.orderId || null, toEmail, err.message]
+      );
+    } catch (dbErr) {
+      // Ignore inner db error
+    }
   }
 }
 
