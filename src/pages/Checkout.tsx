@@ -12,7 +12,8 @@ import {
   Trash2,
   Plus,
   Minus,
-  Tag 
+  Tag,
+  X
 } from 'lucide-react';
 
 export default function Checkout() {
@@ -29,6 +30,11 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState({ text: '', type: '' });
+  
+  // Cancel Offer Popup States
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [randomDiscount, setRandomDiscount] = useState(0);
+  const [generatedCouponCode, setGeneratedCouponCode] = useState('');
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -146,6 +152,23 @@ export default function Checkout() {
     setAppliedCoupon(null);
     setCouponCode('');
     setCouponMessage({ text: '', type: '' });
+  };
+
+  const handleCancelClick = () => {
+    // Generate a random discount from 10 to 30%
+    const percent = Math.floor(Math.random() * 21) + 10;
+    setRandomDiscount(percent);
+    setGeneratedCouponCode(`SAVE${percent}`);
+    setShowCancelPopup(true);
+  };
+
+  const applyCancelDiscount = () => {
+    setAppliedCoupon({
+      code: generatedCouponCode,
+      amount: randomDiscount,
+      type: 'percent'
+    });
+    setShowCancelPopup(false);
   };
 
   // 🕵️ ADVANCED EXIT-INTENT ABANDONED CART TRACKER
@@ -394,15 +417,24 @@ export default function Checkout() {
           <span className="text-gray-900 font-medium">Checkout</span>
         </nav>
 
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Checkout</h1>
-          <p className="mt-1 text-sm text-gray-500">Complete your order — it only takes a minute.</p>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Secure Checkout</h1>
+            <p className="mt-1 text-sm text-gray-500">Complete your order — it only takes a minute.</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={handleCancelClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#e2136e] bg-[#e2136e]/5 hover:bg-[#e2136e]/10 border border-[#e2136e]/20 rounded-lg transition-all hover:scale-105 active:scale-95 shrink-0"
+          >
+            <X className="w-3.5 h-3.5" /> CANCEL
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 xl:gap-10">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6">
-              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900">
+          <div className="space-y-6 max-md:space-y-0 max-md:bg-white max-md:rounded-2xl max-md:border max-md:border-black/5 max-md:shadow-sm max-md:p-4">
+            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6">
+              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900 max-md:mt-2">
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-bold">1</span>
                 Contact Details
               </h2>
@@ -444,7 +476,7 @@ export default function Checkout() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6">
+            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6 max-md:mt-6 max-md:pt-6 max-md:border-t max-md:border-gray-100">
               <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900">
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-bold">2</span>
                 Delivery Address
@@ -490,21 +522,10 @@ export default function Checkout() {
                     onBlur={trackIncompleteOrderOnBlur}
                   />
                 </label>
-
-                <label className="block">
-                  <span className="block text-sm font-medium text-gray-700 mb-1.5">Order Note <span className="text-gray-400 font-normal">— Optional</span></span>
-                  <textarea 
-                    rows={2}
-                    placeholder="Any special instructions?" 
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none"
-                    value={formData.note}
-                    onChange={(e) => setFormData({...formData, note: e.target.value})}
-                  />
-                </label>
               </div>
             </section>
 
-            <section className="rounded-2xl border border-black/5 bg-white shadow-sm p-4 md:p-6 overflow-visible">
+            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6 overflow-visible max-md:mt-6 max-md:pt-6 max-md:border-t max-md:border-gray-100">
               <h2 className="flex items-center gap-3 mb-4 md:mb-5 text-base md:text-lg font-semibold text-gray-900">
                 <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-bold">3</span>
                 Payment Method
@@ -760,6 +781,99 @@ export default function Checkout() {
           </div>
         </form>
       </div>
+
+      {/* 🎟️ CANCEL OFFER POPUP MODAL */}
+      {showCancelPopup && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleUp {
+              from { transform: scale(0.95); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+            .animate-fadeIn {
+              animation: fadeIn 0.2s ease-out forwards;
+            }
+            .animate-scaleUp {
+              animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+          `}</style>
+          
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden relative p-6 md:p-8 animate-scaleUp">
+            
+            {/* Close Button */}
+            <button 
+              type="button" 
+              onClick={() => setShowCancelPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="w-14 h-14 bg-[#e2136e]/10 text-[#e2136e] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Tag className="w-7 h-7" />
+              </div>
+
+              <h3 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-2 leading-tight">
+                অর্ডার বাতিল করবেন না! 🌸
+              </h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+                আপনার জন্য রয়েছে একটি বিশেষ ধামাকা অফার। এখনই অর্ডার করলে অতিরিক্ত ডিসকাউন্ট পাবেন!
+              </p>
+
+              {/* Dynamic Percent Badge */}
+              <div className="bg-gradient-to-r from-[#e2136e] to-[#ff4081] text-white rounded-2xl py-4 px-6 mb-6 shadow-md">
+                <span className="block text-xs uppercase tracking-wider font-bold opacity-90">Special Discount Coupon</span>
+                <span className="block text-4xl font-black my-1 tracking-tight">{randomDiscount}% OFF</span>
+                <span className="inline-block bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest mt-1">
+                  CODE: {generatedCouponCode}
+                </span>
+              </div>
+
+              {/* Calculation Box */}
+              <div className="bg-gray-50 rounded-xl p-4 text-left border border-gray-100 text-xs sm:text-sm space-y-2 mb-6">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal:</span>
+                  <span className="font-semibold text-gray-900">৳{calculatedSubtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-[#e2136e] font-medium">
+                  <span>নতুন {randomDiscount}% ডিসকাউন্ট:</span>
+                  <span className="font-bold">- ৳{Math.round((calculatedSubtotal * randomDiscount) / 100).toLocaleString()}</span>
+                </div>
+                
+                {/* Highlight Online Payment integration */}
+                <div className="pt-2 border-t border-dashed border-gray-200 mt-2">
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    💡 <strong className="text-gray-800">অনলাইন পেমেন্ট করুন:</strong> অনলাইন পেমেন্ট (bKash/Paystation) সিলেক্ট করলে পূর্বের <span className="text-[#e2136e] font-bold">৳৫০ ডিসকাউন্ট</span> এবং এই কুপনের <span className="text-[#e2136e] font-bold">৳{Math.round((calculatedSubtotal * randomDiscount) / 100)}</span> একসাথে যোগ হয়ে মোট <span className="text-emerald-600 font-extrabold">৳{Math.round((calculatedSubtotal * randomDiscount) / 100) + 50}</span> ডিসকাউন্ট পাবেন!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={applyCancelDiscount}
+                  className="w-full h-12 bg-black hover:bg-gray-900 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-wider"
+                >
+                  অফারটি গ্রহণ করুন
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelPopup(false)}
+                  className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 font-semibold transition-colors"
+                >
+                  না, আমি অর্ডার করতে চাই না
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
