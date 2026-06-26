@@ -894,8 +894,11 @@ export default function Checkout() {
             }
           `}</style>
           
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden relative p-6 md:p-8 animate-scaleUp">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-gray-100 overflow-hidden relative animate-scaleUp">
             
+            {/* Top decorative gradient bar */}
+            <div className="h-2 bg-gradient-to-r from-[#e2136e] via-brand-primary to-[#ff4081]" />
+
             {/* Close Button */}
             <button 
               type="button" 
@@ -903,51 +906,70 @@ export default function Checkout() {
                 setShowCancelPopup(false);
                 window.location.href = '/';
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 transition-colors w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <div className="text-center">
-              <div className="w-14 h-14 bg-[#e2136e]/10 text-[#e2136e] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="p-6 md:p-8 text-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-red-50 to-red-100 text-brand-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
                 <Tag className="w-7 h-7" />
               </div>
 
-              <h3 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-2 leading-tight">
-                অর্ডার বাতিল করবেন না! 🌸
+              <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-1.5 leading-tight font-display">
+                অর্ডারটি সম্পন্ন করুন! 🌸
               </h3>
-              <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-                আপনার জন্য রয়েছে একটি বিশেষ ধামাকা অফার। এখনই অর্ডার করলে অতিরিক্ত ডিসকাউন্ট পাবেন!
+              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                আপনার জন্য রয়েছে একটি বিশেষ ধামাকা কুপন অফার। কুপনটি নিয়ে এখনই সহজে অর্ডার সম্পন্ন করুন।
               </p>
 
-               {/* Dynamic Percent Badge */}
-              <div className="bg-gradient-to-r from-[#e2136e] to-[#ff4081] text-white rounded-2xl py-4 px-6 mb-6 shadow-md shadow-[#e2136e]/20">
-                <span className="block text-xs uppercase tracking-wider font-extrabold opacity-95">স্পেশাল অনলাইন পেমেন্ট অফার</span>
-                <span className="block text-2xl md:text-3xl font-black my-1.5 tracking-tight animate-pulse">মোট ৳{randomDiscount + 50} ডিসকাউন্ট! 🔥</span>
-                <span className="block text-[11px] opacity-90 leading-relaxed">
-                  (কুপন ডিসকাউন্ট ৳{randomDiscount} + অনলাইন পেমেন্ট ডিসকাউন্ট ৳৫০)
-                </span>
-                <div className="mt-2.5 inline-block bg-white/20 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              {/* Premium Ticket Style Voucher */}
+              <div className="relative bg-gradient-to-br from-[#fff5f8] to-[#fff0f5] border border-[#e2136e]/20 rounded-2xl p-5 mb-5 shadow-sm overflow-hidden">
+                {/* Left Ticket Notch */}
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-white border-r border-[#e2136e]/20 rounded-r-full -translate-x-2" />
+                {/* Right Ticket Notch */}
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-white border-l border-[#e2136e]/20 rounded-l-full translate-x-2" />
+                
+                <span className="block text-[10px] uppercase tracking-wider font-extrabold text-[#e2136e] opacity-80">Special Savings Voucher</span>
+                
+                <div className="my-3 flex items-baseline justify-center gap-1">
+                  <span className="text-4xl md:text-5xl font-black text-brand-primary tracking-tight">৳{randomDiscount + 50}</span>
+                  <span className="text-sm font-bold text-gray-700">ফ্ল্যাট ছাড়</span>
+                </div>
+                
+                <div className="border-t border-dashed border-[#e2136e]/30 pt-3 mt-3 text-left space-y-1 text-[11px] text-gray-600">
+                  <div className="flex justify-between">
+                    <span>বিশেষ কুপন ছাড়:</span>
+                    <span className="font-bold text-gray-900">৳{randomDiscount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>অনলাইন পেমেন্ট ছাড়:</span>
+                    <span className="font-bold text-[#e2136e]">৳৫০</span>
+                  </div>
+                </div>
+                
+                <div className="mt-3.5 inline-flex items-center gap-1.5 bg-white/80 border border-[#e2136e]/20 px-3 py-1 rounded-full text-xs font-mono font-bold text-brand-primary">
                   CODE: {generatedCouponCode}
                 </div>
               </div>
 
-              {/* Calculation Box */}
-              <div className="bg-gray-50 rounded-xl p-4 text-left border border-gray-100 text-xs sm:text-sm space-y-2 mb-6">
-                <div className="flex justify-between text-gray-600">
+              {/* Order Summary box */}
+              <div className="bg-gray-50 rounded-2xl p-4 text-left border border-gray-200/60 text-xs space-y-1.5 mb-6">
+                <div className="flex justify-between text-gray-500">
                   <span>Subtotal:</span>
-                  <span className="font-semibold text-gray-900">৳{calculatedSubtotal.toLocaleString()}</span>
+                  <span className="font-semibold text-gray-800">৳{calculatedSubtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[#e2136e] font-medium">
-                  <span>নতুন কুপন ডিসকাউন্ট:</span>
-                  <span className="font-bold">- ৳{randomDiscount.toLocaleString()}</span>
+                <div className="flex justify-between text-[#e2136e] font-semibold">
+                  <span>অনলাইন পেমেন্ট কুপন ডিসকাউন্ট:</span>
+                  <span>- ৳{randomDiscount.toLocaleString()}</span>
                 </div>
-                
-                {/* Highlight Online Payment integration */}
-                <div className="pt-2 border-t border-dashed border-gray-200 mt-2">
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    💡 <strong className="text-gray-800">অনলাইন পেমেন্ট করুন:</strong> অনলাইন পেমেন্ট (bKash/Paystation) সিলেক্ট করলে পূর্বের <span className="text-[#e2136e] font-bold">৳৫০ ডিসকাউন্ট</span> এবং এই কুপনের <span className="text-[#e2136e] font-bold">৳{randomDiscount}</span> একসাথে যোগ হয়ে মোট <span className="text-emerald-600 font-extrabold">৳{randomDiscount + 50}</span> ডিসকাউন্ট পাবেন!
-                  </p>
+                <div className="flex justify-between text-[#e2136e] font-semibold pb-1.5 border-b border-gray-200/60">
+                  <span>অনলাইন পেমেন্ট মেথড ডিসকাউন্ট:</span>
+                  <span>- ৳৫০</span>
+                </div>
+                <div className="flex justify-between pt-1.5 font-bold text-gray-900 text-sm">
+                  <span>ডিসকাউন্টে সর্বমোট মূল্য:</span>
+                  <span className="text-brand-primary font-black">৳{Math.max(0, calculatedSubtotal + shippingCost - onlineDiscount - randomDiscount).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -955,9 +977,9 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={applyCancelDiscount}
-                  className="w-full h-12 bg-brand-primary hover:brightness-105 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-wider animate-pulse"
+                  className="w-full h-12 bg-brand-primary hover:brightness-105 text-white font-extrabold rounded-xl shadow-lg shadow-brand-primary/20 transition-all active:scale-95 text-sm uppercase tracking-wider flex items-center justify-center gap-2 bunon-pulse"
                 >
-                  অফারটি গ্রহণ করুন
+                  ডিসকাউন্ট নিয়ে অর্ডার করুন ⚡
                 </button>
               </div>
 
