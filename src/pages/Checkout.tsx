@@ -177,6 +177,9 @@ export default function Checkout() {
   };
 
   const handleCancelClick = () => {
+    // Sync incomplete order details on cancel click if a phone is entered
+    trackIncompleteOrderOnBlur();
+
     // Dynamic flat discount between ৳20 and ৳100 based on subtotal
     let flatAmt = 20;
     if (calculatedSubtotal <= 500) {
