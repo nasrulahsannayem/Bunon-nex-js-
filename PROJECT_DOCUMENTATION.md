@@ -1,105 +1,144 @@
-# Bunon Fabrics E-Commerce - Project Documentation
+# Bunon Fabrics - Comprehensive Project Documentation
 
-## 📌 Project Overview
-Bunon Fabrics is a modern, full-stack headless e-commerce web application. The frontend is built with React (Vite) offering a premium and snappy user interface, while the backend is an Express.js server that handles API requests, webhook processing, marketing automation, and local database syncing. 
-
-This custom React stack serves as a blazing-fast frontend that directly replaces the default WooCommerce frontend while maintaining connection with the WooCommerce backend via a custom PHP API (`dash.bunonfabrics.com`) and Webhooks.
+This documentation serves as the master guide for the Bunon Fabrics custom headless e-commerce stack. It details every page, button, API, and database connection so that developers can easily debug, add features, or scale the application.
 
 ---
 
-## 🏗️ Architecture & Database Connectivity
-The project relies on multiple databases for different purposes. This segregation ensures high performance and modularity.
+## 🏗️ 1. Architecture & Database Connectivity
 
-### 1. `dbPool` (bf_orders, bf_order_items)
-- **Host:** `DASH_DB_HOST` (usually 127.0.0.1)
-- **Database:** `bunonfabrics_dash_db`
-- **Purpose:** 
-  - Handles the custom order management system.
-  - When a customer places an order via the React frontend, the data is saved into `bf_orders` and `bf_order_items`.
-  - It uses local Unix Sockets/Localhost for extreme high-speed insertions.
+The project uses a **Node.js (Express) + React (Vite)** architecture. It separates data across two primary databases and utilizes Redis for extreme high-speed performance and server-side logic (like deduplication).
 
-### 2. `productDbPool` (bunon_shop_db)
-- **Host:** `DB_HOST` (usually 127.0.0.1)
-- **Database:** `bunon_shop_db`
-- **Purpose (Products):** 
-  - Stores cached products from WooCommerce in `wc_products_full`.
-  - Serves as the primary database for the frontend product catalog, making site loading instantaneous compared to hitting the WooCommerce API directly.
-- **Purpose (Marketing & Automation):**
-  - **`wc_marketing_emails`:** Stores customer emails and subscription status for daily newsletters.
-  - **`wc_cart_recovery_queue`:** Stores abandoned cart data (incomplete orders) where the user entered their phone/email but didn't complete checkout.
-  - **`bunon_users`:** Stores authenticated customer profiles (auto-generated when an order is placed).
+### 🟢 `bunon_shop_db` (Product & Marketing Database)
+Connected via: `productDbPool` in `server/db.ts`
+- **`wc_products_full`**: Local replica of WooCommerce products. 
+- **`wc_marketing_emails`**: Subscribed users for the daily newsletter.
+- **`wc_cart_recovery_queue`**: Stores abandoned carts (incomplete checkout forms).
+- **`bunon_users`**: Registered user accounts.
 
----
+### 🔵 `bunonfabrics_dash_db` (Dashboard / Order Management Database)
+Connected via: `dbPool` in `server/db.ts`
+- **`bf_orders`**: Stores all confirmed orders.
+- **`bf_order_items`**: Stores the individual products purchased in an order.
 
-## ✨ Core Features & Modules
-
-### 1. 🛒 Express Checkout & Incomplete Order Capture (Abandoned Cart)
-- **Module:** `harvester.ts` & `payment.ts`
-- **How it works:** 
-  - As soon as a user types their Phone Number or Email on the checkout page, it is silently sent to the `/orders/save_to_wp.php` endpoint.
-  - This endpoint forwards the data to the central dashboard and simultaneously saves the cart data in `wc_cart_recovery_queue` (in `productDbPool`).
-  - If the user successfully places the order, `payment.ts` triggers an update to mark the recovery queue as `converted` and removes the incomplete order from the dashboard.
-
-### 2. 🔁 Cart Recovery Automation (Cron Job)
-- **Module:** `recoveryCron.ts` & `email.ts`
-- **How it works:**
-  - A background process (Cron) runs to find customers in `wc_cart_recovery_queue` who haven't completed their order in the last 1 hour.
-  - It generates a dynamic discount coupon (e.g., 5%, 10%, 15%) and sends them a recovery email via Nodemailer.
-  - The email contains a "Magic Link" that restores their cart and automatically applies the discount coupon when they click it.
-
-### 3. 💌 Marketing & Daily Newsletter
-- **Module:** `dailyPromotionsCron.ts` & `marketing.ts`
-- **How it works:**
-  - Customers are automatically subscribed to marketing emails when they place an order or enter their email in the checkout form.
-  - A cron job (`sendDailyNewsletter`) fetches all subscribed emails from `wc_marketing_emails`.
-  - It picks random trending products from the local cache and sends a beautifully crafted promotional email.
-  - Customers can easily unsubscribe via the `/api/unsubscribe` endpoint.
-
-### 4. 💳 Payment Gateways Integration
-- **Module:** `payment.ts`
-- **Supported Gateways:** bKash (Tokenized API), PayStation, and Cash on Delivery (COD).
-- **How it works:**
-  - Upon selecting a digital payment method, the server initiates a session with the respective API.
-  - The customer is redirected to the gateway.
-  - Upon successful payment, the gateway triggers a callback (`/payment/bkash-callback` or `/payment/paystation-callback`), which updates the order status in `bf_orders` to `is_paid = 1`.
-
-### 5. ⚡ Webhook & Local Catalog Syncing
-- **Module:** `webhook.ts` & `store.ts`
-- **How it works:**
-  - Instead of constantly requesting WooCommerce for products, WooCommerce sends a Webhook to `/woocommerce/product` whenever a product is created, updated, or deleted.
-  - The Express server receives the payload and updates the `wc_products_full` table in `bunon_shop_db`.
-  - It immediately calls `syncLocalDatabase()` which updates the Redis RAM cache, ensuring the frontend always serves fresh data at 0ms latency.
-
-### 6. 🖼️ Image Proxy Server
-- **Module:** `imageProxy.ts`
-- **How it works:**
-  - Directly loading WooCommerce images can be slow and might cause Mixed Content errors.
-  - The frontend wraps all product image URLs through `/api/image-proxy?url=...`.
-  - The Express server downloads the image, saves it in a local `image/cache/` directory, and serves it directly to the user with a 1-year Cache-Control header.
+### 🔴 Redis Server (`127.0.0.1:6379`)
+Connected via: `redisClient.ts`
+- **Product Caching**: Holds the entire product catalog in RAM, allowing `/api/products` to respond in 0ms.
+- **Server-Side Deduplication**: Used by the harvester to temporarily block duplicate autofill requests (`autofill:phone:email` key with 30-min TTL).
 
 ---
 
-## 🐛 Resolved Bugs & Recent Fixes
-During the recent audit and debugging session, several critical optimizations and bug fixes were applied:
+## 🖥️ 2. Frontend Layout: Pages & Buttons
 
-1. **Popup Responsiveness on Mobile:** 
-   - **Issue:** The discount offer popup was overflowing and not scrollable on small mobile screens.
-   - **Fix:** Redesigned the popup modal in `Checkout.tsx` to be full-screen on mobile (`fixed inset-0`, `max-h-screen`) and properly scrollable without hiding buttons.
-2. **Express Rate Limit Trust Proxy:** 
-   - **Issue:** Express `express-rate-limit` was blocking legitimate users because it couldn't read the real client IP behind Nginx/Cloudflare.
-   - **Fix:** Added `app.set('trust proxy', 1);` in `server.ts` before applying rate limits.
-3. **Database Migration for Marketing Tools:** 
-   - **Issue:** The marketing and cart recovery queues were being saved in the WordPress database (`Bunonfabrics_db`), causing logical fragmentation.
-   - **Fix:** Migrated all marketing queries (`harvester.ts`, `marketing.ts`, `recoveryCron.ts`, `email.ts`) to use `productDbPool` (`bunon_shop_db`). `wpDbPool` was entirely removed as it was no longer needed, making the app much lighter and safer.
-4. **Duplicate Autofill API Calls:**
-   - **Fix:** Implemented Debounce strategies in `Checkout.tsx` to prevent the autofill script from spamming the `/orders/save_to_wp.php` endpoint on every keystroke.
+The frontend is located in `src/pages/`. Here is the breakdown of what exists on each page and how the buttons function:
 
-## 🚀 Deployment Instructions
-To deploy the latest changes to your live VPS, run the following commands in your project root directory:
+### 🏠 `Home.tsx`
+- **Hero Banner**: Displays promotional graphics.
+- **Category Slider**: Filters products by category.
+- **Trending Products**: Displays products fetched from `/api/products`.
+- **Buttons**: `Add to Cart` (Adds item to local React state), `Buy Now` (Adds to cart and redirects to `/checkout`).
 
-```bash
-git pull origin master
-npm install
-npm run build
-pm2 restart bunon-site
-```
+### 🛍️ `Shop.tsx`
+- Contains the full product catalog with sidebar filters (Price, Category, Color).
+- Fetches all data instantly from the local Redis cache via `/api/products`.
+
+### 📦 `ProductDetail.tsx`
+- Detailed view of a single product. 
+- **Image Slider**: Loads images via the `/api/image-proxy` to prevent mixed-content warnings.
+- **Buttons**: Size selectors, Quantity modifiers (+/-), and `Buy Now` / `Add to Cart`.
+
+### 💳 `Checkout.tsx` (Critical Component)
+- **Form Inputs**: Name, Phone, Email, Address, City.
+- **Autofill Tracker (Harvester)**: When a user types their phone/email and focuses away (`onBlur`), `src/lib/autofillTracker.ts` silently sends the data to `/orders/save_to_wp.php` to save the cart for future recovery.
+- **Payment Buttons**:
+  - `Cash on Delivery (COD)`: Directly submits to `/payment/checkout/place-order`.
+  - `Pay with bKash`: Hits `/payment/bkash/create`, opens the bKash payment gateway.
+  - `PayStation`: Hits `/payment/paystation/create` for alternative cards/mobile banking.
+- **Discount Modal**: Popups dynamically if a user tries to leave or after a certain time.
+
+### 👤 `Profile.tsx` & `Login.tsx`
+- **Login/Register**: Connects to `/api/auth/login` and `/api/auth/register`. Issues JWT tokens for session management.
+- **Profile**: Displays user info and past orders fetched from `bf_orders`.
+
+---
+
+## 🔌 3. Backend APIs & Routing
+
+All backend logic resides in `server/routes/` and `server/services/`.
+
+### 🔐 Authentication (`server/routes/auth.ts`)
+- **`POST /api/auth/register`**: Creates a user in `bunon_users`.
+- **`POST /api/auth/login`**: Verifies password and returns a JWT token.
+- **`GET /api/auth/me`**: Returns the logged-in user's profile using the JWT token header.
+
+### 🛒 Checkout & Payments (`server/routes/payment.ts`)
+- **`POST /checkout/place-order`**: 
+  - Validates cart.
+  - Inserts the order into `bf_orders` and `bf_order_items` via `dbPool`.
+  - Fires an order confirmation email via `mailTransporter`.
+  - Removes the user from the abandoned cart recovery queue.
+- **`POST /payment/bkash/create`**: Generates a bKash URL and token.
+- **`POST /payment/paystation/create`**: Generates a PayStation checkout URL.
+
+### 🕵️ Harvester & Recovery (`server/routes/harvester.ts`)
+- **`POST /orders/save_to_wp.php`**: 
+  - Receives live keystroke/blur data from the checkout page.
+  - Checks Redis for duplicates (`autofill:phone:email`). If duplicate found within 30 mins, drops it to prevent spam.
+  - If new, saves to `wc_cart_recovery_queue` in `productDbPool`.
+
+### 📡 Webhooks (`server/routes/webhook.ts`)
+- **`POST /woocommerce/product`**: Triggered automatically by WordPress when an admin adds/edits a product. Updates MySQL and triggers a Redis cache refresh immediately.
+
+### 🖼️ Image Proxy (`server/routes/imageProxy.ts`)
+- **`GET /api/image-proxy?url=...`**: Downloads images from external servers, caches them in `image/cache/`, and serves them locally to ensure fast loading and strict SSL compliance.
+
+### 📧 Marketing & Emails (`server/services/email.ts`)
+- Connects to the local Postfix/Sendmail server (`127.0.0.1:587`).
+- **Configuration**: `ignoreTLS` is set for localhost to bypass `454 TLS not available` errors. `auth` is omitted for localhost to prevent `535 Authentication failed` errors, utilizing the local open relay.
+
+---
+
+## 🛠️ 4. Cron Jobs (Background Tasks)
+
+Located in `server.ts`:
+1. **EcomOS Sync (`syncEcomosProducts`)**: Runs every 12 hours. Fetches IDs from EcomOS API to map local SKUs to EcomOS system IDs.
+2. **Cart Recovery (`processCartRecoveryCampaign`)**: Runs every 30 minutes. Finds abandoned carts in `wc_cart_recovery_queue` and sends discount emails with a magic link.
+3. **Daily Newsletter (`sendDailyNewsletter`)**: Runs daily at 10:00 AM. Sends automated promotional emails to users in `wc_marketing_emails`.
+
+---
+
+## 🐛 5. Current Known Bugs & System Status
+
+**Current Status: STABLE (Production Ready)**
+
+### Recently Fixed Bugs:
+- ✅ **Duplicate Autofill Logs**: Fixed via Redis server-side deduplication. Frontend now safely interacts with the backend without spamming MySQL or PM2 logs.
+- ✅ **Email Delivery Failed (ECONNREFUSED / TLS / Auth Error)**: Fixed by routing nodemailer directly to local sendmail (`127.0.0.1:587`), disabling TLS requirement for localhost, and dropping the virtual auth object.
+- ✅ **EcomOS Warning Spam**: Rate-limited the warning logs to trigger only once per hour when EcomOS API returns invalid HTML (due to expired tokens or downtime).
+- ✅ **GitHub Large File Rejections**: Added `image/`, `*.zip`, and `*.map` to `.gitignore`.
+
+### Outstanding / Future Polish:
+- **EcomOS Integration**: The `sendToEcomOS()` function in `payment.ts` is currently commented out because the API is returning HTML (likely an expired token). When you receive a valid EcomOS API Token, update `.env` and uncomment the code in `payment.ts` (lines 38-63).
+
+---
+
+## 🚀 6. Developer Guide: Adding Features & Products
+
+### How to Add a New Page (Frontend)
+1. Create a new file in `src/pages/` (e.g., `NewFeature.tsx`).
+2. Export your React component.
+3. Open `src/App.tsx`, import your component, and add a `<Route path="/new-feature" element={<NewFeature />} />` inside the `<Routes>` block.
+
+### How to Add a New API Endpoint (Backend)
+1. Open the relevant file in `server/routes/` (or create a new one, e.g., `server/routes/custom.ts`).
+2. Add your Express route: `router.get('/my-data', async (req, res) => { ... })`.
+3. If creating a new file, import and mount it in `server.ts`: `app.use('/api/custom', customRouter);`.
+
+### How to Manage Products
+- You do **not** need to add products manually in the code.
+- Add products normally in your **WordPress/WooCommerce admin panel**.
+- WooCommerce will automatically fire a webhook to the Express server, which will instantly update MySQL and Redis. The React frontend will display the new product within milliseconds.
+
+### Environment Variable Guide (`.env`)
+- To change database passwords, update `DB_PASSWORD`, `DASH_DB_PASSWORD`, and `WP_DB_PASSWORD`.
+- To update email configurations, modify `MAIL_HOST` (keep as `127.0.0.1` for local relay) and `MAIL_PORT`.
+- Make sure to run `pm2 restart bunon-site --update-env` after editing the `.env` file so PM2 picks up the new variables.
