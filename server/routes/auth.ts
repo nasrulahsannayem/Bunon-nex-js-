@@ -48,7 +48,8 @@ router.post('/login', async (req, res) => {
         phone: user.phone,
         email: user.email,
         default_address: user.default_address,
-        default_city: user.default_city
+        default_city: user.default_city,
+        role: user.role
       }
     });
 
@@ -198,7 +199,7 @@ export const verifyToken = (req: any, res: any, next: any) => {
 router.get('/profile', verifyToken, async (req: any, res) => {
   try {
     const [users]: any = await productDbPool.execute(
-      `SELECT id, name, phone, email, default_address, default_city FROM bunon_users WHERE id = ?`,
+      `SELECT id, name, phone, email, default_address, default_city, role FROM bunon_users WHERE id = ?`,
       [req.user.id]
     );
 

@@ -12,6 +12,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import OrdersManager from './pages/admin/OrdersManager';
 import AbandonedCarts from './pages/admin/AbandonedCarts';
+import AdminLogin from './pages/admin/AdminLogin';
 
 // Lazy loading pages for "mili second er modde load"
 const Home = lazy(() => import('./pages/Home'));
@@ -70,6 +71,7 @@ function AppContent() {
             <Route path="/dmca" element={<DMCA />} />
             
             {/* Admin Secured Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />

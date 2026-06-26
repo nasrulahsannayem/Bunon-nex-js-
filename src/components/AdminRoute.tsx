@@ -5,16 +5,16 @@ export default function AdminRoute() {
   const userStr = localStorage.getItem('bunon_user');
 
   if (!token || !userStr) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   try {
     const user = JSON.parse(userStr);
     if (user.role !== 'admin' && user.role !== 'staff') {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/admin/login" replace />;
     }
   } catch (e) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return <Outlet />;
