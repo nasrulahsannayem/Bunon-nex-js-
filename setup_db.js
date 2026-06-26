@@ -64,6 +64,14 @@ async function setupDB() {
       console.log("Could not alter bf_order_items (maybe it does not exist yet).");
     }
     
+    // 🔥 Force make the user an admin
+    try {
+      await connection.execute(`UPDATE bunon_users SET role = 'admin' WHERE phone = '01799553323'`);
+      console.log("Super Admin role forcefully granted to 01799553323.");
+    } catch (e) {
+      console.log("Could not update admin role, maybe user doesn't exist yet.");
+    }
+
     await connection.end();
     console.log("Database setup completed.");
   } catch (error) {
