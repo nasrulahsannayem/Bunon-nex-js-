@@ -234,13 +234,41 @@ export default function Navbar() {
                 )}
               </Link>
 
-              <Link 
-                to="/profile" 
-                className="flex p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                aria-label="Profile"
-              >
-                <User className="w-5 h-5" />
-              </Link>
+              <div className="relative group">
+                <Link 
+                  to="/profile" 
+                  className="flex p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                  aria-label="Profile"
+                >
+                  <User className="w-5 h-5" />
+                </Link>
+                {/* Profile Dropdown Modal (Shows on Hover for Desktop) */}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-2">
+                    {localStorage.getItem('bunon_token') ? (
+                      <>
+                        <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary rounded-lg transition-colors">আমার প্রোফাইল</Link>
+                        <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary rounded-lg transition-colors">আমার অর্ডার</Link>
+                        <button 
+                          onClick={() => {
+                            localStorage.removeItem('bunon_token');
+                            localStorage.removeItem('bunon_user');
+                            window.location.href = '/';
+                          }}
+                          className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          লগআউট
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link to="/login" className="block px-4 py-2 text-sm font-medium text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-colors">লগইন করুন</Link>
+                        <Link to="/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">নতুন অ্যাকাউন্ট</Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <button 
                 onClick={() => setIsOpen(true)}
