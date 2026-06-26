@@ -2,24 +2,31 @@ import nodemailer from 'nodemailer';
 import { dbPool, productDbPool } from '../db';
 import { getCachedProducts } from './redisClient';
 
-const MAIL_PORT = Number(process.env.MAIL_PORT) || 465;
+const MAIL_PORT = Number(process.env.MAIL_PORT) || 25; // Default to 25 for local
 const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587/25=STARTTLS/Plain
 const IS_LOCAL = process.env.MAIL_HOST === '127.0.0.1' || process.env.MAIL_HOST === 'localhost';
 
-// Initialize NodeMailer transporter
-export const mailTransporter = nodemailer.createTransport({
+const transporterConfig: any = {
   host: process.env.MAIL_HOST || '127.0.0.1',
   port: MAIL_PORT,
-  secure: IS_SECURE, // true for 465, false for other ports
+  secure: IS_SECURE,
   ignoreTLS: IS_LOCAL && !IS_SECURE, // If local and not 465, ignore TLS to avoid sendmail 454 STARTTLS error
-  auth: {
-    user: process.env.MAIL_USER || 'admin@bunonfabrics.com',
-    pass: process.env.MAIL_PASS ? process.env.MAIL_PASS.replace(/"/g, '') : 'naim#707207AA'
-  },
   tls: {
     rejectUnauthorized: false
   }
-});
+};
+
+// 🚀 FIX: Local sendmail acts as an open relay for 127.0.0.1 but will reject virtual user auth.
+// Only provide auth if we are NOT connecting to localhost, or if explicitly required.
+if (!IS_LOCAL) {
+  transporterConfig.auth = {
+    user: process.env.MAIL_USER || 'admin@bunonfabrics.com',
+    pass: process.env.MAIL_PASS ? process.env.MAIL_PASS.replace(/"/g, '') : 'naim#707207AA'
+  };
+}
+
+// Initialize NodeMailer transporter
+export const mailTransporter = nodemailer.createTransport(transporterConfig);
 
 // Verify connection on startup (non-blocking)
 mailTransporter.verify((error) => {
