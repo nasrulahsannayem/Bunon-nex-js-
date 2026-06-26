@@ -23,8 +23,9 @@ echo "🛠️ Ensuring database tables exist..."
 node setup_db.cjs || node setup_db.js
 
 # Restart the PM2 process
-echo "♻️ Restarting PM2 process (bunon-site)..."
-pm2 restart bunon-site
+echo "♻️ Recreating PM2 process (bunon-site)..."
+pm2 delete bunon-site || true
+pm2 start dist/server.cjs --name "bunon-site"
 
 # Show the logs
 echo "📜 Tailing PM2 logs..."
