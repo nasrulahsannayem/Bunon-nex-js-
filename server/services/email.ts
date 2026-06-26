@@ -2,9 +2,9 @@ import nodemailer from 'nodemailer';
 import { dbPool, productDbPool } from '../db';
 import { getCachedProducts } from './redisClient';
 
-const MAIL_PORT = Number(process.env.MAIL_PORT) || 25; // Default to 25 for local
-const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587/25=STARTTLS/Plain
 const IS_LOCAL = process.env.MAIL_HOST === '127.0.0.1' || process.env.MAIL_HOST === 'localhost';
+const MAIL_PORT = IS_LOCAL ? 25 : (Number(process.env.MAIL_PORT) || 465); // Force 25 for local to bypass submission auth
+const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587/25=STARTTLS/Plain
 
 const transporterConfig: any = {
   host: process.env.MAIL_HOST || '127.0.0.1',
