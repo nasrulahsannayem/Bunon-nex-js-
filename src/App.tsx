@@ -6,6 +6,13 @@ import ScrollToTop from './components/layout/ScrollToTop';
 import Footer from './components/layout/Footer';
 import { getProducts, Product } from './lib/woocommerce';
 
+// Admin Components
+import AdminRoute from './components/AdminRoute';
+import AdminLayout from './pages/admin/AdminLayout';
+import Dashboard from './pages/admin/Dashboard';
+import OrdersManager from './pages/admin/OrdersManager';
+import AbandonedCarts from './pages/admin/AbandonedCarts';
+
 // Lazy loading pages for "mili second er modde load"
 const Home = lazy(() => import('./pages/Home'));
 const Shop = lazy(() => import('./pages/Shop'));
@@ -61,6 +68,15 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy-policy" element={<Privacy />} />
             <Route path="/dmca" element={<DMCA />} />
+            
+            {/* Admin Secured Routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="orders" element={<OrdersManager />} />
+                <Route path="abandoned" element={<AbandonedCarts />} />
+              </Route>
+            </Route>
           </Routes>
         </Suspense>
       </main>

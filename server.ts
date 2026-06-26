@@ -23,6 +23,12 @@ import marketingRoutes from "./server/routes/marketing";
 import harvesterRoutes from "./server/routes/harvester";
 import authRoutes from "./server/routes/auth";
 
+// Admin Routes
+import { requireAdmin } from "./server/middleware/adminAuth";
+import adminStatsRoutes from "./server/routes/admin/stats";
+import adminOrdersRoutes from "./server/routes/admin/orders";
+import adminMarketingRoutes from "./server/routes/admin/marketing";
+
 import { setupMarketingTables } from "./server/services/setupMarketingDb";
 import { processCartRecoveryCampaign } from "./server/services/recoveryCron";
 import { sendDailyNewsletter } from "./server/services/dailyPromotionsCron";
@@ -76,6 +82,11 @@ async function startServer() {
   app.use("/api", marketingRoutes);
   app.use("/api", harvesterRoutes);
   app.use("/api/auth", authRoutes);
+
+  // 🛡️ Admin Secured Routes
+  app.use("/api/admin/stats", requireAdmin, adminStatsRoutes);
+  app.use("/api/admin/orders", requireAdmin, adminOrdersRoutes);
+  app.use("/api/admin/marketing", requireAdmin, adminMarketingRoutes);
 
   // Fallback endpoint for generic API tracking
   app.post("/api/track/*", (req, res) => res.json({ status: "ok" }));
