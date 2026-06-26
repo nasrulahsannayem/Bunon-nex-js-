@@ -976,7 +976,7 @@ export default function Checkout() {
 
       {/* 🎟️ CANCEL OFFER POPUP MODAL */}
       {showCancelPopup && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4 animate-fadeIn">
           <style>{`
             @keyframes fadeIn {
               from { opacity: 0; }
@@ -994,7 +994,7 @@ export default function Checkout() {
             }
           `}</style>
           
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-gray-100 overflow-hidden relative animate-scaleUp flex flex-col max-h-[90vh]">
+          <div className="bg-white md:rounded-3xl max-w-md w-full h-full md:h-auto shadow-[0_25px_60px_rgba(0,0,0,0.2)] md:border md:border-gray-100 overflow-hidden relative animate-scaleUp flex flex-col md:max-h-[90vh]">
             
             {/* Top decorative gradient bar */}
             <div className="h-2 w-full shrink-0 bg-gradient-to-r from-[#e2136e] via-brand-primary to-[#ff4081]" />
