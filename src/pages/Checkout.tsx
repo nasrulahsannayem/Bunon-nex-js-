@@ -177,10 +177,13 @@ export default function Checkout() {
   };
 
   const handleCancelClick = () => {
-    // Generate a random discount from 10 to 30%
-    const percent = Math.floor(Math.random() * 21) + 10;
-    setRandomDiscount(percent);
-    setGeneratedCouponCode(`SAVE${percent}`);
+    // Dynamic flat discount between ৳20 and ৳100 based on subtotal
+    const baseVal = Math.max(20, Math.min(100, Math.round((calculatedSubtotal / 1500) * 80)));
+    const randomOffset = Math.floor(Math.random() * 16) - 5; // -5 to +10 BDT offset
+    const flatAmt = Math.max(20, Math.min(100, baseVal + randomOffset));
+    
+    setRandomDiscount(flatAmt); 
+    setGeneratedCouponCode(`OFFER${flatAmt}`);
     setShowCancelPopup(true);
   };
 
@@ -188,7 +191,7 @@ export default function Checkout() {
     setAppliedCoupon({
       code: generatedCouponCode,
       amount: randomDiscount,
-      type: 'percent',
+      type: 'fixed_cart',
       isOnlineOnly: true
     });
     setFormData(prev => ({ ...prev, paymentMethod: 'paystation' }));
@@ -565,62 +568,33 @@ export default function Checkout() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {[
-                  { id: 'cod', title: 'ক্যাশ অন ডেলিভারি', subtitle: 'পণ্য হাতে পেয়ে মূল্য পরিশোধ করুন', icon: Truck },
-                  { 
-                    id: 'bkash', 
-                    title: 'bKash Payment', 
-                    subtitle: 'সরাসরি আপনার বিকাশ অ্যাকাউন্ট থেকে পেমেন্ট করুন',
-                    icon: ShieldCheck,
-                    img: '/image/bKash_logo.png'
-                  },
-                  { 
-                    id: 'paystation', 
-                    title: 'Other Online Payments', 
-                    subtitle: 'Nagad, Rocket, Bank',
-                    icon: ShieldCheck,
-                    img: '/image/Payment-1-1024x98-1-1.png'
-                  },
+                  { id: 'bkash', title: 'বিকাশ পেমেন্ট' },
+                  { id: 'paystation', title: 'নগদ, রকেট, ব্যাংক' },
+                  { id: 'cod', title: 'ক্যাশ অন ডেলিভারি' },
                 ].map((pm) => (
                   <label 
                     key={pm.id} 
-                    className={`relative flex flex-col justify-center p-3 md:p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`relative flex items-center justify-center py-2.5 px-2 rounded-lg border cursor-pointer transition-all ${
                       formData.paymentMethod === pm.id 
-                        ? 'border-brand-primary bg-brand-primary/5 shadow-sm' 
-                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        ? 'border-[#e2136e] bg-[#e2136e]/5 shadow-sm ring-1 ring-[#e2136e]' 
+                        : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <input 
-                        type="radio" 
-                        name="payment" 
-                        value={pm.id} 
-                        checked={formData.paymentMethod === pm.id} 
-                        onChange={(e) => {
-                          setFormData({...formData, paymentMethod: e.target.value});
-                        }} 
-                        className="mt-1 w-4 h-4 text-brand-primary focus:ring-brand-primary border-gray-300"
-                      />
-                      
-                      <div className="flex-1">
-                        <span className="font-bold text-sm text-gray-900 block mb-0.5">
-                          {pm.title}
-                        </span>
-                        <span className="text-xs text-gray-500 block">
-                          {pm.subtitle}
-                        </span>
-                        
-                        {pm.img && (
-                          <img 
-                            src={pm.img} 
-                            alt="Payment Method" 
-                            className="h-4 mt-2 object-contain opacity-90 pointer-events-none"
-                            onError={(e) => e.target.style.display = 'none'}
-                          />
-                        )}
-                      </div>
-                    </div>
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value={pm.id} 
+                      checked={formData.paymentMethod === pm.id} 
+                      onChange={(e) => {
+                        setFormData({...formData, paymentMethod: e.target.value});
+                      }} 
+                      className="w-4.5 h-4.5 text-[#e2136e] focus:ring-[#e2136e] border-gray-300 mr-1.5 shrink-0 accent-[#e2136e]"
+                    />
+                    <span className={`font-bold text-[12px] sm:text-xs truncate ${formData.paymentMethod === pm.id ? 'text-[#e2136e]' : 'text-gray-700'}`}>
+                      {pm.title}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -851,7 +825,7 @@ export default function Checkout() {
               {/* Dynamic Percent Badge */}
               <div className="bg-gradient-to-r from-[#e2136e] to-[#ff4081] text-white rounded-2xl py-4 px-6 mb-6 shadow-md">
                 <span className="block text-xs uppercase tracking-wider font-bold opacity-90">Special Discount Coupon</span>
-                <span className="block text-4xl font-black my-1 tracking-tight">{randomDiscount}% OFF</span>
+                <span className="block text-4xl font-black my-1 tracking-tight">৳{randomDiscount} OFF</span>
                 <span className="inline-block bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest mt-1">
                   CODE: {generatedCouponCode}
                 </span>
@@ -864,14 +838,14 @@ export default function Checkout() {
                   <span className="font-semibold text-gray-900">৳{calculatedSubtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-[#e2136e] font-medium">
-                  <span>নতুন {randomDiscount}% ডিসকাউন্ট:</span>
-                  <span className="font-bold">- ৳{Math.round((calculatedSubtotal * randomDiscount) / 100).toLocaleString()}</span>
+                  <span>নতুন কুপন ডিসকাউন্ট:</span>
+                  <span className="font-bold">- ৳{randomDiscount.toLocaleString()}</span>
                 </div>
                 
                 {/* Highlight Online Payment integration */}
                 <div className="pt-2 border-t border-dashed border-gray-200 mt-2">
                   <p className="text-[11px] text-gray-500 leading-relaxed">
-                    💡 <strong className="text-gray-800">অনলাইন পেমেন্ট করুন:</strong> অনলাইন পেমেন্ট (bKash/Paystation) সিলেক্ট করলে পূর্বের <span className="text-[#e2136e] font-bold">৳৫০ ডিসকাউন্ট</span> এবং এই কুপনের <span className="text-[#e2136e] font-bold">৳{Math.round((calculatedSubtotal * randomDiscount) / 100)}</span> একসাথে যোগ হয়ে মোট <span className="text-emerald-600 font-extrabold">৳{Math.round((calculatedSubtotal * randomDiscount) / 100) + 50}</span> ডিসকাউন্ট পাবেন!
+                    💡 <strong className="text-gray-800">অনলাইন পেমেন্ট করুন:</strong> অনলাইন পেমেন্ট (bKash/Paystation) সিলেক্ট করলে পূর্বের <span className="text-[#e2136e] font-bold">৳৫০ ডিসকাউন্ট</span> এবং এই কুপনের <span className="text-[#e2136e] font-bold">৳{randomDiscount}</span> একসাথে যোগ হয়ে মোট <span className="text-emerald-600 font-extrabold">৳{randomDiscount + 50}</span> ডিসকাউন্ট পাবেন!
                   </p>
                 </div>
               </div>
@@ -880,7 +854,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={applyCancelDiscount}
-                  className="w-full h-12 bg-black hover:bg-gray-900 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-wider"
+                  className="w-full h-12 bg-brand-primary hover:brightness-105 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-wider animate-pulse"
                 >
                   অফারটি গ্রহণ করুন
                 </button>
