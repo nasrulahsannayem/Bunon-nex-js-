@@ -4,12 +4,12 @@ import { ramDatabase } from '../store';
 
 // Initialize NodeMailer secure transporter using user's webmail credentials
 export const mailTransporter = nodemailer.createTransport({
-  host: 'mail.bunonfabrics.com',
-  port: 465,
+  host: process.env.MAIL_HOST || 'mail.bunonfabrics.com',
+  port: Number(process.env.MAIL_PORT) || 465,
   secure: true,
   auth: {
-    user: 'admin@bunonfabrics.com',
-    pass: 'naim#707207AA'
+    user: process.env.MAIL_USER || 'admin@bunonfabrics.com',
+    pass: process.env.MAIL_PASS ? process.env.MAIL_PASS.replace(/"/g, '') : 'naim#707207AA'
   },
   tls: {
     rejectUnauthorized: false // Avoid self-signed cert issues
