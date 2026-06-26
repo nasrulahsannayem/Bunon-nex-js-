@@ -178,9 +178,19 @@ export default function Checkout() {
 
   const handleCancelClick = () => {
     // Dynamic flat discount between ৳20 and ৳100 based on subtotal
-    const baseVal = Math.max(20, Math.min(100, Math.round((calculatedSubtotal / 1500) * 80)));
-    const randomOffset = Math.floor(Math.random() * 16) - 5; // -5 to +10 BDT offset
-    const flatAmt = Math.max(20, Math.min(100, baseVal + randomOffset));
+    let flatAmt = 20;
+    if (calculatedSubtotal <= 500) {
+      flatAmt = 20;
+    } else if (calculatedSubtotal >= 2500) {
+      flatAmt = 100;
+    } else {
+      // Linear interpolation between 20 and 100 BDT
+      const fraction = (calculatedSubtotal - 500) / 2000;
+      flatAmt = 20 + Math.round(fraction * 80);
+    }
+    // Round to the nearest 5 BDT (e.g. 20, 25, 30, ... 100)
+    flatAmt = Math.round(flatAmt / 5) * 5;
+    flatAmt = Math.max(20, Math.min(100, flatAmt));
     
     setRandomDiscount(flatAmt); 
     setGeneratedCouponCode(`OFFER${flatAmt}`);
@@ -450,22 +460,22 @@ export default function Checkout() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 xl:gap-10">
-          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 md:p-8 space-y-0">
-            <section className="pb-6">
-              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-bold">1</span>
-                Contact Details
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8">
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 md:p-6 space-y-6">
+            <section>
+              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
+                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">1</span>
+                যোগাযোগ তথ্য
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-sm font-medium text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">আপনার নাম <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="text" 
-                      placeholder="Your name" 
-                      className="w-full h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
+                      placeholder="এখানে আপনার সম্পূর্ণ নাম লিখুন" 
+                      className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                       value={formData.firstName}
                       onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                       onBlur={trackIncompleteOrderOnBlur}
@@ -475,14 +485,14 @@ export default function Checkout() {
                 
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="block text-sm font-medium text-gray-700 mb-1.5">Phone <span className="text-red-500">*</span></span>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1.5 font-sans">মোবাইল নম্বর <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="tel" 
                       inputMode="numeric"
                       placeholder="01XXXXXXXXX" 
                       maxLength={11}
-                      className="w-full h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
+                      className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                       value={formData.phone}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
@@ -495,59 +505,63 @@ export default function Checkout() {
               </div>
             </section>
 
-            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6 max-md:mt-6 max-md:pt-6 max-md:border-t max-md:border-gray-100">
-              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-bold">2</span>
-                Delivery Address
+            <section className="pt-6 border-t border-gray-100">
+              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
+                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">2</span>
+                ডেলিভারি ঠিকানা
               </h2>
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="block text-sm font-medium text-gray-700 mb-1.5">District <span className="text-red-500">*</span></span>
-                  <div className="relative">
-                    <select
-                      required
-                      className="w-full h-11 px-3.5 rounded-lg border border-gray-200 bg-white text-base text-gray-900 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
-                      value={formData.district}
-                      onChange={(e) => {
-                         setFormData({...formData, district: e.target.value});
-                         setShippingMethod(e.target.value.toLowerCase() === 'dhaka' ? 'dhaka' : 'outside');
-                      }}
-                      onBlur={trackIncompleteOrderOnBlur}
-                    >
-                      <option value="" disabled>Select district</option>
-                      <option value="Dhaka">Dhaka</option>
-                      <option value="Chittagong">Chittagong</option>
-                      <option value="Sylhet">Sylhet</option>
-                      <option value="Rajshahi">Rajshahi</option>
-                      <option value="Khulna">Khulna</option>
-                      <option value="Barisal">Barisal</option>
-                      <option value="Rangpur">Rangpur</option>
-                      <option value="Mymensingh">Mymensingh</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block">
+                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">জেলা নির্বাচন করুন <span className="text-red-500">*</span></span>
+                    <div className="relative">
+                      <select
+                        required
+                        className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none shadow-sm"
+                        value={formData.district}
+                        onChange={(e) => {
+                           setFormData({...formData, district: e.target.value});
+                           setShippingMethod(e.target.value.toLowerCase() === 'dhaka' ? 'dhaka' : 'outside');
+                        }}
+                        onBlur={trackIncompleteOrderOnBlur}
+                      >
+                        <option value="" disabled>জেলা সিলেক্ট করুন</option>
+                        <option value="Dhaka">Dhaka</option>
+                        <option value="Chittagong">Chittagong</option>
+                        <option value="Sylhet">Sylhet</option>
+                        <option value="Rajshahi">Rajshahi</option>
+                        <option value="Khulna">Khulna</option>
+                        <option value="Barisal">Barisal</option>
+                        <option value="Rangpur">Rangpur</option>
+                        <option value="Mymensingh">Mymensingh</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  </label>
+                </div>
                 
-                <label className="block">
-                  <span className="block text-sm font-medium text-gray-700 mb-1.5">Address Line 1 <span className="text-red-500">*</span></span>
-                  <textarea 
-                    required
-                    rows={2}
-                    placeholder="House #, Road #, Area" 
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-white text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none"
-                    value={formData.address1}
-                    onChange={(e) => setFormData({...formData, address1: e.target.value})}
-                    onBlur={trackIncompleteOrderOnBlur}
-                  />
-                </label>
+                <div className="sm:col-span-2">
+                  <label className="block">
+                    <span className="block text-xs font-semibold text-gray-600 mb-1.5">সম্পূর্ণ ঠিকানা <span className="text-red-500">*</span></span>
+                    <textarea 
+                      required
+                      rows={2}
+                      placeholder="বাসা নম্বর, রোড নম্বর, এলাকা অথবা গ্রামের নাম লিখুন" 
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none shadow-sm"
+                      value={formData.address1}
+                      onChange={(e) => setFormData({...formData, address1: e.target.value})}
+                      onBlur={trackIncompleteOrderOnBlur}
+                    />
+                  </label>
+                </div>
               </div>
             </section>
 
-            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6 overflow-visible max-md:mt-6 max-md:pt-6 max-md:border-t max-md:border-gray-100">
-              <h2 className="flex items-center gap-3 mb-4 md:mb-5 text-base md:text-lg font-semibold text-gray-900">
-                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-bold">3</span>
-                Payment Method
+            <section className="pt-6 border-t border-gray-100">
+              <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
+                <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">3</span>
+                পেমেন্ট মেথড নির্বাচন করুন
               </h2>
 
               <div className="mb-4 rounded-xl border border-[#E2136E]/15 bg-white shadow-sm p-1.5 md:p-2 overflow-hidden">
@@ -568,35 +582,43 @@ export default function Checkout() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="flex flex-wrap gap-2.5 mt-3">
                 {[
                   { id: 'bkash', title: 'বিকাশ পেমেন্ট' },
                   { id: 'paystation', title: 'নগদ, রকেট, ব্যাংক' },
                   { id: 'cod', title: 'ক্যাশ অন ডেলিভারি' },
-                ].map((pm) => (
-                  <label 
-                    key={pm.id} 
-                    className={`relative flex items-center justify-center py-2.5 px-2 rounded-lg border cursor-pointer transition-all ${
-                      formData.paymentMethod === pm.id 
-                        ? 'border-[#e2136e] bg-[#e2136e]/5 shadow-sm ring-1 ring-[#e2136e]' 
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value={pm.id} 
-                      checked={formData.paymentMethod === pm.id} 
-                      onChange={(e) => {
-                        setFormData({...formData, paymentMethod: e.target.value});
-                      }} 
-                      className="w-4.5 h-4.5 text-[#e2136e] focus:ring-[#e2136e] border-gray-300 mr-1.5 shrink-0 accent-[#e2136e]"
-                    />
-                    <span className={`font-bold text-[12px] sm:text-xs truncate ${formData.paymentMethod === pm.id ? 'text-[#e2136e]' : 'text-gray-700'}`}>
-                      {pm.title}
-                    </span>
-                  </label>
-                ))}
+                ].map((pm) => {
+                  const isSelected = formData.paymentMethod === pm.id;
+                  return (
+                    <label 
+                      key={pm.id} 
+                      className={`relative flex items-center gap-2.5 h-10 px-4 rounded-full border cursor-pointer transition-all duration-200 select-none ${
+                        isSelected 
+                          ? 'border-[#e2136e] bg-[#e2136e]/5 shadow-sm ring-1 ring-[#e2136e]' 
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input 
+                        type="radio" 
+                        name="payment" 
+                        value={pm.id} 
+                        checked={isSelected} 
+                        onChange={(e) => {
+                          setFormData({...formData, paymentMethod: e.target.value});
+                        }} 
+                        className="sr-only"
+                      />
+                      <span className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-[#e2136e]' : 'border-gray-300'
+                      }`}>
+                        {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#e2136e]" />}
+                      </span>
+                      <span className={`font-bold text-[13px] md:text-sm whitespace-nowrap ${isSelected ? 'text-[#e2136e]' : 'text-gray-700'}`}>
+                        {pm.title}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -768,15 +790,35 @@ export default function Checkout() {
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-6 h-12 rounded-xl bg-brand-primary text-white text-base font-semibold shadow-sm hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="w-full mt-6 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? 'Processing...' : 'Place Order'}
+                  {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
                   {!loading && <ArrowRight className="w-5 h-5 pointer-events-none" />}
                 </button>
               </div>
             </div>
           </div>
         </form>
+      </div>
+
+      {/* Sticky Bottom CTA for Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-3 md:hidden flex items-center justify-between gap-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-safe">
+        <div>
+          <span className="block text-[10px] text-gray-500 font-semibold">সর্বমোট মূল্য</span>
+          <span className="text-lg font-bold text-brand-primary">৳{finalTotal.toLocaleString()}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const form = document.querySelector('form');
+            if (form) form.requestSubmit();
+          }}
+          disabled={loading}
+          className="flex-1 h-11 bg-brand-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
+          {!loading && <ArrowRight className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* 🎟️ CANCEL OFFER POPUP MODAL */}
@@ -860,7 +902,10 @@ export default function Checkout() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowCancelPopup(false)}
+                  onClick={() => {
+                    setShowCancelPopup(false);
+                    window.location.href = '/';
+                  }}
                   className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 font-semibold transition-colors"
                 >
                   না, আমি অর্ডার করতে চাই না
