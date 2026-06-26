@@ -792,7 +792,7 @@ export default function Checkout() {
                   disabled={loading}
                   className="w-full mt-6 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
+                  {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নাও'}
                   {!loading && <ArrowRight className="w-5 h-5 pointer-events-none" />}
                 </button>
               </div>
@@ -816,7 +816,7 @@ export default function Checkout() {
           disabled={loading}
           className="flex-1 h-11 bg-brand-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
         >
-          {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}
+          {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নাও'}
           {!loading && <ArrowRight className="w-4 h-4" />}
         </button>
       </div>
