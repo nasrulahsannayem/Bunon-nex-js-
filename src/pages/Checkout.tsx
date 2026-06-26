@@ -253,9 +253,9 @@ export default function Checkout() {
     };
   }, []);
 
-  const trackIncompleteOrderOnBlur = async () => {
+  const trackIncompleteOrderOnBlur = async (phoneOverride?: string) => {
     const currentData = payloadRef.current;
-    const cleanPhone = currentData.formData.phone.replace(/\D/g, '');
+    const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
     
     if (cleanPhone.length < 11 || currentData.items.length === 0) return;
 
@@ -553,6 +553,9 @@ export default function Checkout() {
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         setFormData({...formData, phone: val});
+                        if (val.length === 11) {
+                          trackIncompleteOrderOnBlur(val);
+                        }
                       }}
                       onBlur={trackIncompleteOrderOnBlur}
                     />
