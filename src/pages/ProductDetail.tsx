@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getProduct, getProducts, Product, trackPixel } from '../lib/woocommerce';
 import { useCart } from '../lib/store'; // Removed useWishlist
@@ -18,6 +18,11 @@ export default function ProductDetail() {
   const sliderRef = useRef<HTMLDivElement>(null);
   
   const [selectedVariation, setSelectedVariation] = useState<any>(null);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [id]);
 
   useEffect(() => {
     async function loadProduct() {
@@ -43,7 +48,6 @@ export default function ProductDetail() {
         setRelatedProducts(allProds.filter(prod => prod.id !== p.id).slice(0, 4));
       }
       setLoading(false);
-      window.scrollTo(0, 0);
     }
     loadProduct();
   }, [id]);

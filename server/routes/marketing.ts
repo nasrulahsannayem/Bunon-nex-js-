@@ -58,7 +58,7 @@ router.get("/test-marketing-emails", async (req, res) => {
 
   try {
     const { sendOrderConfirmationEmail, sendCartRecoveryEmail } = await import("../services/email");
-    const { ramDatabase } = await import("../store");
+    const { getCachedProducts } = await import("../services/redisClient");
 
     // 1. Send Order Confirmation Email Test
     console.log(`[Test-Mail] Triggering order confirmation test to ${targetEmail}`);
@@ -92,7 +92,7 @@ router.get("/test-marketing-emails", async (req, res) => {
 
     // 3. Send Daily Newsletter Test
     console.log(`[Test-Mail] Triggering daily showcase newsletter test to ${targetEmail}`);
-    const products = ramDatabase.products || [];
+    const products = (await getCachedProducts()) || [];
     const selectedProducts = products.slice(0, 2); // Pick first 2 items
 
     const productsHtml = selectedProducts.map((p: any) => `

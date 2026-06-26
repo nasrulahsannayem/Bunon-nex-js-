@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { dbPool, productDbPool, wpDbPool } from '../db';
-import { ramDatabase } from '../store';
+import { getCachedProducts } from './redisClient';
 
 // Initialize NodeMailer secure transporter using user's webmail credentials
 export const mailTransporter = nodemailer.createTransport({
@@ -256,7 +256,7 @@ export async function sendDailyNewsletter() {
     if (!subscribers || subscribers.length === 0) return;
 
     // 2. Select 3 random hot products from local catalog
-    const products = ramDatabase.products;
+    const products = await getCachedProducts();
     if (!products || products.length === 0) return;
 
     // Shuffle and pick 3 products

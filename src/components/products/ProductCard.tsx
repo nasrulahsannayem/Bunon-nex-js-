@@ -73,7 +73,11 @@ export default function ProductCard({ product }: ProductCardProps) {
     <div className="group relative h-full flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-200 ease-out hover:border-brand-primary/30">
       
       <div className="relative w-full overflow-hidden bg-gray-50 aspect-square">
-        <Link to={`/product/${product.id}`} className="absolute inset-0 block z-0">
+        <Link 
+          to={`/product/${product.id}`} 
+          className="absolute inset-0 block z-0"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
+        >
           <img 
             src={product.images[0]?.src || 'https://bunonfabrics.com/wp-content/uploads/woocommerce-placeholder-300x300.webp'} 
             alt={product.name} 
@@ -117,7 +121,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <div className="flex flex-col gap-1 p-3.5 pt-2.5 flex-1">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/product/${product.id}`} onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}>
           <h3 className="text-[13px] font-semibold leading-tight line-clamp-2 text-gray-900 hover:text-brand-primary">
             {product.name}
           </h3>

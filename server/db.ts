@@ -3,6 +3,12 @@ import dotenv from "dotenv";
 
 dotenv.config({ override: true });
 
+const CONNECTION_LIMIT = Number(process.env.DB_CONNECTION_LIMIT) || 15;
+
+if (process.env.NODE_ENV === "production" && (!process.env.DB_PASSWORD || !process.env.DASH_DB_PASSWORD || !process.env.WP_DB_PASSWORD)) {
+  console.warn("⚠️ WARNING: Missing database passwords in production environment.");
+}
+
 // 🚀 HIGH PERFORMANCE LOCAL UNIX SOCKET POOL
 export const dbPool = mysql.createPool({
   host: process.env.DASH_DB_HOST || "127.0.0.1",
@@ -11,7 +17,7 @@ export const dbPool = mysql.createPool({
   password: process.env.DASH_DB_PASSWORD?.replace(/\"/g, '') || "",
   database: process.env.DASH_DB_NAME || "bunonfabrics_dash_db",
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: CONNECTION_LIMIT,
   queueLimit: 0
 });
 
@@ -23,7 +29,7 @@ export const productDbPool = mysql.createPool({
   password: process.env.DB_PASSWORD ? process.env.DB_PASSWORD.replace(/"/g, '') : "",
   database: process.env.DB_NAME || "bunon_shop_db",
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: CONNECTION_LIMIT,
   queueLimit: 0
 });
 
@@ -35,6 +41,6 @@ export const wpDbPool = mysql.createPool({
   password: process.env.WP_DB_PASSWORD?.replace(/\"/g, '') || "",
   database: process.env.WP_DB_NAME || "Bunonfabrics_db",
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: CONNECTION_LIMIT,
   queueLimit: 0
 });

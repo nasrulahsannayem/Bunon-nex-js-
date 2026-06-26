@@ -41,6 +41,7 @@ export default function Checkout() {
     address1: '',
     address2: '',
     phone: '',
+    email: '',
     district: '',
     note: '',
     paymentMethod: 'cod',
@@ -111,14 +112,16 @@ export default function Checkout() {
   useEffect(() => {
     const savedPhone = getCookie('user_phone') || getCookie('billing_phone') || '';
     const savedName = decodeURIComponent(getCookie('user_name') || getCookie('billing_first_name') || '');
+    const savedEmail = decodeURIComponent(getCookie('user_email') || getCookie('billing_email') || '');
     const savedDistrict = decodeURIComponent(getCookie('billing_city') || '');
     const savedAddress = decodeURIComponent(getCookie('billing_address_1') || '');
 
-    if (savedPhone || savedName) {
+    if (savedPhone || savedName || savedEmail) {
       setFormData(prev => ({
         ...prev,
         phone: savedPhone || prev.phone,
         firstName: savedName || prev.firstName,
+        email: savedEmail || prev.email,
         district: savedDistrict || prev.district,
         address1: savedAddress || prev.address1
       }));
@@ -273,7 +276,7 @@ export default function Checkout() {
       const { formData, items } = payloadRef.current;
       const isOrderPlaced = sessionStorage.getItem('order_placed') === 'true';
       const cleanPhone = formData.phone.replace(/\D/g, '');
-      const userEmail = getCookie('user_email');
+      const userEmail = formData.email || getCookie('user_email');
 
       if (!isOrderPlaced && (cleanPhone.length >= 11 || userEmail) && items.length > 0) {
         const fullAddress = formData.district ? `${formData.address1}, ${formData.district}` : formData.address1;
@@ -319,7 +322,7 @@ export default function Checkout() {
   const trackIncompleteOrderOnBlur = async (phoneOverride?: string) => {
     const currentData = payloadRef.current;
     const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
-    const userEmail = getCookie('user_email');
+    const userEmail = currentData.formData.email || getCookie('user_email');
     
     // Save to cookies for persistent recovery across sessions
     if (cleanPhone.length >= 11) {
@@ -327,6 +330,9 @@ export default function Checkout() {
       document.cookie = `user_phone=${cleanPhone}; expires=${expires}; path=/; SameSite=Lax`;
       if (currentData.formData.firstName) {
         document.cookie = `user_name=${encodeURIComponent(currentData.formData.firstName)}; expires=${expires}; path=/; SameSite=Lax`;
+      }
+      if (currentData.formData.email) {
+        document.cookie = `user_email=${encodeURIComponent(currentData.formData.email)}; expires=${expires}; path=/; SameSite=Lax`;
       }
       if (currentData.formData.district) {
         document.cookie = `billing_city=${encodeURIComponent(currentData.formData.district)}; expires=${expires}; path=/; SameSite=Lax`;
@@ -398,7 +404,7 @@ export default function Checkout() {
       const nameParts = formData.firstName.trim().split(/\s+/);
       const fName = nameParts[0] || 'Guest';
       const lName = nameParts.slice(1).join(' ') || 'Customer';
-      const savedEmail = getCookie('user_email') || getCookie('billing_email') || "";
+      const savedEmail = formData.email || getCookie('user_email') || getCookie('billing_email') || "";
 
       const fbpToken = getCookie('_fbp');
       const fbcToken = getCookie('_fbc');
@@ -637,7 +643,7 @@ export default function Checkout() {
                           trackIncompleteOrderOnBlur(val);
                         }
                       }}
-                      onBlur={trackIncompleteOrderOnBlur}
+                      onBlur={() => trackIncompleteOrderOnBlur()}
                     />
                   </label>
                 </div>
@@ -1040,7 +1046,7 @@ export default function Checkout() {
               </div>
 
               {/* Order Summary box */}
-              <div className="bg-gray-50 rounded-2xl p-4 text-left border border-gray-200/60 text-xs space-y-1.5 mb-6">
+              <div className="bg-gray-50 rounded-2xl p-4 text-left border border-gray-200/60 text-xs space-y-1.5 mb-5">
                 <div className="flex justify-between text-gray-500">
                   <span>Subtotal:</span>
                   <span className="font-semibold text-gray-800">৳{calculatedSubtotal.toLocaleString()}</span>
@@ -1058,11 +1064,31 @@ export default function Checkout() {
                   <span className="text-brand-primary font-black">৳{Math.max(0, calculatedSubtotal + shippingCost - onlineDiscount - randomDiscount).toLocaleString()}</span>
                 </div>
               </div>
+              
+              <div className="mb-4">
+                <input 
+                  type="email" 
+                  required
+                  placeholder="ডিসকাউন্ট পেতে আপনার ইমেইল দিন (বাধ্যতামূলক)" 
+                  className="w-full h-12 px-4 rounded-xl border border-[#e2136e]/30 bg-white text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#e2136e] focus:ring-1 focus:ring-[#e2136e] transition-all shadow-sm text-center"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onBlur={() => trackIncompleteOrderOnBlur()}
+                />
+              </div>
 
               <div className="flex flex-col gap-2.5">
                 <button
                   type="button"
-                  onClick={applyCancelDiscount}
+                  onClick={() => {
+                    if (!formData.email || !formData.email.includes('@')) {
+                      alert('অফারটি পেতে অনুগ্রহ করে সঠিক ইমেইল দিন।');
+                      return;
+                    }
+                    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+                    document.cookie = `user_email=${encodeURIComponent(formData.email)}; expires=${expires}; path=/; SameSite=Lax`;
+                    applyCancelDiscount();
+                  }}
                   className="w-full h-12 bg-brand-primary hover:brightness-105 text-white font-extrabold rounded-xl shadow-lg shadow-brand-primary/20 transition-all active:scale-95 text-sm uppercase tracking-wider flex items-center justify-center gap-2 bunon-pulse"
                 >
                   ডিসকাউন্ট নিয়ে অর্ডার করুন ⚡

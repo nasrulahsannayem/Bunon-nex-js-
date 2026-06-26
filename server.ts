@@ -3,12 +3,14 @@ import path from "path";
 import dotenv from "dotenv";
 import fs from "fs"; 
 import cors from "cors"; 
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 // Initialize dotnev configurations
 dotenv.config();
 
 // Bypass SSL Altname / TLS certificate verification globally for the legacy server endpoints
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // Security Upgrade: Removed global bypass
 
 import { syncLocalDatabase } from "./server/store";
 import { syncEcomosProducts } from "./server/services/ecomos";
@@ -30,6 +32,17 @@ async function startServer() {
   const PORT = process.env.PORT || 5000; 
 
   app.use(cors({ origin: '*' }));
+  app.use(helmet());
+  
+  // Rate limiting for API requests
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // Limit each IP to 200 requests per windowMs
+    message: "Too many requests from this IP, please try again after 15 minutes"
+  });
+  
+  app.use("/api", apiLimiter);
+
   app.use(express.json());
   // 🚀 FIX #2: Parse text/plain body from sendBeacon (browsers send text/plain for sendBeacon)
   app.use(express.text({ type: 'text/plain' }));

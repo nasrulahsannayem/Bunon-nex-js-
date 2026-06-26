@@ -1,12 +1,14 @@
 import express from "express";
-import { ramDatabase } from "../store";
+import { getCachedProducts } from "../services/redisClient";
 
 const router = express.Router();
 
-router.get("/products", (req, res) => {
+router.get("/products", async (req, res) => {
   const searchTerm = req.query.q ? String(req.query.q).toLowerCase() : "";
-  if (ramDatabase.products.length > 0) {
-    let filtered = ramDatabase.products;
+  const products = await getCachedProducts();
+  
+  if (products.length > 0) {
+    let filtered = products;
     if (searchTerm) { filtered = filtered.filter((p: any) => p.name.toLowerCase().includes(searchTerm)); }
     
     const productsWithLinks = filtered.map((p: any) => {
@@ -75,13 +77,12 @@ router.post("/graphql", async (req, res) => {
   } catch (e) { res.status(500).json({ error: "GraphQL fetch error" }); }
 });
 
-router.get("/feed", (req, res) => {
+router.get("/feed", async (req, res) => {
   try {
-    if (!ramDatabase.products || ramDatabase.products.length === 0) {
+    const products = await getCachedProducts();
+    if (!products || products.length === 0) {
       return res.status(503).send("Feed is syncing. Please try again in a few seconds.");
     }
-
-    const products = ramDatabase.products;
 
     const escapeXML = (str: string) => {
       if (!str) return '';

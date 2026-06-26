@@ -1,9 +1,5 @@
 import { productDbPool } from "./db";
-
-export let ramDatabase: { products: any[]; lastUpdated: number } = {
-  products: [],
-  lastUpdated: 0
-};
+import { setCachedProducts } from "./services/redisClient";
 
 // 🟢 EcomOS ম্যাপ
 export let ecomosProductMap = new Map<string, number>();
@@ -19,7 +15,7 @@ export const syncLocalDatabase = async () => {
     `);
     
     if (rows && rows.length > 0) {
-      ramDatabase.products = rows.map((p: any) => {
+      const products = rows.map((p: any) => {
         let parsedImages = [];
         let parsedCategories = [];
         let parsedTags = [];
@@ -50,10 +46,11 @@ export const syncLocalDatabase = async () => {
           total_sales: p.total_sales || 0
         };
       });
-      ramDatabase.lastUpdated = Date.now();
-      console.log(`[RAM-DB] Successfully loaded ${ramDatabase.products.length} FULL products from DIRECT LOCAL DB! ⚡`);
+      
+      await setCachedProducts(products);
+      console.log(`[REDIS-DB] Successfully saved ${products.length} FULL products from DIRECT LOCAL DB to Redis! ⚡`);
     }
   } catch (error: any) {
-    console.error('[RAM-DB] Local DB Sync Failed:', error.message);
+    console.error('[REDIS-DB] Local DB Sync Failed:', error.message);
   }
 };

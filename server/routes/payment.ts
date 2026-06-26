@@ -126,7 +126,7 @@ router.post("/checkout/place-order", async (req, res) => {
         const cleanPhone = customer.phone.replace(/\D/g, '');
         if (cleanPhone.length >= 11) {
           try {
-            const [existingUsers]: any = await productDbPool.execute(`SELECT id FROM bunon_users WHERE phone = ? LIMIT 1`, [cleanPhone]);
+            const [existingUsers]: any = await productDbPool.execute(`SELECT id, email FROM bunon_users WHERE phone = ? LIMIT 1`, [cleanPhone]);
             if (!existingUsers || existingUsers.length === 0) {
               // Auto-create
               const bcrypt = await import('bcryptjs');
@@ -138,6 +138,10 @@ router.post("/checkout/place-order", async (req, res) => {
               userCreated = true;
               passwordSent = cleanPhone;
               console.log(`[AUTH] Auto-registered user with phone: ${cleanPhone}`);
+            } else if (existingUsers.length > 0 && (!existingUsers[0].email || existingUsers[0].email === '')) {
+              // Update existing user with the new email
+              await productDbPool.execute(`UPDATE bunon_users SET email = ?, default_address = COALESCE(default_address, ?), default_city = COALESCE(default_city, ?) WHERE id = ?`, [cleanEmail, customer.address || null, customer.city || null, existingUsers[0].id]);
+              console.log(`[AUTH] Updated existing user (${cleanPhone}) with new email: ${cleanEmail}`);
             }
           } catch (e: any) {
             console.error('[AUTH] Failed to auto-register user:', e.message);

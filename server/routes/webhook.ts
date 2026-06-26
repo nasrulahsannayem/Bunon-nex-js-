@@ -1,6 +1,6 @@
 import express from "express";
 import { productDbPool } from "../db";
-import { ramDatabase, syncLocalDatabase } from "../store";
+import { syncLocalDatabase } from "../store";
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ router.post("/woocommerce/product", async (req, res) => {
 
     if (event === 'deleted' && payload.id) {
       await productDbPool.execute("DELETE FROM wc_products_full WHERE wc_product_id = ? OR id = ?", [payload.id, payload.id]);
-      ramDatabase.products = ramDatabase.products.filter(p => p.id !== payload.id);
+      await syncLocalDatabase();
     } else if ((event === 'updated' || event === 'created') && payload.id) {
       const product_id = payload.id;
       const name = payload.name || "";

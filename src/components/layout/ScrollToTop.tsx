@@ -5,11 +5,20 @@ export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    // setTimeout ensures the DOM has painted the new page before scrolling.
-    // This fixes mobile browser issues where the page doesn't scroll to top on click.
-    setTimeout(() => {
+    // A more robust scroll to top for mobile browsers (Safari/Chrome Mobile)
+    const scrollToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    }, 0);
+      document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.body.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+
+    // Immediate attempt
+    scrollToTop();
+
+    // Deferred attempt to override browser history restoration
+    const timeoutId = setTimeout(scrollToTop, 50);
+    
+    return () => clearTimeout(timeoutId);
   }, [pathname]);
 
   return null;
