@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export default function AppBanner() {
+  return null; // Temporarily disabled by user request
   const [isVisible, setIsVisible] = useState(true);
   const [showBanner, setShowBanner] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
