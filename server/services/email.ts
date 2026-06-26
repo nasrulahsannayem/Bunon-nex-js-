@@ -2,17 +2,30 @@ import nodemailer from 'nodemailer';
 import { dbPool, productDbPool } from '../db';
 import { getCachedProducts } from './redisClient';
 
-// Initialize NodeMailer secure transporter using user's webmail credentials
+const MAIL_PORT = Number(process.env.MAIL_PORT) || 465;
+const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587=STARTTLS
+
+// Initialize NodeMailer transporter - supports both port 465 (SSL) and 587 (STARTTLS)
 export const mailTransporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'mail.bunonfabrics.com',
-  port: Number(process.env.MAIL_PORT) || 465,
-  secure: true,
+  host: process.env.MAIL_HOST || '127.0.0.1',
+  port: MAIL_PORT,
+  secure: IS_SECURE, // true for 465 (SSL), false for 587 (STARTTLS)
+  requireTLS: !IS_SECURE, // enforce STARTTLS for port 587
   auth: {
     user: process.env.MAIL_USER || 'admin@bunonfabrics.com',
     pass: process.env.MAIL_PASS ? process.env.MAIL_PASS.replace(/"/g, '') : 'naim#707207AA'
   },
   tls: {
     rejectUnauthorized: false // Avoid self-signed cert issues
+  }
+});
+
+// Verify connection on startup (non-blocking)
+mailTransporter.verify((error) => {
+  if (error) {
+    console.warn(`[Email] SMTP connection warning (${process.env.MAIL_HOST}:${MAIL_PORT}):`, error.message);
+  } else {
+    console.log(`[Email] SMTP ready ✓ (host: ${process.env.MAIL_HOST}, port: ${MAIL_PORT}, secure: ${IS_SECURE})`);
   }
 });
 
