@@ -9,9 +9,9 @@ git remote set-url origin https://nasrulahsannayem:ghp_6TzWwycG7K8xlvqddbvjLut05
 echo "📥 Fetching latest code from GitHub..."
 git fetch origin
 
-# Hard reset the local repository to match GitHub main branch exactly
+# Hard reset the local repository to match GitHub master branch exactly
 echo "🔄 Resetting local files to match GitHub..."
-git reset --hard origin/main
+git reset --hard origin/master
 
 # Build the project (This compiles server.ts into server.cjs!)
 echo "🏗️ Building the project (Compiling server.ts)..."
