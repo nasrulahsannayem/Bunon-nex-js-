@@ -76,6 +76,24 @@ export default function Checkout() {
     }
   }, []);
 
+  // 🕵️ Intercept back button to show Cancel Offer Popup
+  useEffect(() => {
+    // Push a dummy state to block the first back button click
+    window.history.pushState(null, '', window.location.pathname);
+    
+    const handlePopState = (e: PopStateEvent) => {
+      // Push again to prevent going back
+      window.history.pushState(null, '', window.location.pathname);
+      // Trigger the cancel popup!
+      handleCancelClick();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [generatedCouponCode, randomDiscount]);
+
   // ============================================================================
   // 🚀 BULLETPROOF CALCULATIONS
   // ============================================================================
@@ -173,6 +191,7 @@ export default function Checkout() {
       type: 'percent',
       isOnlineOnly: true
     });
+    setFormData(prev => ({ ...prev, paymentMethod: 'paystation' }));
     setShowCancelPopup(false);
   };
 
@@ -413,15 +432,7 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-20">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <nav aria-label="Breadcrumb" className="mb-4 md:mb-6 text-sm text-gray-500 flex items-center gap-1.5 flex-wrap">
-          <Link className="hover:text-gray-900 transition-colors" to="/">Home</Link>
-          <ArrowRight className="w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          <Link className="hover:text-gray-900 transition-colors" to="/shop">Shop</Link>
-          <ArrowRight className="w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          <span className="text-gray-900 font-medium">Checkout</span>
-        </nav>
-
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Secure Checkout</h1>
@@ -437,9 +448,9 @@ export default function Checkout() {
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8 xl:gap-10">
-          <div className="space-y-6 max-md:space-y-0 max-md:bg-white max-md:rounded-2xl max-md:border max-md:border-black/5 max-md:shadow-sm max-md:p-4">
-            <section className="md:rounded-2xl md:border md:border-black/5 md:bg-white md:shadow-sm p-0 md:p-6">
-              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900 max-md:mt-2">
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 md:p-8 space-y-0">
+            <section className="pb-6">
+              <h2 className="flex items-center gap-3 mb-5 text-lg font-semibold text-gray-900">
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-bold">1</span>
                 Contact Details
               </h2>
