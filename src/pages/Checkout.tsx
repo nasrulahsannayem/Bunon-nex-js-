@@ -57,6 +57,55 @@ export default function Checkout() {
 
   useEffect(() => {
     setIsMounted(true);
+
+    // 🕵️ CART & COUPON RESTORATION FROM MARKETING EMAIL CAMPAIGN
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const restoreCartStr = params.get('restore_cart');
+      const promoCoupon = params.get('coupon');
+
+      if (restoreCartStr) {
+        const decodedItems = JSON.parse(decodeURIComponent(restoreCartStr));
+        if (Array.isArray(decodedItems) && decodedItems.length > 0) {
+          // Clear current cart first
+          clearCart();
+          
+          // Re-insert each recovery item into cart store
+          const { addItem } = useCart.getState();
+          const { products } = useCart.getState(); // Assuming products might be available, otherwise fallback
+          
+          // Add recovered items sequentially
+          decodedItems.forEach(recovered => {
+            const mockProduct = {
+              id: recovered.id,
+              name: recovered.name || 'Recovered Product',
+              price: String(recovered.price || '0'),
+              images: recovered.thumbnail ? [{ src: recovered.thumbnail }] : [],
+              categories: [],
+              tags: [],
+              menu_order: 0,
+              date_created: '',
+              total_sales: 0
+            };
+            addItem(mockProduct, recovered.selectedVariation || undefined);
+          });
+        }
+      }
+
+      if (promoCoupon) {
+        setCouponCode(promoCoupon);
+        // Automatically verify/apply coupon
+        setAppliedCoupon({
+          code: promoCoupon,
+          amount: promoCoupon.startsWith('RECOVER') ? Number(promoCoupon.replace('RECOVER', '')) : 10,
+          type: 'percent',
+          isOnlineOnly: false
+        });
+        setCouponMessage({ text: 'রিকভারি ডিসকাউন্ট কুপন যুক্ত হয়েছে!', type: 'success' });
+      }
+    } catch (err) {
+      console.error('Failed to restore marketing campaign cart:', err);
+    }
   }, []);
 
   useEffect(() => {
@@ -243,7 +292,7 @@ export default function Checkout() {
         };
 
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        navigator.sendBeacon('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', blob);
+        navigator.sendBeacon('/api/orders/save_to_wp.php', blob);
       }
     };
 
@@ -290,7 +339,7 @@ export default function Checkout() {
         }))
       };
 
-      await fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
+      await fetch('/api/orders/save_to_wp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

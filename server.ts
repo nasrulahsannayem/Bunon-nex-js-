@@ -17,6 +17,12 @@ import productRoutes from "./server/routes/products";
 import webhookRoutes from "./server/routes/webhook";
 import paymentRoutes from "./server/routes/payment";
 import imageProxyRoutes from "./server/routes/imageProxy";
+import marketingRoutes from "./server/routes/marketing";
+import harvesterRoutes from "./server/routes/harvester";
+
+import { setupMarketingTables } from "./server/services/setupMarketingDb";
+import { processCartRecoveryCampaign } from "./server/services/recoveryCron";
+import { sendDailyNewsletter } from "./server/services/email";
 
 async function startServer() {
   const app = express();
@@ -25,18 +31,27 @@ async function startServer() {
   app.use(cors({ origin: '*' }));
   app.use(express.json());
 
-  // ⚡ Sync Databases on boot
+  // ⚡ Sync Databases and setup tables on boot
   syncLocalDatabase();
+  setupMarketingTables();
   
   // 🟢 EcomOS Sync initial run and scheduling
   syncEcomosProducts();
   setInterval(syncEcomosProducts, 60 * 60 * 1000); 
+
+  // 📩 Run marketing cart recovery cron every 1 hour
+  setInterval(processCartRecoveryCampaign, 60 * 60 * 1000);
+
+  // 📩 Send Daily Newsletter Promotions Campaign (Runs every 24 hours)
+  setInterval(sendDailyNewsletter, 24 * 60 * 60 * 1000);
 
   // 🚀 Mount Modular API Routes
   app.use("/api", productRoutes);
   app.use("/api", webhookRoutes);
   app.use("/api", paymentRoutes);
   app.use("/api", imageProxyRoutes);
+  app.use("/api", marketingRoutes);
+  app.use("/api", harvesterRoutes);
 
   // Fallback endpoint for generic API tracking
   app.post("/api/track/*", (req, res) => res.json({ status: "ok" }));

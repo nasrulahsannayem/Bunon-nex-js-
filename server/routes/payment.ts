@@ -85,9 +85,34 @@ router.post("/checkout/place-order", async (req, res) => {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'react_site')`,
         [
           bfOrderId, generatedOrderId, item.id, item.name, item.thumbnail || "",
-          item.sku || "N/A", item.quantity, item.price, (item.price * item.quantity), item.thumbnail || ""
+          item.sku || "N/A", item.quantity, item.quantity, item.price, (item.price * item.quantity), item.thumbnail || ""
         ]
       );
+    }
+
+    // 📩 Trigger order confirmation email sending if email exists
+    if (customer.email && customer.email.includes("@")) {
+      const { sendOrderConfirmationEmail } = await import("../services/email");
+      sendOrderConfirmationEmail(customer.email, {
+        orderId: generatedOrderId,
+        firstName: customer.name,
+        phone: customer.phone,
+        address1: customer.address,
+        district: customer.city || "Dhaka",
+        subtotal: subtotal,
+        shippingCost: shippingFee,
+        discount: (discount + totalCouponDiscount),
+        total: totalAmount,
+        paymentMethod: paymentMethod,
+        items: cart
+      }).catch(err => console.error("Email trigger failed:", err));
+
+      // Mark any cart recovery sequence for this email as converted
+      await dbPool.execute(`
+        UPDATE wc_cart_recovery_queue 
+        SET status = 'converted' 
+        WHERE email = ? OR phone = ?
+      `, [customer.email, customer.phone]);
     }
 
     // ❌ ব্যাকগ্রাউন্ডে অর্ডারটি EcomOS-এ পাঠানো আপাতত বন্ধ করা হলো
