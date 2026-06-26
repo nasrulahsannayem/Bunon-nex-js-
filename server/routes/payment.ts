@@ -2,6 +2,7 @@ import express from "express";
 import { dbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
+import { randomInt } from "crypto"; // secure ID generator
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.post("/checkout/place-order", async (req, res) => {
       return res.status(400).json({ ok: false, msg: "Cart or Customer details missing!" });
     }
 
-    const generatedOrderId = Math.floor(100000 + Math.random() * 900000);
+    const generatedOrderId = randomInt(100000, 1000000); // 6‑digit safe ID
     const invoiceNumber = "INV-" + new Date().toISOString().slice(2,10).replace(/-/g,'') + "-" + Math.floor(1000 + Math.random() * 9000);
     
     let totalCouponDiscount = 0;
