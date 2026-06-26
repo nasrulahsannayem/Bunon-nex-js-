@@ -5,7 +5,7 @@ dotenv.config();
 
 export const redisClient = createClient({
   url: `redis://${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || '6379'}`,
-  password: process.env.REDIS_PASSWORD || undefined
+  password: process.env.REDIS_PASSWORD ? process.env.REDIS_PASSWORD.replace(/"/g, '') : undefined
 });
 
 redisClient.on('error', (err) => console.error('[REDIS] Client Error', err));
