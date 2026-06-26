@@ -643,13 +643,23 @@ export default function Checkout() {
                       >
                         {isSelected && <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: pm.color }} />}
                       </span>
-                      <span className="font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate"
-                        style={{
-                          color: isSelected ? pm.color : '#374151',
-                        }}
-                      >
-                        {pm.title}
-                      </span>
+                      {pm.id === 'paystation' ? (
+                        <span className="font-bold text-[7.5px] min-[360px]:text-[8.5px] min-[390px]:text-[9.5px] md:text-sm whitespace-nowrap text-center flex items-center gap-0.5 justify-center">
+                          <span style={{ color: isSelected ? '#f7941d' : '#374151' }}>নগদ</span>
+                          <span className="opacity-40" style={{ color: isSelected ? pm.color : '#9ca3af' }}>,</span>
+                          <span style={{ color: isSelected ? '#8c2d82' : '#374151' }}>রকেট</span>
+                          <span className="opacity-40" style={{ color: isSelected ? pm.color : '#9ca3af' }}>,</span>
+                          <span style={{ color: isSelected ? '#0054a6' : '#374151' }}>ব্যাংক</span>
+                        </span>
+                      ) : (
+                        <span className="font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate"
+                          style={{
+                            color: isSelected ? pm.color : '#374151',
+                          }}
+                        >
+                          {pm.title}
+                        </span>
+                      )}
                     </label>
                   );
                 })}
