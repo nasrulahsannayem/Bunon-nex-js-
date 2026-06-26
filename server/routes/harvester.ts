@@ -26,7 +26,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
         customer_name = VALUES(customer_name),
         cart_data = VALUES(cart_data),
         status = IF(status = 'converted', 'converted', 'pending')
-    `, [cleanEmail || `${cleanPhone}@bunon.shop`, cleanPhone, customer_name || 'Guest', cartJson]);
+    `, [cleanEmail || null, cleanPhone, customer_name || 'Guest', cartJson]);
 
     // Also register user's marketing profile if email is provided
     if (cleanEmail && cleanEmail.includes('@')) {

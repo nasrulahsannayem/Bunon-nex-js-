@@ -161,6 +161,10 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
  * Sends recovery email with dynamic discount coupons (5% to 20%)
  */
 export async function sendCartRecoveryEmail(email: string, phone: string, name: string, cartItems: any[], discountPercent: number) {
+  if (email && email.endsWith('@bunon.shop')) {
+    console.log(`[Email] Skip recovery mail for ${email} because it is a placeholder.`);
+    return;
+  }
   try {
     // Check if user is unsubscribed
     const [subscriber]: any = await dbPool.execute('SELECT status FROM wc_marketing_emails WHERE email = ?', [email]);
