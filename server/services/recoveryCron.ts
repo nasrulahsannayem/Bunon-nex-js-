@@ -1,4 +1,4 @@
-import { dbPool } from '../db';
+import { productDbPool } from '../db';
 import { sendCartRecoveryEmail } from '../services/email';
 
 export async function processCartRecoveryCampaign() {
@@ -9,7 +9,7 @@ export async function processCartRecoveryCampaign() {
     const cutoffTime = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
     const sequenceCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago for next attempt
 
-    const [jobs]: any = await dbPool.execute(`
+    const [jobs]: any = await productDbPool.execute(`
       SELECT * FROM wc_cart_recovery_queue 
       WHERE status = 'pending' 
         AND (last_attempt_at IS NULL AND created_at <= ?)
@@ -23,14 +23,14 @@ export async function processCartRecoveryCampaign() {
 
     for (const job of jobs) {
       // 2. Double check if this user placed an order in the meantime to avoid sending spam
-      const [recentOrder]: any = await dbPool.execute(`
+      const [recentOrder]: any = await productDbPool.execute(`
         SELECT id FROM wc_marketing_emails 
         WHERE email = ? AND last_email_sent_at > ?
       `, [job.email, job.created_at]);
 
       // If they placed an order or manually opted out, cancel the recovery job
       if (recentOrder && recentOrder.length > 0) {
-        await dbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'converted' WHERE id = ?`, [job.id]);
+        await productDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'converted' WHERE id = ?`, [job.id]);
         continue;
       }
 
@@ -44,7 +44,7 @@ export async function processCartRecoveryCampaign() {
       } catch (e) {}
 
       if (cartItems.length === 0) {
-        await dbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'cancelled' WHERE id = ?`, [job.id]);
+        await productDbPool.execute(`UPDATE wc_cart_recovery_queue SET status = 'cancelled' WHERE id = ?`, [job.id]);
         continue;
       }
 
@@ -52,7 +52,7 @@ export async function processCartRecoveryCampaign() {
       await sendCartRecoveryEmail(job.email, job.phone, job.customer_name, cartItems, discountPercent);
 
       // Update queue job state
-      await dbPool.execute(`
+      await productDbPool.execute(`
         UPDATE wc_cart_recovery_queue 
         SET attempts = ?, last_attempt_at = NOW(), discount_offered = ?
         WHERE id = ?

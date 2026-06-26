@@ -30,6 +30,8 @@ async function startServer() {
 
   app.use(cors({ origin: '*' }));
   app.use(express.json());
+  // 🚀 FIX #2: Parse text/plain body from sendBeacon (browsers send text/plain for sendBeacon)
+  app.use(express.text({ type: 'text/plain' }));
 
   // ⚡ Sync Databases and setup tables on boot
   syncLocalDatabase();

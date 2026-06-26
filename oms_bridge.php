@@ -4,17 +4,20 @@ ini_set('display_errors', 0);
 header('Content-Type: application/json; charset=utf-8');
 
 // আপনার ডাটাবেস ক্রেডেনশিয়াল
-$wp_db   = 'Bunonfabrics_db';
-$wp_user = 'Bunonfabrics_db';
 $envPath = __DIR__ . '/.env';
 $env = [];
 if (file_exists($envPath)) {
     $env = parse_ini_file($envPath);
 }
+
+$wp_host = isset($env['WP_DB_HOST']) ? $env['WP_DB_HOST'] : '127.0.0.1';
+$wp_port = isset($env['WP_DB_PORT']) ? $env['WP_DB_PORT'] : '3306';
+$wp_db   = isset($env['WP_DB_NAME']) ? $env['WP_DB_NAME'] : 'Bunonfabrics_db';
+$wp_user = isset($env['WP_DB_USER']) ? $env['WP_DB_USER'] : 'Bunonfabrics_db';
 $wp_pass = isset($env['WP_DB_PASSWORD']) ? str_replace('"', '', $env['WP_DB_PASSWORD']) : '';
 
 try {
-    $pdo = new PDO("mysql:host=127.0.0.1;dbname=$wp_db;charset=utf8mb4", $wp_user, $wp_pass, [
+    $pdo = new PDO("mysql:host=$wp_host;port=$wp_port;dbname=$wp_db;charset=utf8mb4", $wp_user, $wp_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
 } catch (Exception $e) {

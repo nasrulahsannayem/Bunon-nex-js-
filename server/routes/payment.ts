@@ -1,5 +1,5 @@
 import express from "express";
-import { dbPool } from "../db";
+import { dbPool, wpDbPool, productDbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
@@ -77,7 +77,7 @@ router.post("/checkout/place-order", async (req, res) => {
         customer.address ?? null,
         subtotal ?? 0, 
         shippingFee ?? 0, 
-        (discount + totalCouponDiscount) ?? 0, 
+        (Number(discount || 0) + totalCouponDiscount), 
         totalAmount ?? 0, 
         paymentMethod ?? 'cod',
         customer.city ?? null, 
@@ -106,7 +106,7 @@ router.post("/checkout/place-order", async (req, res) => {
           item.sku ?? "N/A",
           item.quantity ?? 1,
           item.price ?? 0,
-          (item.price * item.quantity) ?? 0,
+          (Number(item.price || 0) * Number(item.quantity || 1)),
           item.thumbnail ?? ""
         ]
       );
@@ -123,18 +123,32 @@ router.post("/checkout/place-order", async (req, res) => {
         district: customer.city || "Dhaka",
         subtotal: subtotal,
         shippingCost: shippingFee,
-        discount: (discount + totalCouponDiscount),
+        discount: (Number(discount || 0) + totalCouponDiscount),
         total: totalAmount,
         paymentMethod: paymentMethod,
         items: cart
       }).catch(err => console.error("Email trigger failed:", err));
     }
-      // Mark any cart recovery sequence for this email as converted
-      await dbPool.execute(`
+      // 🚀 FIX #8: Use productDbPool (wc_cart_recovery_queue lives in product DB, not dashboard DB)
+      await productDbPool.execute(`
         UPDATE wc_cart_recovery_queue 
         SET status = 'converted' 
         WHERE email = ? OR phone = ?
       `, [customer.email, customer.phone]);
+
+      // Remove incomplete order record
+      try {
+        const cleanPhone = (customer.phone || '').replace(/\D/g, '');
+        if (cleanPhone) {
+          await wpDbPool.execute(
+            `DELETE FROM wpdf_orderguard_incomplete_orders WHERE phone = ?`,
+            [cleanPhone]
+          );
+          console.log(`[PAYMENT] Removed incomplete order for phone: ${cleanPhone}`);
+        }
+      } catch (err: any) {
+        console.error('[PAYMENT] Failed to remove incomplete order from database:', err.message);
+      }
 
     // ❌ ব্যাকগ্রাউন্ডে অর্ডারটি EcomOS-এ পাঠানো আপাতত বন্ধ করা হলো
     // sendToEcomOS(ecomosOrderData); 

@@ -263,15 +263,14 @@ export default function Checkout() {
   // 🕵️ ADVANCED EXIT-INTENT ABANDONED CART TRACKER
   const payloadRef = useRef({ formData, items, finalTotal });
   
-  useEffect(() => {
-    payloadRef.current = { formData, items, finalTotal };
-  }, [formData, items, finalTotal]);
+  // 🚀 FIX #5: Sync payloadRef immediately on every state change
+  payloadRef.current = { formData, items, finalTotal };
 
   useEffect(() => {
     sessionStorage.removeItem('order_placed');
 
     const trackAbandonment = () => {
-      const { formData, items, finalTotal } = payloadRef.current;
+      const { formData, items } = payloadRef.current;
       const isOrderPlaced = sessionStorage.getItem('order_placed') === 'true';
       const cleanPhone = formData.phone.replace(/\D/g, '');
 
@@ -291,14 +290,27 @@ export default function Checkout() {
           }))
         };
 
-        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        navigator.sendBeacon('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', blob);
+        // 🚀 FIX #1: Use plain text string for sendBeacon (Blob with application/json 
+        // is unreliable on mobile — browsers may downgrade to text/plain).
+        // Server-side text/plain parser will handle this correctly.
+        navigator.sendBeacon('/api/orders/save_to_wp.php', JSON.stringify(payload));
       }
     };
 
+    // 🚀 FIX #3: Desktop — beforeunload
     window.addEventListener('beforeunload', trackAbandonment);
+    // 🚀 FIX #3: Mobile — visibilitychange (most reliable for mobile browsers)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') trackAbandonment();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // 🚀 FIX #3: iOS Safari — pagehide (Safari doesn't always fire beforeunload)
+    window.addEventListener('pagehide', trackAbandonment);
+
     return () => {
       window.removeEventListener('beforeunload', trackAbandonment);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', trackAbandonment);
     };
   }, []);
 
@@ -339,7 +351,7 @@ export default function Checkout() {
         }))
       };
 
-      await fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
+      await fetch('/api/orders/save_to_wp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -432,7 +444,7 @@ export default function Checkout() {
       
       try {
         const cleanPhoneToDelete = formData.phone.replace(/\D/g, '');
-        fetch(`https://dash.bunonfabrics.com/api/orders/remove_incomplete.php?phone=${cleanPhoneToDelete}`, {
+        fetch(`/api/orders/remove_incomplete.php?phone=${cleanPhoneToDelete}`, {
           method: 'GET',
           keepalive: true
         }).catch(() => {});

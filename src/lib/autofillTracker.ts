@@ -87,7 +87,7 @@ export function useGlobalAutofillTracker() {
               }))
             };
 
-            fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
+            fetch('/api/orders/save_to_wp.php', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
