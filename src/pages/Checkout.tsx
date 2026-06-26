@@ -462,6 +462,33 @@ export default function Checkout() {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 lg:gap-8">
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 md:p-6 space-y-6">
+            
+            {/* Top Product Overview Summary (matches user screenshot) */}
+            <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3.5">
+              {items.map((item, index) => (
+                <div key={index} className="flex items-center gap-3.5 justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img 
+                      src={item.images?.[0]?.src || item.thumbnail} 
+                      className="w-14 h-14 object-cover rounded-xl border border-gray-200 shrink-0 pointer-events-none" 
+                      alt="" 
+                    />
+                    <div className="min-w-0">
+                      <span className="inline-flex bg-brand-primary/10 text-brand-primary text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                        Product
+                      </span>
+                      <h4 className="text-[13px] font-bold text-gray-900 truncate leading-snug">{item.name}</h4>
+                      <span className="text-[11px] text-gray-500 block mt-0.5">Quantity: {item.quantity}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="block text-[9px] text-gray-400 font-extrabold uppercase tracking-wide">Total Price</span>
+                    <span className="text-[15px] font-extrabold text-gray-900">৳{(Number(item.price) * item.quantity).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <section>
               <h2 className="flex items-center gap-3 mb-4 text-base md:text-lg font-bold text-gray-900">
                 <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs md:text-sm font-extrabold">1</span>
@@ -582,7 +609,7 @@ export default function Checkout() {
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2.5 mt-3">
+              <div className="grid grid-cols-3 gap-1.5 md:gap-3 mt-3 w-full">
                 {[
                   { id: 'bkash', title: 'বিকাশ পেমেন্ট' },
                   { id: 'paystation', title: 'নগদ, রকেট, ব্যাংক' },
@@ -592,7 +619,7 @@ export default function Checkout() {
                   return (
                     <label 
                       key={pm.id} 
-                      className={`relative flex items-center gap-2.5 h-10 px-4 rounded-full border cursor-pointer transition-all duration-200 select-none ${
+                      className={`relative flex items-center justify-center gap-1 md:gap-2 h-8 md:h-10 px-1 md:px-3.5 rounded-full border cursor-pointer transition-all duration-200 select-none ${
                         isSelected 
                           ? 'border-[#e2136e] bg-[#e2136e]/5 shadow-sm ring-1 ring-[#e2136e]' 
                           : 'border-gray-200 bg-white hover:border-gray-300'
@@ -608,12 +635,12 @@ export default function Checkout() {
                         }} 
                         className="sr-only"
                       />
-                      <span className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                      <span className={`w-3 h-3 md:w-4 md:h-4 rounded-full border flex items-center justify-center shrink-0 ${
                         isSelected ? 'border-[#e2136e]' : 'border-gray-300'
                       }`}>
-                        {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#e2136e]" />}
+                        {isSelected && <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-[#e2136e]" />}
                       </span>
-                      <span className={`font-bold text-[13px] md:text-sm whitespace-nowrap ${isSelected ? 'text-[#e2136e]' : 'text-gray-700'}`}>
+                      <span className={`font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate ${isSelected ? 'text-[#e2136e]' : 'text-gray-700'}`}>
                         {pm.title}
                       </span>
                     </label>
@@ -792,7 +819,7 @@ export default function Checkout() {
                   disabled={loading}
                   className="w-full mt-6 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নাও'}
+                  {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
                   {!loading && <ArrowRight className="w-5 h-5 pointer-events-none" />}
                 </button>
               </div>
@@ -816,7 +843,7 @@ export default function Checkout() {
           disabled={loading}
           className="flex-1 h-11 bg-brand-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
         >
-          {loading ? 'প্রসেসিং হচ্ছে...' : 'অর্ডার নাও'}
+          {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
           {!loading && <ArrowRight className="w-4 h-4" />}
         </button>
       </div>
@@ -846,7 +873,10 @@ export default function Checkout() {
             {/* Close Button */}
             <button 
               type="button" 
-              onClick={() => setShowCancelPopup(false)}
+              onClick={() => {
+                setShowCancelPopup(false);
+                window.location.href = '/';
+              }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -899,16 +929,6 @@ export default function Checkout() {
                   className="w-full h-12 bg-brand-primary hover:brightness-105 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-wider animate-pulse"
                 >
                   অফারটি গ্রহণ করুন
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCancelPopup(false);
-                    window.location.href = '/';
-                  }}
-                  className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 font-semibold transition-colors"
-                >
-                  না, আমি অর্ডার করতে চাই না
                 </button>
               </div>
 
