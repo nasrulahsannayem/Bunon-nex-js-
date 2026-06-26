@@ -611,19 +611,20 @@ export default function Checkout() {
               
               <div className="grid grid-cols-3 gap-1.5 md:gap-3 mt-3 w-full">
                 {[
-                  { id: 'bkash', title: 'বিকাশ পেমেন্ট' },
-                  { id: 'paystation', title: 'নগদ, রকেট, ব্যাংক' },
-                  { id: 'cod', title: 'ক্যাশ অন ডেলিভারি' },
+                  { id: 'bkash', title: 'বিকাশ পেমেন্ট', color: '#e2136e', bg: 'rgba(226, 19, 110, 0.05)' },
+                  { id: 'paystation', title: 'নগদ, রকেট, ব্যাংক', color: '#f7941d', bg: 'rgba(247, 148, 29, 0.05)' },
+                  { id: 'cod', title: 'ক্যাশ অন ডেলিভারি', color: '#059669', bg: 'rgba(5, 150, 105, 0.05)' },
                 ].map((pm) => {
                   const isSelected = formData.paymentMethod === pm.id;
                   return (
                     <label 
                       key={pm.id} 
-                      className={`relative flex items-center justify-center gap-1 md:gap-2 h-8 md:h-10 px-1 md:px-3.5 rounded-full border cursor-pointer transition-all duration-200 select-none ${
-                        isSelected 
-                          ? 'border-[#e2136e] bg-[#e2136e]/5 shadow-sm ring-1 ring-[#e2136e]' 
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
+                      className="relative flex items-center justify-center gap-1 md:gap-2 h-8 md:h-10 px-1 md:px-3.5 rounded-full border cursor-pointer transition-all duration-200 select-none"
+                      style={{
+                        borderColor: isSelected ? pm.color : '#e5e7eb',
+                        backgroundColor: isSelected ? pm.bg : '#ffffff',
+                        boxShadow: isSelected ? `0 0 0 1px ${pm.color}` : 'none',
+                      }}
                     >
                       <input 
                         type="radio" 
@@ -635,12 +636,18 @@ export default function Checkout() {
                         }} 
                         className="sr-only"
                       />
-                      <span className={`w-3 h-3 md:w-4 md:h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                        isSelected ? 'border-[#e2136e]' : 'border-gray-300'
-                      }`}>
-                        {isSelected && <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full bg-[#e2136e]" />}
+                      <span className="w-3 h-3 md:w-4 md:h-4 rounded-full border flex items-center justify-center shrink-0"
+                        style={{
+                          borderColor: isSelected ? pm.color : '#d1d5db',
+                        }}
+                      >
+                        {isSelected && <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: pm.color }} />}
                       </span>
-                      <span className={`font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate ${isSelected ? 'text-[#e2136e]' : 'text-gray-700'}`}>
+                      <span className="font-bold text-[8px] min-[360px]:text-[9px] min-[390px]:text-[10px] md:text-sm whitespace-nowrap text-center truncate"
+                        style={{
+                          color: isSelected ? pm.color : '#374151',
+                        }}
+                      >
                         {pm.title}
                       </span>
                     </label>
