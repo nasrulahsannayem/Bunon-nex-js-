@@ -444,7 +444,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-20">
+    <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-28 md:pb-32">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -846,39 +846,32 @@ export default function Checkout() {
                       </div>
                    )}
                 </div>
-
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full mt-4 h-12 rounded-xl bg-brand-primary text-white text-base font-bold shadow-md hover:brightness-105 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
-                  {!loading && <ArrowRight className="w-5 h-5 pointer-events-none" />}
-                </button>
               </div>
             </div>
           </div>
         </form>
       </div>
 
-      {/* Sticky Bottom CTA for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-3 md:hidden flex items-center justify-between gap-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-safe">
-        <div>
-          <span className="block text-[10px] text-gray-500 font-semibold">সর্বমোট মূল্য</span>
-          <span className="text-lg font-bold text-brand-primary">৳{finalTotal.toLocaleString()}</span>
+      {/* Sticky Bottom CTA for All Devices */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] pb-safe">
+        <div className="max-w-[1400px] mx-auto px-4 flex items-center justify-between gap-4">
+          <div>
+            <span className="block text-[10px] md:text-xs text-gray-500 font-semibold">সর্বমোট মূল্য</span>
+            <span className="text-base md:text-xl font-black text-brand-primary tabular-nums">৳{finalTotal.toLocaleString()}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) form.requestSubmit();
+            }}
+            disabled={loading}
+            className="w-40 sm:w-48 md:w-64 h-11 bg-brand-primary hover:brightness-105 text-white text-sm md:text-base font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50 shadow-md shadow-brand-primary/15"
+          >
+            {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
+            {!loading && <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            const form = document.querySelector('form');
-            if (form) form.requestSubmit();
-          }}
-          disabled={loading}
-          className="flex-1 h-11 bg-brand-primary text-white text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
-        >
-          {loading ? 'প্রসেসিং হচ্ছে...' : 'Order Now'}
-          {!loading && <ArrowRight className="w-4 h-4" />}
-        </button>
       </div>
 
       {/* 🎟️ CANCEL OFFER POPUP MODAL */}
@@ -927,13 +920,16 @@ export default function Checkout() {
                 আপনার জন্য রয়েছে একটি বিশেষ ধামাকা অফার। এখনই অর্ডার করলে অতিরিক্ত ডিসকাউন্ট পাবেন!
               </p>
 
-              {/* Dynamic Percent Badge */}
-              <div className="bg-gradient-to-r from-[#e2136e] to-[#ff4081] text-white rounded-2xl py-4 px-6 mb-6 shadow-md">
-                <span className="block text-xs uppercase tracking-wider font-bold opacity-90">Special Discount Coupon</span>
-                <span className="block text-4xl font-black my-1 tracking-tight">৳{randomDiscount} OFF</span>
-                <span className="inline-block bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest mt-1">
-                  CODE: {generatedCouponCode}
+               {/* Dynamic Percent Badge */}
+              <div className="bg-gradient-to-r from-[#e2136e] to-[#ff4081] text-white rounded-2xl py-4 px-6 mb-6 shadow-md shadow-[#e2136e]/20">
+                <span className="block text-xs uppercase tracking-wider font-extrabold opacity-95">স্পেশাল অনলাইন পেমেন্ট অফার</span>
+                <span className="block text-2xl md:text-3xl font-black my-1.5 tracking-tight animate-pulse">মোট ৳{randomDiscount + 50} ডিসকাউন্ট! 🔥</span>
+                <span className="block text-[11px] opacity-90 leading-relaxed">
+                  (কুপন ডিসকাউন্ট ৳{randomDiscount} + অনলাইন পেমেন্ট ডিসকাউন্ট ৳৫০)
                 </span>
+                <div className="mt-2.5 inline-block bg-white/20 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  CODE: {generatedCouponCode}
+                </div>
               </div>
 
               {/* Calculation Box */}
