@@ -71,7 +71,7 @@ export default function OrdersManager() {
                 >
                   <td className="p-4 font-semibold text-brand-navy">#{order.invoice}</td>
                   <td className="p-4">
-                    <div className="font-medium text-gray-900">{order.name}</div>
+                    <div className="font-medium text-gray-900">{order.customer_name}</div>
                     <div className="text-gray-500 text-xs">{order.phone}</div>
                     <div className="text-gray-500 text-xs">{order.city}</div>
                   </td>

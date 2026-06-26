@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
     const offset = (page - 1) * limit;
 
     const [orders]: any = await dbPool.execute(
-      `SELECT id, invoice, created_at, status, total_payable, name, phone, city 
+      `SELECT id, invoice, created_at, status, total_payable, customer_name, phone, city 
        FROM bf_orders 
        ORDER BY created_at DESC 
        LIMIT ? OFFSET ?`,
