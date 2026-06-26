@@ -99,10 +99,14 @@ export default function Checkout() {
   
   let couponDiscountAmount = 0;
   if (appliedCoupon) {
-    if (appliedCoupon.type === 'percent') {
-      couponDiscountAmount = (calculatedSubtotal * appliedCoupon.amount) / 100;
+    if (appliedCoupon.isOnlineOnly && formData.paymentMethod === 'cod') {
+      couponDiscountAmount = 0;
     } else {
-      couponDiscountAmount = appliedCoupon.amount;
+      if (appliedCoupon.type === 'percent') {
+        couponDiscountAmount = (calculatedSubtotal * appliedCoupon.amount) / 100;
+      } else {
+        couponDiscountAmount = appliedCoupon.amount;
+      }
     }
   }
 
@@ -166,7 +170,8 @@ export default function Checkout() {
     setAppliedCoupon({
       code: generatedCouponCode,
       amount: randomDiscount,
-      type: 'percent'
+      type: 'percent',
+      isOnlineOnly: true
     });
     setShowCancelPopup(false);
   };
@@ -750,7 +755,14 @@ export default function Checkout() {
 
                   {appliedCoupon && (
                     <div className="flex justify-between items-center text-sm text-green-600">
-                      <span>Coupon Discount ({appliedCoupon.code})</span>
+                      <span className="flex flex-col">
+                        <span>Coupon Discount ({appliedCoupon.code})</span>
+                        {appliedCoupon.isOnlineOnly && formData.paymentMethod === 'cod' && (
+                          <span className="text-[10px] text-red-500 font-bold leading-tight">
+                            (শুধুমাত্র অনলাইন পেমেন্টে প্রযোজ্য)
+                          </span>
+                        )}
+                      </span>
                       <span className="font-bold tabular-nums">- ৳{couponDiscountAmount.toLocaleString()}</span>
                     </div>
                   )}
