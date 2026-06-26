@@ -18,6 +18,8 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
 
     const { customer_name, phone, address, city, email, cart_products } = body || {};
 
+    console.log(`[AUTOFILL CAPTURE] Name: ${customer_name || 'N/A'}, Phone: ${phone || 'N/A'}, Email: ${email || 'N/A'}`);
+
     if (!phone && !email) {
       return res.status(400).json({ ok: false, msg: 'Invalid Data - Email or Phone required' });
     }
