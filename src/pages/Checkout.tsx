@@ -292,7 +292,7 @@ export default function Checkout() {
         };
 
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        navigator.sendBeacon('/api/orders/save_to_wp.php', blob);
+        navigator.sendBeacon('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', blob);
       }
     };
 
@@ -339,7 +339,7 @@ export default function Checkout() {
         }))
       };
 
-      await fetch('/api/orders/save_to_wp.php', {
+      await fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
