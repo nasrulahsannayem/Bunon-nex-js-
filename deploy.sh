@@ -11,7 +11,7 @@ git fetch origin
 
 # Hard reset the local repository to match GitHub master branch exactly
 echo "🔄 Resetting local files to match GitHub..."
-git reset --hard origin/master
+git reset --hard origin/main
 
 # Build the project (This compiles server.ts into server.cjs!)
 echo "🏗️ Building the project (Compiling server.ts)..."
@@ -20,7 +20,7 @@ npm run build
 
 # Run the database setup script to ensure tables exist
 echo "🛠️ Ensuring database tables exist..."
-node setup_db.cjs || node setup_db.js
+node setup_db.cjs
 
 # Restart the PM2 process
 echo "♻️ Recreating PM2 process (bunon-site)..."

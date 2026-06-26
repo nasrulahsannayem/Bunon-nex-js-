@@ -144,7 +144,7 @@ async function runTests() {
     html: wrapHtmlBody('আজকের হট কালেকশন সমূহ!', promoBody, email)
   });
   console.log('✅ Daily Newsletter sent.');
-  
+
   console.log('All emails sent successfully! Check your inbox.');
 }
 

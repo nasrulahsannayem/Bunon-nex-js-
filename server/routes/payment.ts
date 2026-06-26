@@ -70,10 +70,23 @@ router.post("/checkout/place-order", async (req, res) => {
         payment_method, status, city, state, fbp, fbc, external_id, customer_type, source, is_paid, cod_amount
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, 'react_site', 0, ?)`,
       [
-        generatedOrderId, invoiceNumber, customer.name, customer.phone, customer.address,
-        subtotal, shippingFee, (discount + totalCouponDiscount), totalAmount, paymentMethod,
-        customer.city, customer.area || "", customer.fbp || null, customer.fbc || null,
-        String(generatedOrderId), customerType, totalAmount
+        generatedOrderId ?? null, 
+        invoiceNumber ?? null, 
+        customer.name ?? null, 
+        customer.phone ?? null, 
+        customer.address ?? null,
+        subtotal ?? 0, 
+        shippingFee ?? 0, 
+        (discount + totalCouponDiscount) ?? 0, 
+        totalAmount ?? 0, 
+        paymentMethod ?? 'cod',
+        customer.city ?? null, 
+        customer.area ?? "", 
+        customer.fbp ?? null, 
+        customer.fbc ?? null,
+        String(generatedOrderId), 
+        customerType ?? 'new', 
+        totalAmount ?? 0
       ]
     );
 
@@ -85,8 +98,16 @@ router.post("/checkout/place-order", async (req, res) => {
           order_id, woo_order_id, product_id, product_name, product_thumb, sku, qty, price, line_total, thumb, source
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'react_site')`,
         [
-          bfOrderId, generatedOrderId, item.id, item.name, item.thumbnail || "",
-          item.sku || "N/A", item.quantity, item.quantity, item.price, (item.price * item.quantity), item.thumbnail || ""
+          bfOrderId ?? null,
+          generatedOrderId ?? null,
+          item.id ?? null,
+          item.name ?? null,
+          item.thumbnail ?? "",
+          item.sku ?? "N/A",
+          item.quantity ?? 1,
+          item.price ?? 0,
+          (item.price * item.quantity) ?? 0,
+          item.thumbnail ?? ""
         ]
       );
     }
