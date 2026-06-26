@@ -136,18 +136,16 @@ router.post("/checkout/place-order", async (req, res) => {
         WHERE email = ? OR phone = ?
       `, [customer.email, customer.phone]);
 
-      // Remove incomplete order record
+      // Remove incomplete order record by forwarding to dash
       try {
         const cleanPhone = (customer.phone || '').replace(/\D/g, '');
         if (cleanPhone) {
-          await dbPool.execute(
-            `DELETE FROM wpdf_orderguard_incomplete_orders WHERE phone = ?`,
-            [cleanPhone]
-          );
-          console.log(`[PAYMENT] Removed incomplete order for phone: ${cleanPhone}`);
+          fetch(`https://dash.bunonfabrics.com/api/orders/remove_incomplete.php?phone=${cleanPhone}`)
+            .catch(err => console.error('[PAYMENT Forwarding] Failed to remove incomplete order on dash:', err));
+          console.log(`[PAYMENT] Triggered remove incomplete order for phone: ${cleanPhone}`);
         }
       } catch (err: any) {
-        console.error('[PAYMENT] Failed to remove incomplete order from database:', err.message);
+        console.error('[PAYMENT] Failed to trigger remove incomplete order:', err.message);
       }
 
     // ❌ ব্যাকগ্রাউন্ডে অর্ডারটি EcomOS-এ পাঠানো আপাতত বন্ধ করা হলো
