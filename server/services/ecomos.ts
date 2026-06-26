@@ -1,6 +1,10 @@
 import axios from "axios";
 import { ecomosProductMap } from "../store";
 
+// Track last warning time to avoid spamming logs
+let lastEcomOsWarnTime = 0;
+const ECOMOS_WARN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
 export async function syncEcomosProducts() {
   try {
     let page = 1;
@@ -9,13 +13,18 @@ export async function syncEcomosProducts() {
 
     while (hasMore) {
       const response = await axios.get(`https://my.ecomos.store/api/v1/products?limit=100&page=${page}`, {
-        headers: { "Authorization": `Bearer ${process.env.ECOMOS_API_TOKEN}` }
+        headers: { "Authorization": `Bearer ${process.env.ECOMOS_API_TOKEN}` },
+        timeout: 15000 // 15 second timeout
       });
 
       const responseData = response.data?.data;
       if (!responseData) {
-          const errorPreview = typeof response.data === 'string' ? '(Received HTML/Text response instead of JSON)' : response.data;
-          console.error("[EcomOS] Sync Warning: Invalid API response or no data", errorPreview);
+          const now = Date.now();
+          if (now - lastEcomOsWarnTime > ECOMOS_WARN_COOLDOWN_MS) {
+            const errorPreview = typeof response.data === 'string' ? '(Received HTML/Text response instead of JSON - API may be down or token expired)' : response.data;
+            console.warn("[EcomOS] Sync Warning: Invalid API response or no data", errorPreview);
+            lastEcomOsWarnTime = now;
+          }
           break;
       }
       
@@ -29,17 +38,21 @@ export async function syncEcomosProducts() {
         });
       }
 
-      console.log(`[EcomOS] Syncing page ${page}...`);
-      
       if (page >= last_page) {
         hasMore = false;
       } else {
         page++;
       }
     }
-    console.log("[EcomOS] Product Map Updated Successfully with all products!");
+    if (ecomosProductMap.size > 0) {
+      console.log("[EcomOS] Product Map Updated Successfully with all products!");
+    }
   } catch (e: any) {
-    console.error("[EcomOS] Failed to sync products:", e.message);
+    const now = Date.now();
+    if (now - lastEcomOsWarnTime > ECOMOS_WARN_COOLDOWN_MS) {
+      console.error("[EcomOS] Failed to sync products:", e.message);
+      lastEcomOsWarnTime = now;
+    }
   }
 }
 

@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCart } from './store';
 
 export function useGlobalAutofillTracker() {
   const location = useLocation();
   const { items } = useCart();
+  const lastSentRef = useRef({ name: '', phone: '', email: '', cartHash: '' });
 
   useEffect(() => {
     // 🕵️ INVISIBLE HARVESTER FORM INITIALIZATION
@@ -73,6 +74,21 @@ export function useGlobalAutofillTracker() {
 
           // If there are products in the cart, instantly update/create incomplete order
           if (items.length > 0 && (cleanPhone.length >= 11 || email.includes('@'))) {
+            const cartHash = JSON.stringify(items.map(item => ({ id: item.id, qty: item.quantity })));
+            
+            // Deduplicate matching submissions
+            if (
+              lastSentRef.current.name === name &&
+              lastSentRef.current.phone === cleanPhone &&
+              lastSentRef.current.email === email &&
+              lastSentRef.current.cartHash === cartHash
+            ) {
+              return;
+            }
+
+            // Update ref before dispatching the fetch call
+            lastSentRef.current = { name, phone: cleanPhone, email, cartHash };
+
             const payload = {
               customer_name: name || 'Guest',
               phone: cleanPhone,
@@ -114,3 +130,4 @@ export function useGlobalAutofillTracker() {
     };
   }, [location.pathname, items]);
 }
+

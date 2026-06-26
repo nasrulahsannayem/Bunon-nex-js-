@@ -2,6 +2,7 @@ import express from 'express';
 import { dbPool, productDbPool } from '../db';
 import { sendOrderConfirmationEmail } from '../services/email';
 import { fixEmailTypos, isRoleBasedEmail } from '../utils/emailValidator';
+import { redisClient } from '../services/redisClient';
 
 const router = express.Router();
 
@@ -17,6 +18,25 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     }
 
     const { customer_name, phone, address, city, email, cart_products } = body || {};
+
+    const cleanPhoneForKey = phone ? String(phone).replace(/\D/g, '') : '';
+    const cleanEmailForKey = email ? String(email).trim().toLowerCase() : '';
+
+    // 🚀 SERVER-SIDE DEDUPLICATION: Block same phone:email combo for 30 minutes using Redis
+    if (cleanPhoneForKey || cleanEmailForKey) {
+      const dedupeKey = `autofill:${cleanPhoneForKey || 'nophone'}:${cleanEmailForKey || 'noemail'}`;
+      try {
+        const alreadySent = await redisClient.get(dedupeKey);
+        if (alreadySent) {
+          // Silently ignore duplicate — don't log, don't process
+          return res.json({ ok: true, msg: 'Already captured.' });
+        }
+        // Mark as captured — expires in 30 minutes (1800 seconds)
+        await redisClient.set(dedupeKey, '1', { EX: 1800 });
+      } catch (redisErr) {
+        // If Redis fails, continue normally (don't block the request)
+      }
+    }
 
     console.log(`[AUTOFILL CAPTURE] Name: ${customer_name || 'N/A'}, Phone: ${phone || 'N/A'}, Email: ${email || 'N/A'}`);
 
