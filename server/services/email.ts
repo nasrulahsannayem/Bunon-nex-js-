@@ -3,20 +3,21 @@ import { dbPool, productDbPool } from '../db';
 import { getCachedProducts } from './redisClient';
 
 const MAIL_PORT = Number(process.env.MAIL_PORT) || 465;
-const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587=STARTTLS
+const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587/25=STARTTLS/Plain
+const IS_LOCAL = process.env.MAIL_HOST === '127.0.0.1' || process.env.MAIL_HOST === 'localhost';
 
-// Initialize NodeMailer transporter - supports both port 465 (SSL) and 587 (STARTTLS)
+// Initialize NodeMailer transporter
 export const mailTransporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || '127.0.0.1',
   port: MAIL_PORT,
-  secure: IS_SECURE, // true for 465 (SSL), false for 587 (STARTTLS)
-  requireTLS: !IS_SECURE, // enforce STARTTLS for port 587
+  secure: IS_SECURE, // true for 465, false for other ports
+  ignoreTLS: IS_LOCAL && !IS_SECURE, // If local and not 465, ignore TLS to avoid sendmail 454 STARTTLS error
   auth: {
     user: process.env.MAIL_USER || 'admin@bunonfabrics.com',
     pass: process.env.MAIL_PASS ? process.env.MAIL_PASS.replace(/"/g, '') : 'naim#707207AA'
   },
   tls: {
-    rejectUnauthorized: false // Avoid self-signed cert issues
+    rejectUnauthorized: false
   }
 });
 
