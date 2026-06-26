@@ -61,9 +61,9 @@ export default function Checkout() {
 
   useEffect(() => {
     const savedPhone = getCookie('user_phone') || getCookie('billing_phone') || '';
-    const savedName = getCookie('user_name') || getCookie('billing_first_name') || '';
-    const savedDistrict = getCookie('billing_city') || '';
-    const savedAddress = getCookie('billing_address_1') || '';
+    const savedName = decodeURIComponent(getCookie('user_name') || getCookie('billing_first_name') || '');
+    const savedDistrict = decodeURIComponent(getCookie('billing_city') || '');
+    const savedAddress = decodeURIComponent(getCookie('billing_address_1') || '');
 
     if (savedPhone || savedName) {
       setFormData(prev => ({
@@ -257,6 +257,21 @@ export default function Checkout() {
     const currentData = payloadRef.current;
     const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
     
+    // Save to cookies for persistent recovery across sessions
+    if (cleanPhone.length >= 11) {
+      const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `user_phone=${cleanPhone}; expires=${expires}; path=/; SameSite=Lax`;
+      if (currentData.formData.firstName) {
+        document.cookie = `user_name=${encodeURIComponent(currentData.formData.firstName)}; expires=${expires}; path=/; SameSite=Lax`;
+      }
+      if (currentData.formData.district) {
+        document.cookie = `billing_city=${encodeURIComponent(currentData.formData.district)}; expires=${expires}; path=/; SameSite=Lax`;
+      }
+      if (currentData.formData.address1) {
+        document.cookie = `billing_address_1=${encodeURIComponent(currentData.formData.address1)}; expires=${expires}; path=/; SameSite=Lax`;
+      }
+    }
+
     if (cleanPhone.length < 11 || currentData.items.length === 0) return;
 
     try {

@@ -17,6 +17,42 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
   const handleBuyNow = () => {
     buyNow(product);
+    
+    // 🕵️ INCOMPLETE AUTO CAPTURE FROM COOKIES ON BUY NOW
+    try {
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+        return null;
+      };
+      const savedPhone = getCookie('user_phone') || getCookie('billing_phone') || '';
+      if (savedPhone && savedPhone.replace(/\D/g, '').length >= 11) {
+        const savedName = decodeURIComponent(getCookie('user_name') || getCookie('billing_first_name') || 'Guest');
+        const savedDistrict = decodeURIComponent(getCookie('billing_city') || '');
+        const savedAddress = decodeURIComponent(getCookie('billing_address_1') || '');
+        const fullAddress = savedDistrict ? `${savedAddress}, ${savedDistrict}` : savedAddress;
+        
+        const payload = {
+          customer_name: savedName,
+          phone: savedPhone.replace(/\D/g, ''),
+          address: fullAddress,
+          city: savedDistrict,
+          cart_products: [{
+            product_id: product.id,
+            name: product.name,
+            price: Number(product.price),
+            quantity: 1
+          }]
+        };
+        fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
+    } catch (e) {}
+
     onClose();
     navigate('/checkout');
   };
