@@ -19,10 +19,11 @@ import paymentRoutes from "./server/routes/payment";
 import imageProxyRoutes from "./server/routes/imageProxy";
 import marketingRoutes from "./server/routes/marketing";
 import harvesterRoutes from "./server/routes/harvester";
+import authRoutes from "./server/routes/auth";
 
 import { setupMarketingTables } from "./server/services/setupMarketingDb";
 import { processCartRecoveryCampaign } from "./server/services/recoveryCron";
-import { sendDailyNewsletter } from "./server/services/email";
+import { sendDailyNewsletter } from "./server/services/dailyPromotionsCron";
 
 async function startServer() {
   const app = express();
@@ -54,6 +55,7 @@ async function startServer() {
   app.use("/api", imageProxyRoutes);
   app.use("/api", marketingRoutes);
   app.use("/api", harvesterRoutes);
+  app.use("/api/auth", authRoutes);
 
   // Fallback endpoint for generic API tracking
   app.post("/api/track/*", (req, res) => res.json({ status: "ok" }));

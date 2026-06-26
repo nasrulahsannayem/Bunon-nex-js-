@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall } from 'lucide-react';
+import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -232,6 +232,14 @@ export default function Navbar() {
                     {wishlistCount}
                   </span>
                 )}
+              </Link>
+
+              <Link 
+                to="/profile" 
+                className="flex p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                aria-label="Profile"
+              >
+                <User className="w-5 h-5" />
               </Link>
 
               <button 

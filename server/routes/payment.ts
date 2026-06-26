@@ -114,20 +114,51 @@ router.post("/checkout/place-order", async (req, res) => {
 
     // 📩 Trigger order confirmation email sending if email exists
     if (customer.email && customer.email.includes("@") && !customer.email.endsWith("@bunon.shop")) {
-      const { sendOrderConfirmationEmail } = await import("../services/email");
-      sendOrderConfirmationEmail(customer.email, {
-        orderId: generatedOrderId,
-        firstName: customer.name,
-        phone: customer.phone,
-        address1: customer.address,
-        district: customer.city || "Dhaka",
-        subtotal: subtotal,
-        shippingCost: shippingFee,
-        discount: (Number(discount || 0) + totalCouponDiscount),
-        total: totalAmount,
-        paymentMethod: paymentMethod,
-        items: cart
-      }).catch(err => console.error("Email trigger failed:", err));
+      // 👤 Auto-Register User if not exists
+      let userCreated = false;
+      let passwordSent = "";
+      if (customer.phone) {
+        const cleanPhone = customer.phone.replace(/\D/g, '');
+        if (cleanPhone.length >= 11) {
+          try {
+            const [existingUsers]: any = await productDbPool.execute(`SELECT id FROM bunon_users WHERE phone = ? LIMIT 1`, [cleanPhone]);
+            if (!existingUsers || existingUsers.length === 0) {
+              // Auto-create
+              const bcrypt = await import('bcryptjs');
+              const hashedPwd = await bcrypt.hash(cleanPhone, 10);
+              await productDbPool.execute(
+                `INSERT INTO bunon_users (phone, password_hash, name, email, default_address, default_city) VALUES (?, ?, ?, ?, ?, ?)`,
+                [cleanPhone, hashedPwd, customer.name || null, customer.email || null, customer.address || null, customer.city || null]
+              );
+              userCreated = true;
+              passwordSent = cleanPhone;
+              console.log(`[AUTH] Auto-registered user with phone: ${cleanPhone}`);
+            }
+          } catch (e: any) {
+            console.error('[AUTH] Failed to auto-register user:', e.message);
+          }
+        }
+      }
+
+      // 📩 Trigger order confirmation email sending if email exists
+      if (customer.email && customer.email.includes("@")) {
+        const { sendOrderConfirmationEmail } = await import("../services/email");
+        sendOrderConfirmationEmail(customer.email, {
+          orderId: generatedOrderId,
+          firstName: customer.name,
+          phone: customer.phone,
+          address1: customer.address,
+          district: customer.city || "Dhaka",
+          subtotal: subtotal,
+          shippingCost: shippingFee,
+          discount: (Number(discount || 0) + totalCouponDiscount),
+          total: totalAmount,
+          paymentMethod: paymentMethod,
+          items: cart,
+          // Include auto-generated credentials if applicable
+          autoPassword: userCreated ? passwordSent : undefined
+        }).catch(err => console.error("Email trigger failed:", err));
+      }
     }
       // 🚀 FIX #8: Use productDbPool (wc_cart_recovery_queue lives in product DB, not dashboard DB)
       await productDbPool.execute(`

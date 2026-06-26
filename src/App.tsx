@@ -19,6 +19,8 @@ const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const DMCA = lazy(() => import('./pages/DMCA'));
 const Wishlist = lazy(() => import('./pages/Wishlist'));
+const Login = lazy(() => import('./pages/Login'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 const PageLoader = () => (
   <div className="fixed inset-0 bg-gray-50 z-[300] flex items-center justify-center">
@@ -51,6 +53,8 @@ function AppContent() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-received" element={<OrderReceived />} />
             <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />

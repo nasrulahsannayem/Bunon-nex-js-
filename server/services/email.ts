@@ -81,6 +81,18 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
       <p>আসসালামু আলাইকুম <strong>${orderData.firstName || 'সম্মানিত গ্রাহক'}</strong>,</p>
       <p>বুনন ফেব্রিক্স-এ আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে! নিচে আপনার অর্ডারের সংক্ষিপ্ত বিবরণ দেওয়া হলো:</p>
       
+      ${orderData.autoPassword ? `
+      <div style="background-color: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <h3 style="margin-top: 0; color: #2e7d32;">🎉 আপনার অ্যাকাউন্ট তৈরি হয়েছে!</h3>
+        <p style="margin: 0;">আপনার সুবিধার্থে আমরা একটি অ্যাকাউন্ট তৈরি করেছি। এখন থেকে আপনি সহজেই অর্ডার ট্র্যাক করতে পারবেন এবং স্পেশাল ডিসকাউন্ট পাবেন।</p>
+        <ul style="margin: 10px 0 0 0;">
+          <li><strong>User ID (Phone):</strong> ${orderData.phone.replace(/\D/g, '')}</li>
+          <li><strong>Password:</strong> ${orderData.autoPassword}</li>
+        </ul>
+        <p style="margin-top: 10px; font-size: 14px;"><a href="https://bunon.shop/login" style="color: #e2136e; font-weight: bold;">এখানে লগইন করুন</a></p>
+      </div>
+      ` : ''}
+
       <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 20px 0;">
         <p style="margin: 0 0 10px 0;"><strong>অর্ডার নম্বর:</strong> #${orderData.orderId || Math.floor(100000 + Math.random() * 900000)}</p>
         <p style="margin: 0 0 10px 0;"><strong>পেমেন্ট মেথড:</strong> ${orderData.paymentMethod === 'cod' ? 'Cash on Delivery (ক্যাশ অন ডেলিভারি)' : 'Online Payment (অনলাইন পেমেন্ট)'}</p>

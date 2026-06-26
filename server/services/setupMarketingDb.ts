@@ -33,7 +33,23 @@ export async function setupMarketingTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    console.log("[DB] Marketing and recovery tables initialized successfully!");
+    // 3. bunon_users table for customer profiles
+    await productDbPool.execute(`
+      CREATE TABLE IF NOT EXISTS bunon_users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          phone VARCHAR(20) NOT NULL UNIQUE,
+          email VARCHAR(255) NULL,
+          name VARCHAR(255) NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          default_address TEXT NULL,
+          default_city VARCHAR(100) NULL,
+          role ENUM('customer', 'admin') DEFAULT 'customer',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    console.log("[DB] Marketing, recovery, and user tables initialized successfully!");
   } catch (error: any) {
     console.error("[DB] Failed to initialize marketing tables:", error.message);
   }
