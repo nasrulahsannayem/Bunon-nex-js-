@@ -1,10 +1,17 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Lock, Phone } from 'lucide-react';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const [isLogin, setIsLogin] = useState(!location.state?.isSignUp);
+
+  useEffect(() => {
+    if (location.state?.isSignUp !== undefined) {
+      setIsLogin(!location.state.isSignUp);
+    }
+  }, [location.state]);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   
   const [phone, setPhone] = useState('');

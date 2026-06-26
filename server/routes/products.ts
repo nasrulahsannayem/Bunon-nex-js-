@@ -38,7 +38,10 @@ router.post("/verify-coupon", async (req, res) => {
 
     const coupons = await response.json();
     
-    if (!coupons || coupons.length === 0) return res.json({ valid: false, message: "কুপনটি সঠিক নয়!" });
+    if (!Array.isArray(coupons) || coupons.length === 0) {
+      console.error("[COUPON API] Expected array, got:", coupons);
+      return res.json({ valid: false, message: "কুপনটি সঠিক নয়!" });
+    }
 
     const coupon = coupons[0];
     

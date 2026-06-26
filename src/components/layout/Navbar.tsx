@@ -263,7 +263,7 @@ export default function Navbar() {
                     ) : (
                       <>
                         <Link to="/login" className="block px-4 py-2 text-sm font-medium text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-colors">লগইন করুন</Link>
-                        <Link to="/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">নতুন অ্যাকাউন্ট</Link>
+                        <Link to="/login" state={{ isSignUp: true }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">নতুন অ্যাকাউন্ট</Link>
                       </>
                     )}
                   </div>
