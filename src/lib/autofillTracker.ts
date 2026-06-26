@@ -72,7 +72,7 @@ export function useGlobalAutofillTracker() {
           }
 
           // If there are products in the cart, instantly update/create incomplete order
-          if (items.length > 0 && cleanPhone.length >= 11) {
+          if (items.length > 0 && (cleanPhone.length >= 11 || email.includes('@'))) {
             const payload = {
               customer_name: name || 'Guest',
               phone: cleanPhone,

@@ -273,8 +273,9 @@ export default function Checkout() {
       const { formData, items } = payloadRef.current;
       const isOrderPlaced = sessionStorage.getItem('order_placed') === 'true';
       const cleanPhone = formData.phone.replace(/\D/g, '');
+      const userEmail = getCookie('user_email');
 
-      if (!isOrderPlaced && cleanPhone.length >= 11 && items.length > 0) {
+      if (!isOrderPlaced && (cleanPhone.length >= 11 || userEmail) && items.length > 0) {
         const fullAddress = formData.district ? `${formData.address1}, ${formData.district}` : formData.address1;
         
         const payload = {
@@ -282,6 +283,7 @@ export default function Checkout() {
           phone: cleanPhone,
           address: fullAddress,
           city: formData.district || '',
+          email: userEmail ? decodeURIComponent(userEmail) : '',
           cart_products: items.map(item => ({
             product_id: item.id,
             name: item.name,
@@ -317,6 +319,7 @@ export default function Checkout() {
   const trackIncompleteOrderOnBlur = async (phoneOverride?: string) => {
     const currentData = payloadRef.current;
     const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
+    const userEmail = getCookie('user_email');
     
     // Save to cookies for persistent recovery across sessions
     if (cleanPhone.length >= 11) {
@@ -333,7 +336,7 @@ export default function Checkout() {
       }
     }
 
-    if (cleanPhone.length < 11 || currentData.items.length === 0) return;
+    if ((cleanPhone.length < 11 && !userEmail) || currentData.items.length === 0) return;
 
     try {
       const fullAddress = currentData.formData.district ? `${currentData.formData.address1}, ${currentData.formData.district}` : currentData.formData.address1;
@@ -343,6 +346,7 @@ export default function Checkout() {
         phone: cleanPhone,
         address: fullAddress,
         city: currentData.formData.district || '',
+        email: userEmail ? decodeURIComponent(userEmail) : '',
         cart_products: currentData.items.map(item => ({
           product_id: item.id,
           name: item.name,

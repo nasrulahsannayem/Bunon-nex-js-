@@ -17,25 +17,28 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
 
     const { customer_name, phone, address, city, email, cart_products } = body || {};
 
-    if (!phone) {
-      return res.status(400).json({ ok: false, msg: 'Invalid Data' });
+    if (!phone && !email) {
+      return res.status(400).json({ ok: false, msg: 'Invalid Data - Email or Phone required' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
     const cleanEmail = email || '';
     const cartJson = JSON.stringify(cart_products || []);
     const customerName = customer_name || 'Guest';
 
     // 🚀 FIX: Forward the exact payload to the original PHP API on dash.bunonfabrics.com 
     // so the dashboard calculates amounts and statuses correctly.
-    try {
-      fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body || {})
-      }).catch(err => console.error('[Forwarding] Failed to forward to dash:', err));
-    } catch (e) {
-      console.error('Fetch error:', e);
+    // Dashboard REQUIRES phone to function, so only forward if cleanPhone exists.
+    if (cleanPhone.length >= 11) {
+      try {
+        fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {})
+        }).catch(err => console.error('[Forwarding] Failed to forward to dash:', err));
+      } catch (e) {
+        console.error('Fetch error:', e);
+      }
     }
 
     // Also register user's marketing profile if email is provided
@@ -54,12 +57,13 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     // 🚀 FIX #7: Bridge to wc_cart_recovery_queue (productDbPool) so recovery cron can find it.
     if (cleanEmail && cleanEmail.includes('@') && !cleanEmail.endsWith('@bunon.shop')) {
       try {
+        // If cleanPhone is empty, we still save it. We'll set phone to a placeholder or empty string
         await productDbPool.execute(`
           INSERT INTO wc_cart_recovery_queue (email, phone, customer_name, cart_data, status, attempts, created_at)
           VALUES (?, ?, ?, ?, 'pending', 0, NOW())
           ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), customer_name = VALUES(customer_name), 
             status = 'pending', created_at = NOW()
-        `, [cleanEmail, cleanPhone, customerName, cartJson]);
+        `, [cleanEmail, cleanPhone || '', customerName, cartJson]);
       } catch (bridgeErr: any) {
         console.error('[Recovery Bridge] Failed to sync to recovery queue:', bridgeErr.message);
       }
