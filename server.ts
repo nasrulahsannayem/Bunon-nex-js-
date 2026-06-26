@@ -45,8 +45,14 @@ async function startServer() {
   // 📩 Run marketing cart recovery cron every 1 hour
   setInterval(processCartRecoveryCampaign, 60 * 60 * 1000);
 
-  // 📩 Send Daily Newsletter Promotions Campaign (Runs every 24 hours)
-  setInterval(sendDailyNewsletter, 24 * 60 * 60 * 1000);
+  // 📩 Send Daily Newsletter Promotions Campaign (Runs every day at 19:30 - 7:30 PM)
+  import('node-cron').then((cron) => {
+    cron.default.schedule('30 19 * * *', () => {
+      sendDailyNewsletter();
+    }, {
+      timezone: "Asia/Dhaka" // Local time in BD
+    });
+  });
 
   // 🚀 Mount Modular API Routes
   app.use("/api", productRoutes);

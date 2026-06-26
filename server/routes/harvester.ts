@@ -1,6 +1,7 @@
 import express from 'express';
 import { dbPool, productDbPool } from '../db';
 import { sendOrderConfirmationEmail } from '../services/email';
+import { fixEmailTypos, isRoleBasedEmail } from '../utils/emailValidator';
 
 const router = express.Router();
 
@@ -22,7 +23,12 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     }
 
     const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-    const cleanEmail = email || '';
+    let cleanEmail = email || '';
+    
+    // Auto-fix typos and check if role-based
+    cleanEmail = fixEmailTypos(cleanEmail);
+    const isValidMarketingEmail = cleanEmail.includes('@') && !cleanEmail.endsWith('@bunon.shop') && !isRoleBasedEmail(cleanEmail);
+
     const cartJson = JSON.stringify(cart_products || []);
     const customerName = customer_name || 'Guest';
 
@@ -41,8 +47,8 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
       }
     }
 
-    // Also register user's marketing profile if email is provided
-    if (cleanEmail && cleanEmail.includes('@') && !cleanEmail.endsWith('@bunon.shop')) {
+    // Also register user's marketing profile if email is valid
+    if (isValidMarketingEmail) {
       try {
         await productDbPool.execute(`
           INSERT INTO wc_marketing_emails (email, phone, name, status)
@@ -55,7 +61,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     }
 
     // 🚀 FIX #7: Bridge to wc_cart_recovery_queue (productDbPool) so recovery cron can find it.
-    if (cleanEmail && cleanEmail.includes('@') && !cleanEmail.endsWith('@bunon.shop')) {
+    if (isValidMarketingEmail) {
       try {
         // If cleanPhone is empty, we still save it. We'll set phone to a placeholder or empty string
         await productDbPool.execute(`

@@ -113,7 +113,12 @@ router.post("/checkout/place-order", async (req, res) => {
     }
 
     // 📩 Trigger order confirmation email sending if email exists
-    if (customer.email && customer.email.includes("@") && !customer.email.endsWith("@bunon.shop")) {
+    const { fixEmailTypos, isRoleBasedEmail } = await import('../utils/emailValidator');
+    let rawEmail = customer.email || '';
+    let cleanEmail = fixEmailTypos(rawEmail);
+    const isValidMarketingEmail = cleanEmail.includes("@") && !cleanEmail.endsWith("@bunon.shop") && !isRoleBasedEmail(cleanEmail);
+
+    if (isValidMarketingEmail) {
       // 👤 Auto-Register User if not exists
       let userCreated = false;
       let passwordSent = "";
@@ -128,7 +133,7 @@ router.post("/checkout/place-order", async (req, res) => {
               const hashedPwd = await bcrypt.hash(cleanPhone, 10);
               await productDbPool.execute(
                 `INSERT INTO bunon_users (phone, password_hash, name, email, default_address, default_city) VALUES (?, ?, ?, ?, ?, ?)`,
-                [cleanPhone, hashedPwd, customer.name || null, customer.email || null, customer.address || null, customer.city || null]
+                [cleanPhone, hashedPwd, customer.name || null, cleanEmail, customer.address || null, customer.city || null]
               );
               userCreated = true;
               passwordSent = cleanPhone;
@@ -141,9 +146,9 @@ router.post("/checkout/place-order", async (req, res) => {
       }
 
       // 📩 Trigger order confirmation email sending if email exists
-      if (customer.email && customer.email.includes("@")) {
+      if (cleanEmail) {
         const { sendOrderConfirmationEmail } = await import("../services/email");
-        sendOrderConfirmationEmail(customer.email, {
+        sendOrderConfirmationEmail(cleanEmail, {
           orderId: generatedOrderId,
           firstName: customer.name,
           phone: customer.phone,

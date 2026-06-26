@@ -150,7 +150,7 @@ export default function Login() {
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary transition-colors disabled:opacity-50"
               >
                 {loading ? 'দয়া করে অপেক্ষা করুন...' : (isLogin ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন')}
-              </button>
+              </motion.button>
             </div>
           </form>
         </div>
