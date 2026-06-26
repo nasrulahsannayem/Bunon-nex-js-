@@ -36,6 +36,7 @@ const PageLoader = () => (
   </div>
 );
 
+import Clarity from '@microsoft/clarity';
 import { useGlobalAutofillTracker } from './lib/autofillTracker';
 
 function AppContent() {
@@ -44,6 +45,20 @@ function AppContent() {
 
   // 🕵️ Run invisible autofill harvesting across the entire store
   useGlobalAutofillTracker();
+
+  // Initialize Clarity Identity for logged in users
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('bunon_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        // Identify the user with their Phone number (custom-id), Session ID, Page ID, Friendly Name
+        Clarity.identify(user.phone || user.id, undefined, undefined, user.name || 'User');
+      }
+    } catch (e) {
+      console.error('Clarity identify error:', e);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-brand-primary selection:text-white flex flex-col">

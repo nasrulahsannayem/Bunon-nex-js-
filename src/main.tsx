@@ -3,6 +3,11 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+import Clarity from '@microsoft/clarity';
+
+// Initialize Microsoft Clarity
+Clarity.init('xdb6au0k0s');
+
 // Frontend Hardening: Prevent Self-XSS (Social Engineering Attacks)
 if (process.env.NODE_ENV === 'production') {
   const warningTitle = 'STOP!';
