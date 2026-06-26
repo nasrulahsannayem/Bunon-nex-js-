@@ -1,5 +1,5 @@
 import express from 'express';
-import { dbPool, wpDbPool, productDbPool } from '../db';
+import { dbPool, productDbPool } from '../db';
 import { sendOrderConfirmationEmail } from '../services/email';
 
 const router = express.Router();
@@ -28,7 +28,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     const customerAddress = address || '';
 
     // 1. Check if there is a pending order for this phone within the last 1 hour
-    const [existingRows]: any = await wpDbPool.execute(
+    const [existingRows]: any = await dbPool.execute(
       `SELECT id, created_at FROM wpdf_orderguard_incomplete_orders 
        WHERE phone = ? AND status = 'pending' 
        ORDER BY created_at DESC LIMIT 1`,
@@ -50,7 +50,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
 
     if (shouldUpdate) {
       // Update existing record
-      await wpDbPool.execute(
+      await dbPool.execute(
         `UPDATE wpdf_orderguard_incomplete_orders 
          SET name = ?, address = ?, cart_data = ?, created_at = NOW() 
          WHERE id = ?`,
@@ -58,7 +58,7 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
       );
     } else {
       // Insert new record
-      await wpDbPool.execute(
+      await dbPool.execute(
         `INSERT INTO wpdf_orderguard_incomplete_orders 
          (name, phone, address, cart_data, status, created_at) 
          VALUES (?, ?, ?, ?, 'pending', NOW())`,
@@ -107,7 +107,7 @@ router.get('/orders/remove_incomplete.php', async (req, res) => {
     }
 
     const cleanPhone = String(phone).replace(/\D/g, '');
-    await wpDbPool.execute(
+    await dbPool.execute(
       `DELETE FROM wpdf_orderguard_incomplete_orders WHERE phone = ?`,
       [cleanPhone]
     );

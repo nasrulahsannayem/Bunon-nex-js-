@@ -1,5 +1,5 @@
 import express from "express";
-import { dbPool, wpDbPool, productDbPool } from "../db";
+import { dbPool, productDbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
@@ -140,7 +140,7 @@ router.post("/checkout/place-order", async (req, res) => {
       try {
         const cleanPhone = (customer.phone || '').replace(/\D/g, '');
         if (cleanPhone) {
-          await wpDbPool.execute(
+          await dbPool.execute(
             `DELETE FROM wpdf_orderguard_incomplete_orders WHERE phone = ?`,
             [cleanPhone]
           );
