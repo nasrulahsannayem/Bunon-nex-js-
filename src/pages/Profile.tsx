@@ -130,12 +130,12 @@ export default function Profile() {
                     <div>
                       <div className="flex items-center gap-3 mb-1">
                         <span className="font-bold text-gray-900">#{order.invoice || order.id}</span>
-                        <span className={\`text-xs px-2 py-1 rounded-md font-semibold \${
+                        <span className={`text-xs px-2 py-1 rounded-md font-semibold ${
                           order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                           order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
                           order.status === 'completed' || order.status === 'shipped' ? 'bg-green-100 text-green-700' :
                           'bg-gray-100 text-gray-700'
-                        }\`}>
+                        }`}>
                           {order.status ? order.status.toUpperCase() : 'PENDING'}
                         </span>
                       </div>
