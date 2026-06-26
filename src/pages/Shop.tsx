@@ -55,11 +55,19 @@ export default function Shop() {
           getCategories()
         ]);
         
-        setProducts(prodData || []);
-        setCategories(catData || []);
-
-        sessionStorage.setItem('bunon_shop_products', JSON.stringify(prodData || []));
-        sessionStorage.setItem('bunon_shop_categories', JSON.stringify(catData || []));
+        if (prodData && prodData.length > 0) {
+          setProducts(prodData);
+          sessionStorage.setItem('bunon_shop_products', JSON.stringify(prodData));
+        } else if (!cachedProducts) {
+          setProducts([]); // Only clear if we didn't have cache
+        }
+        
+        if (catData && catData.length > 0) {
+          setCategories(catData);
+          sessionStorage.setItem('bunon_shop_categories', JSON.stringify(catData));
+        } else if (!cachedCategories) {
+          setCategories([]); // Only clear if we didn't have cache
+        }
         
       } catch (error) {
         console.error("Shop data load error:", error);

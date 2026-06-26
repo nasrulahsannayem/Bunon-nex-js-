@@ -48,7 +48,9 @@ export default function Home() {
     async function loadData() {
       try {
         const prodData = await getProducts();
-        setProducts(prodData || []);
+        if (prodData && prodData.length > 0) {
+          setProducts(prodData);
+        }
 
         // Recently Viewed Logic
         if (typeof window !== 'undefined') {

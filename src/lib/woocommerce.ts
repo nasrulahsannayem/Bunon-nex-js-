@@ -112,7 +112,10 @@ const fetchFreshDataBackground = async () => {
     }
     return storeDataCache;
   } catch (err) {
-    return storeDataCache || { categories: [], products: [] };
+    if (storeDataCache && storeDataCache.products && storeDataCache.products.length > 0) {
+      return storeDataCache;
+    }
+    return { categories: [], products: [] };
   }
 };
 
