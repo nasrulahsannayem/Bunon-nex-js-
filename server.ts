@@ -32,6 +32,7 @@ async function startServer() {
   const PORT = process.env.PORT || 5000; 
 
   app.use(cors({ origin: '*' }));
+  app.set('trust proxy', 1);
   app.use(helmet());
   
   // Rate limiting for API requests

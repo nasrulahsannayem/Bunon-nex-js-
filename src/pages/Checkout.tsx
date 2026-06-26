@@ -319,6 +319,8 @@ export default function Checkout() {
     };
   }, []);
 
+  const lastSentData = useRef({ phone: '', email: '' });
+
   const trackIncompleteOrderOnBlur = async (phoneOverride?: string) => {
     const currentData = payloadRef.current;
     const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
@@ -343,6 +345,12 @@ export default function Checkout() {
     }
 
     if ((cleanPhone.length < 11 && !userEmail) || currentData.items.length === 0) return;
+    
+    // Deduplicate calls
+    if (lastSentData.current.phone === cleanPhone && lastSentData.current.email === userEmail) {
+      return;
+    }
+    lastSentData.current = { phone: cleanPhone, email: userEmail || '' };
 
     try {
       const fullAddress = currentData.formData.district ? `${currentData.formData.address1}, ${currentData.formData.district}` : currentData.formData.address1;
@@ -986,10 +994,10 @@ export default function Checkout() {
             }
           `}</style>
           
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-gray-100 overflow-hidden relative animate-scaleUp">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.2)] border border-gray-100 overflow-hidden relative animate-scaleUp flex flex-col max-h-[90vh]">
             
             {/* Top decorative gradient bar */}
-            <div className="h-2 bg-gradient-to-r from-[#e2136e] via-brand-primary to-[#ff4081]" />
+            <div className="h-2 w-full shrink-0 bg-gradient-to-r from-[#e2136e] via-brand-primary to-[#ff4081]" />
 
             {/* Close Button */}
             <button 
@@ -998,20 +1006,20 @@ export default function Checkout() {
                 setShowCancelPopup(false);
                 window.location.href = '/';
               }}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 transition-colors w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100"
+              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-700 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-gray-100/80 hover:bg-gray-200 backdrop-blur-sm"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="p-6 md:p-8 text-center">
-              <div className="w-14 h-14 bg-gradient-to-br from-red-50 to-red-100 text-brand-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                <Tag className="w-7 h-7" />
+            <div className="p-5 md:p-8 text-center overflow-y-auto scrollbar-hide flex-1">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-red-50 to-red-100 text-brand-primary rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-inner">
+                <Tag className="w-6 h-6 md:w-7 md:h-7" />
               </div>
 
-              <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-1.5 leading-tight font-display">
+              <h3 className="text-lg md:text-2xl font-black text-gray-900 mb-1 md:mb-1.5 leading-tight font-display">
                 অর্ডারটি সম্পন্ন করুন! 🌸
               </h3>
-              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+              <p className="text-[11px] md:text-xs text-gray-500 mb-4 md:mb-5 leading-relaxed px-2">
                 আপনার জন্য রয়েছে একটি বিশেষ ধামাকা কুপন অফার। কুপনটি নিয়ে এখনই সহজে অর্ডার সম্পন্ন করুন।
               </p>
 
