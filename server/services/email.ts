@@ -300,16 +300,22 @@ export async function sendDailyNewsletter() {
       const email = sub.email;
       const name = sub.name || 'সম্মানিত গ্রাহক';
 
-      const productsHtml = selectedProducts.map((p: any) => `
+      const productsHtml = selectedProducts.map((p: any) => {
+        let imgUrl = p.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp';
+        if (imgUrl.startsWith('/')) {
+          imgUrl = `https://bunon.shop${imgUrl.startsWith('//') ? imgUrl.substring(1) : imgUrl}`;
+        }
+        return `
         <div style="border: 1px solid #f3f4f6; border-radius: 12px; overflow: hidden; margin-bottom: 20px; background-color: white;">
-          <img src="${p.thumbnail}" style="width: 100%; max-height: 250px; object-cover: fit;" alt="${p.name}" />
+          <img src="${imgUrl}" style="width: 100%; max-height: 250px; object-cover: fit;" alt="${p.name}" />
           <div style="padding: 15px;">
             <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #1f2937;">${p.name}</h4>
             <p style="margin: 0 0 12px 0; color: #e2136e; font-size: 18px; font-weight: bold;">মূল্য: ৳${p.price}</p>
             <a href="https://bunon.shop/product/${p.id}" style="display: inline-block; background-color: #1f2937; color: white !important; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">বিস্তারিত দেখুন</a>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       const bodyContent = `
         <p>আসসালামু আলাইকুম <strong>${name}</strong>,</p>
