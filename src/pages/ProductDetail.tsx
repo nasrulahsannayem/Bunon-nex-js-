@@ -34,8 +34,9 @@ export default function ProductDetail() {
         trackPixel('ViewContent', {
           content_name: p.name,
           content_category: p.categories[0]?.name,
-          content_ids: [p.id],
+          content_ids: [String(p.id)],
           content_type: 'product',
+          contents: [{ id: String(p.id), quantity: 1 }],
           value: Number(p.price),
           currency: 'BDT'
         });
@@ -58,8 +59,9 @@ export default function ProductDetail() {
     trackPixel('AddToCart', {
       content_name: product.name,
       content_category: product.categories[0]?.name,
-      content_ids: [product.id],
+      content_ids: [String(product.id)],
       content_type: 'product',
+      contents: [{ id: String(product.id), quantity: 1 }],
       value: Number(selectedVariation?.price || product.price),
       currency: 'BDT'
     });

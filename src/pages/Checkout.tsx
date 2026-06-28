@@ -384,7 +384,9 @@ export default function Checkout() {
     if (items.length > 0 && !pixelFired.current) {
       trackPixel('InitiateCheckout', {
         content_type: 'product',
-        contents: items.map(i => ({ id: i.id, quantity: Math.max(1, Number(i.quantity) || 1), price: Number(i.price) })),
+        content_ids: items.map(i => String(i.id)),
+        contents: items.map(i => ({ id: String(i.id), quantity: Math.max(1, Number(i.quantity) || 1), price: Number(i.price) })),
+        num_items: items.reduce((acc, item) => acc + Math.max(1, Number(item.quantity) || 1), 0),
         value: Number(finalTotal),
         currency: 'BDT'
       });
@@ -481,7 +483,9 @@ export default function Checkout() {
         value: Number(finalTotal),
         currency: 'BDT',
         content_type: 'product',
-        contents: items.map(i => ({ id: i.id, quantity: Math.max(1, Number(i.quantity) || 1), price: Number(i.price) })),
+        content_ids: items.map(i => String(i.id)),
+        contents: items.map(i => ({ id: String(i.id), quantity: Math.max(1, Number(i.quantity) || 1), price: Number(i.price) })),
+        num_items: items.reduce((acc, item) => acc + Math.max(1, Number(item.quantity) || 1), 0),
         user_data: {
           fn: fName.toLowerCase(),
           ln: lName.toLowerCase(),

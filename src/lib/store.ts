@@ -47,10 +47,11 @@ export const useCart = create<CartStore>()(
         );
         
         trackPixel('AddToCart', {
-          content_ids: [product.id],
+          content_ids: [String(product.id)],
           content_name: product.name,
           content_type: 'product',
-          value: parseFloat(price),
+          contents: [{ id: String(product.id), quantity: quantity }],
+          value: parseFloat(price) * quantity,
           currency: 'BDT'
         });
 
@@ -82,12 +83,12 @@ export const useCart = create<CartStore>()(
         });
         
         trackPixel('AddToCart', {
-          content_ids: [product.id],
           content_name: product.name,
           content_type: 'product',
+          content_ids: [String(product.id)],
+          contents: [{ id: String(product.id), quantity: 1 }],
           value: parseFloat(price),
-          currency: 'BDT',
-          is_direct: true
+          currency: 'BDT'
         });
       },
 
