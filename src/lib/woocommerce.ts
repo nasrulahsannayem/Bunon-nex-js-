@@ -28,7 +28,7 @@ export const trackPixel = (event: string, data?: any) => {
     if (!userData.fbp && getCookie('_fbp')) userData.fbp = getCookie('_fbp');
     if (!userData.fbc && getCookie('_fbc')) userData.fbc = getCookie('_fbc');
 
-    fetch('/api/track/capi', {
+    fetch('/api/v1/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

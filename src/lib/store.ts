@@ -46,14 +46,7 @@ export const useCart = create<CartStore>()(
             : item.id === product.id && !item.selectedVariation
         );
         
-        trackPixel('AddToCart', {
-          content_ids: [String(product.id)],
-          content_name: product.name,
-          content_type: 'product',
-          contents: [{ id: String(product.id), quantity: quantity }],
-          value: parseFloat(price) * quantity,
-          currency: 'BDT'
-        });
+
 
         if (existing) {
           const newItems = items.map(item => {

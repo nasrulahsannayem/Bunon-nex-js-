@@ -82,7 +82,7 @@ async function startServer() {
   app.use("/api", marketingRoutes);
   app.use("/api", harvesterRoutes);
   app.use("/api/auth", authRoutes);
-  app.use("/api/track/capi", capiRoutes);
+  app.use("/api/v1/sync", capiRoutes);
 
   app.use("/", sitemapRoute);
 
