@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Users, Package, MailX } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Users, Package, MailX, Settings, LogOut, ArrowLeft } from 'lucide-react';
 
 export default function AdminLayout() {
   const location = useLocation();
@@ -7,8 +7,11 @@ export default function AdminLayout() {
   const navItems = [
     { name: 'ড্যাশবোর্ড', path: '/admin', icon: <LayoutDashboard size={20} /> },
     { name: 'অর্ডার লিস্ট', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
-    { name: 'অ্যাবানডনড কার্ট', path: '/admin/abandoned', icon: <MailX size={20} /> },
-    { name: 'মেইন সাইটে ফিরে যান', path: '/', icon: <Package size={20} /> }
+    { name: 'প্রোডাক্টস', path: '/admin/products', icon: <Package size={20} /> },
+    { name: 'কাস্টমারস', path: '/admin/customers', icon: <Users size={20} /> },
+    { name: 'কার্ট রিকভারি', path: '/admin/abandoned', icon: <MailX size={20} /> },
+    { name: 'সাইট সেটিংস', path: '/admin/settings', icon: <Settings size={20} /> },
+    { name: 'মেইন সাইটে যান', path: '/', icon: <ArrowLeft size={20} /> }
   ];
 
   return (

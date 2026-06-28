@@ -57,7 +57,7 @@ export default function OrdersManager() {
                 <th className="p-4 font-medium">এমাউন্ট</th>
                 <th className="p-4 font-medium">তারিখ</th>
                 <th className="p-4 font-medium">স্ট্যাটাস</th>
-                <th className="p-4 font-medium">অ্যাকশন</th>
+                <th className="p-4 font-medium text-center">কুরিয়ার (Steadfast)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
@@ -89,7 +89,7 @@ export default function OrdersManager() {
                   </td>
                   <td className="p-4">
                     <select 
-                      className="border border-gray-200 rounded-lg text-xs p-2 bg-gray-50 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                      className="border border-gray-200 rounded-lg text-xs p-2 bg-gray-50 focus:ring-brand-primary focus:border-brand-primary outline-none w-full"
                       value={order.status}
                       onChange={(e) => updateStatus(order.id, e.target.value)}
                     >
@@ -98,6 +98,42 @@ export default function OrdersManager() {
                       <option value="completed">Completed</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
+                  </td>
+                  <td className="p-4">
+                    {order.consignment_id ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-bold text-brand-primary flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                          Booked (Steadfast)
+                        </span>
+                        <span className="text-xs text-gray-500 font-mono">{order.tracking_code}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          if (confirm('আপনি কি এই অর্ডারটি Steadfast-এ বুক করতে চান?')) {
+                            try {
+                              const res = await fetch(`/api/admin/orders/${order.id}/courier/steadfast`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` }
+                              });
+                              const data = await res.json();
+                              if (data.ok) {
+                                alert(`Steadfast বুকিং সম্পন্ন হয়েছে! কনসাইনমেন্ট: ${data.consignment.consignment_id}`);
+                                fetchOrders();
+                              } else {
+                                alert(data.msg);
+                              }
+                            } catch (e) {
+                              alert('Steadfast সার্ভার এরর!');
+                            }
+                          }
+                        }}
+                        className="bg-brand-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand-primary/90 transition flex items-center justify-center whitespace-nowrap"
+                      >
+                        Auto Book (Steadfast)
+                      </button>
+                    )}
                   </td>
                 </motion.tr>
               ))}
