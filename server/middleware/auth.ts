@@ -15,7 +15,7 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     
-    if (decoded.role !== 'admin' && decoded.role !== 'staff') {
+    if (!['admin', 'super_admin', 'staff'].includes(decoded.role)) {
       return res.status(403).json({ ok: false, msg: 'Access denied: Admin privileges required' });
     }
     
@@ -26,4 +26,35 @@ export const verifyAdmin = (req: Request, res: Response, next: NextFunction) => 
     console.error('[Auth Middleware] JWT Verify Error:', err);
     return res.status(401).json({ ok: false, msg: 'Invalid or expired token' });
   }
+};
+
+// Dynamic RBAC Middleware
+export const requirePermission = (module: string, action: 'view' | 'edit' | 'delete') => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as any).user;
+    
+    // Super Admins bypass permission checks
+    if (user.role === 'super_admin' || user.role === 'admin') {
+      return next();
+    }
+    
+    // Check specific module permissions for staff
+    const userPerms = user.permissions || {};
+    const moduleAccess = userPerms[module]; // e.g. "edit" or "view"
+    
+    if (!moduleAccess) {
+      return res.status(403).json({ ok: false, msg: `Access denied. You don't have permission for ${module}.` });
+    }
+
+    // Hierarchy of access: delete > edit > view
+    const accessLevels = { view: 1, edit: 2, delete: 3 };
+    const userLevel = accessLevels[moduleAccess as keyof typeof accessLevels] || 0;
+    const requiredLevel = accessLevels[action] || 0;
+
+    if (userLevel >= requiredLevel) {
+      return next();
+    }
+
+    return res.status(403).json({ ok: false, msg: `Access denied. Requires ${action} permission for ${module}.` });
+  };
 };

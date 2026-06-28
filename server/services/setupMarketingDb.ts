@@ -43,11 +43,27 @@ export async function setupMarketingTables() {
           password_hash VARCHAR(255) NOT NULL,
           default_address TEXT NULL,
           default_city VARCHAR(100) NULL,
-          role ENUM('customer', 'admin') DEFAULT 'customer',
+          role ENUM('customer', 'staff', 'admin', 'super_admin') DEFAULT 'customer',
+          permissions JSON NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Schema Updates (Migrations)
+    try {
+      await productDbPool.execute(`ALTER TABLE bunon_users MODIFY COLUMN role ENUM('customer', 'staff', 'admin', 'super_admin') DEFAULT 'customer'`);
+      await productDbPool.execute(`ALTER TABLE bunon_users ADD COLUMN permissions JSON NULL`);
+    } catch (e: any) {
+      if (!e.message.includes('Duplicate column')) console.log('[DB Migration Warning]', e.message);
+    }
+    
+    try {
+      await dbPool.execute(`ALTER TABLE bf_orders ADD COLUMN consignment_id VARCHAR(255) NULL`);
+      await dbPool.execute(`ALTER TABLE bf_orders ADD COLUMN tracking_code VARCHAR(255) NULL`);
+    } catch (e: any) {
+      if (!e.message.includes('Duplicate column')) console.log('[DB Migration Warning]', e.message);
+    }
 
     console.log("[DB] Marketing, recovery, and user tables initialized successfully!");
   } catch (error: any) {

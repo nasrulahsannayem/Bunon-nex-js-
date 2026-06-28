@@ -74,6 +74,8 @@ router.get('/overview', async (req, res) => {
         totalAbandoned: cartsResult[0].total_abandoned || 0,
         recoveredCarts: cartsResult[0].recovered_carts || 0,
         totalUsers: usersResult[0].total_users || 0,
+        aov: ordersResult[0].total_orders > 0 ? (ordersResult[0].total_revenue / ordersResult[0].total_orders).toFixed(2) : 0,
+        ltv: usersResult[0].total_users > 0 ? (ordersResult[0].total_revenue / usersResult[0].total_users).toFixed(2) : 0,
         salesChartData,
         orderStatusData
       }
