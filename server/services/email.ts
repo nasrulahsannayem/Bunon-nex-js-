@@ -85,7 +85,10 @@ function wrapHtmlBody(title: string, bodyContent: string, email: string): string
 export async function sendOrderConfirmationEmail(toEmail: string, orderData: any) {
   try {
     const productsHtml = (orderData.items || []).map((item: any) => {
-      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
+      let imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
+      if (imgUrl.startsWith('/')) {
+        imgUrl = `https://bunon.shop${imgUrl.startsWith('//') ? imgUrl.substring(1) : imgUrl}`;
+      }
       return `
       <tr style="border-bottom: 1px solid #f3f4f6;">
         <td style="padding: 10px 0; font-weight: 600; display: flex; align-items: center; gap: 10px;">
@@ -160,7 +163,10 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
       to: toEmail,
       subject: `বুনন ফেব্রিক্স: অর্ডার সফলভাবে গৃহীত হয়েছে! #${orderData.orderId || ''}`,
       html: html,
-      text: `আসসালামু আলাইকুম ${orderData.firstName || 'সম্মানিত গ্রাহক'}, বুনন ফেব্রিক্সে আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে। সর্বমোট মূল্য: ৳${orderData.total}`
+      text: `আসসালামু আলাইকুম ${orderData.firstName || 'সম্মানিত গ্রাহক'}, বুনন ফেব্রিক্সে আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে। সর্বমোট মূল্য: ৳${orderData.total}`,
+      headers: {
+        'List-Unsubscribe': `<https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(toEmail)}>`
+      }
     });
 
     // Also auto subscribe them to marketing emails if they place an order
@@ -218,7 +224,10 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     const magicCheckoutLink = `https://bunon.shop/checkout?restore_cart=${cartParam}&coupon=${generatedCoupon}`;
 
     const abandonedItemsHtml = cartItems.slice(0, 3).map((item: any) => {
-      const imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
+      let imgUrl = (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : (item.thumbnail || '/assets/images/woocommerce-placeholder-300x300.webp');
+      if (imgUrl.startsWith('/')) {
+        imgUrl = `https://bunon.shop${imgUrl.startsWith('//') ? imgUrl.substring(1) : imgUrl}`;
+      }
       return `
         <div style="display: inline-block; margin: 5px; text-align: center;">
           <img src="${imgUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eaeaea;" alt="${item.name}">
@@ -256,9 +265,12 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     await mailTransporter.sendMail({
       from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
       to: email,
-      subject: `বুনন ফেব্রিক্স: আপনার জন্য বিশেষ ৳${discountPercent}% ডিসকাউন্ট উপহার! 🎁`,
+      subject: `বুনন ফেব্রিক্স: আপনার জন্য বিশেষ ${discountPercent}% ডিসকাউন্ট উপহার! 🎁`,
       html: html,
-      text: `আসসালামু আলাইকুম ${name}, আপনার শপিং কার্টের আইটেমগুলো নিয়ে অফারে সহজে অর্ডার সম্পন্ন করুন। কুপন কোড: ${generatedCoupon}`
+      text: `আসসালামু আলাইকুম ${name}, আপনার শপিং কার্টের আইটেমগুলো নিয়ে অফারে সহজে অর্ডার সম্পন্ন করুন। কুপন কোড: ${generatedCoupon}`,
+      headers: {
+        'List-Unsubscribe': `<https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(email)}>`
+      }
     });
 
     console.log(`[Email] Recovery email sent successfully to ${email} with ${discountPercent}% discount`);
