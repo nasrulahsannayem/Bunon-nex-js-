@@ -158,5 +158,32 @@ router.get("/test-marketing-emails", async (req, res) => {
     return res.status(500).json({ ok: false, error: error.message });
   }
 });
+// Subscribe to Newsletter
+router.post("/subscribe", async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ ok: false, message: "Valid email is required" });
+  }
+
+  try {
+    // Upsert into wc_marketing_emails
+    await productDbPool.execute(
+      `INSERT INTO wc_marketing_emails (email, name, status) 
+       VALUES (?, 'Subscriber', 'subscribed') 
+       ON DUPLICATE KEY UPDATE status='subscribed'`,
+      [email]
+    );
+
+    // Send the welcome email with 10% discount
+    const { sendWelcomeEmail } = await import("../services/email");
+    await sendWelcomeEmail(email);
+
+    return res.json({ ok: true, message: "Successfully subscribed!" });
+  } catch (error: any) {
+    console.error("Subscription failed:", error);
+    return res.status(500).json({ ok: false, message: "Server error" });
+  }
+});
 
 export default router;

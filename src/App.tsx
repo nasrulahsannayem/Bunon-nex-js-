@@ -5,6 +5,7 @@ import Navbar from './components/layout/Navbar';
 import ScrollToTop from './components/layout/ScrollToTop';
 import Footer from './components/layout/Footer';
 import { getProducts, Product } from './lib/woocommerce';
+import NewsletterPopup from './components/marketing/NewsletterPopup';
 
 
 
@@ -85,6 +86,7 @@ function AppContent() {
       </main>
 
       {!isCheckout && <Footer />}
+      {!isCheckout && <NewsletterPopup />}
     </div>
   );
 }

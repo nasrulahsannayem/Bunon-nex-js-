@@ -344,3 +344,43 @@ export async function sendDailyNewsletter() {
     console.error('[Email] Failed to process daily newsletter campaign:', err.message);
   }
 }
+
+/**
+ * Sends welcome email to new subscribers
+ */
+export async function sendWelcomeEmail(email: string) {
+  try {
+    const generatedCoupon = 'WELCOME10';
+    const bodyContent = `
+      <p>আসসালামু আলাইকুম,</p>
+      <p>বুনন ফেব্রিক্স-এর নিউজলেটার সাবস্ক্রাইব করার জন্য আপনাকে অসংখ্য ধন্যবাদ! আপনার জন্য রইল আমাদের পক্ষ থেকে একটি ছোট্ট উপহার।</p>
+      
+      <div style="background: #fff5f8; border: 1.5px dashed #e2136e; padding: 20px; border-radius: 12px; text-align: center; margin: 25px 0;">
+        <span style="font-size: 13px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">আপনার প্রথম অর্ডারের জন্য ১০% ডিসকাউন্ট কোড</span>
+        <h2 style="font-size: 32px; color: #e2136e; margin: 10px 0; font-family: monospace; font-weight: 800;">${generatedCoupon}</h2>
+        <p style="margin: 0; font-size: 13px; color: #9ca3af;">(চেকআউট পেজে কোডটি ব্যবহার করুন)</p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="https://bunon.shop/shop" class="btn" style="color: white !important;">শপিং শুরু করুন</a>
+      </div>
+    `;
+
+    const html = wrapHtmlBody('বুনন ফেব্রিক্স-এ আপনাকে স্বাগতম! 🎉', bodyContent, email);
+
+    await mailTransporter.sendMail({
+      from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
+      to: email,
+      subject: `বুনন ফেব্রিক্সে আপনাকে স্বাগতম! আপনার জন্য ১০% ছাড়ের উপহার! 🎁`,
+      html: html,
+      text: `আসসালামু আলাইকুম, বুনন ফেব্রিক্সে আপনাকে স্বাগতম! আপনার প্রথম অর্ডারের জন্য ১০% ডিসকাউন্ট কোড: ${generatedCoupon}`,
+      headers: {
+        'List-Unsubscribe': `<https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(email)}>`
+      }
+    });
+
+    console.log(`[Email] Welcome email sent successfully to ${email}`);
+  } catch (err: any) {
+    console.error('[Email] Failed to send welcome email:', err.message);
+  }
+}
