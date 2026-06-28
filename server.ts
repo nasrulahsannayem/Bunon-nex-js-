@@ -34,7 +34,10 @@ async function startServer() {
 
   app.use(cors({ origin: '*' }));
   app.set('trust proxy', 1);
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  }));
   
   // Rate limiting for API requests
   const apiLimiter = rateLimit({
