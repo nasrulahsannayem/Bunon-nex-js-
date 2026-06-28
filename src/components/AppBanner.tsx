@@ -89,7 +89,7 @@ return (
 
         {/* INSTALL Button */}
         <a 
-          href="https://bunon.shop/bunonfabrics.apk"
+          href="/bunonfabrics.apk"
           className="bg-black hover:bg-gray-800 text-white text-[11px] sm:text-[12px] font-bold px-4 py-1.5 rounded-full shadow-md transition-all uppercase tracking-wide flex-shrink-0"
         >
           Install

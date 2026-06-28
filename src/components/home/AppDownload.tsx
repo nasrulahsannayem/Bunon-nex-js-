@@ -13,7 +13,7 @@ export default function AppDownload() {
             Download our official Android app for a seamless tracking and browsing experience.
           </p>
           <a 
-            href="http://bunon.shop/bunonfabrics.apk" 
+            href="/bunonfabrics.apk" 
             download
             className="group relative inline-flex items-center gap-4 bg-white text-navy px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs transition-all hover:bg-gold hover:text-white"
           >

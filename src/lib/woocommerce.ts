@@ -94,21 +94,21 @@ const fetchStoreData = async () => {
 
 const fetchFreshDataBackground = async () => {
   try {
-    const res = await axios.get(`https://bunon.shop${CATALOG_URL}`);
+    const res = await axios.get(CATALOG_URL);
     if (!res.data || !res.data.ok) throw new Error("Invalid response");
     
     const rawProducts = (res.data.data || []).map((p: any) => {
       // Rewrite images to go through local proxy caching
       const localImages = (p.images || []).map((img: any) => {
-        if (img.src && (img.src.startsWith('http://') || img.src.startsWith('https://')) && !img.src.includes('bunon.shop/api/image-proxy')) {
-          return { ...img, src: `https://bunon.shop/api/image-proxy?url=${encodeURIComponent(img.src)}` };
+        if (img.src && (img.src.startsWith('http://') || img.src.startsWith('https://')) && !img.src.includes('/api/image-proxy')) {
+          return { ...img, src: `/api/image-proxy?url=${encodeURIComponent(img.src)}` };
         }
         return img;
       });
 
       let localThumbnail = p.thumbnail || '';
-      if (localThumbnail && (localThumbnail.startsWith('http://') || localThumbnail.startsWith('https://')) && !localThumbnail.includes('bunon.shop/api/image-proxy')) {
-        localThumbnail = `https://bunon.shop/api/image-proxy?url=${encodeURIComponent(localThumbnail)}`;
+      if (localThumbnail && (localThumbnail.startsWith('http://') || localThumbnail.startsWith('https://')) && !localThumbnail.includes('/api/image-proxy')) {
+        localThumbnail = `/api/image-proxy?url=${encodeURIComponent(localThumbnail)}`;
       } else if (!localThumbnail && localImages.length > 0) {
         localThumbnail = localImages[0].src;
       }
