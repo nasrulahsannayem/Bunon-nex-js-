@@ -1,4 +1,4 @@
-import { productDbPool } from "../db";
+import { productDbPool, dbPool } from "../db";
 
 export async function setupMarketingTables() {
   try {
