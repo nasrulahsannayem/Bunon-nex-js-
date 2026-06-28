@@ -23,7 +23,7 @@ router.post('/', async (req, res) => {
       client_user_agent: clientUserAgent,
     };
 
-    const payload = {
+    const payload: any = {
       data: [
         {
           event_name,
@@ -36,6 +36,12 @@ router.post('/', async (req, res) => {
         }
       ]
     };
+
+    // Add Test Event Code if provided in environment variables for debugging
+    const testCode = process.env.META_TEST_EVENT_CODE || 'TEST6008';
+    if (testCode) {
+      payload.test_event_code = testCode;
+    }
 
     const url = `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${CAPI_TOKEN}`;
 
