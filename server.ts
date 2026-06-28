@@ -22,6 +22,7 @@ import imageProxyRoutes from "./server/routes/imageProxy";
 import marketingRoutes from "./server/routes/marketing";
 import harvesterRoutes from "./server/routes/harvester";
 import authRoutes from "./server/routes/auth";
+import capiRoutes from "./server/routes/capi";
 
 import sitemapRoute from "./server/routes/sitemap";
 import { setupMarketingTables } from "./server/services/setupMarketingDb";
@@ -80,6 +81,7 @@ async function startServer() {
   app.use("/api", marketingRoutes);
   app.use("/api", harvesterRoutes);
   app.use("/api/auth", authRoutes);
+  app.use("/api/track/capi", capiRoutes);
 
   app.use("/", sitemapRoute);
 

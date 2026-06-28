@@ -109,7 +109,7 @@ router.get("/test-marketing-emails", async (req, res) => {
     const unsubscribeUrl = `https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(targetEmail)}`;
     const newsletterContent = `
       <p>আসসালামু আলাইকুম <strong>Nasrul</strong>,</p>
-      <p>বুনন ফেব্রিক্স-এর আজকের বিশেষ ধামাকা কালেকশন ও ট্রেন্ডিং সুতি থ্রি-পিস কালেকশনগুলো একনজরে দেখে নিন। স্টক শেষ হওয়ার আগেই অর্ডার করুন!</p>
+      <p>বুনন ফেব্রিক্স-এর আজকের বিশেষ ধামাকা কালেকশন ও ট্রেন্ডিং প্রোডাক্টগুলো একনজরে দেখে নিন। স্টক শেষ হওয়ার আগেই অর্ডার করুন!</p>
       <div style="margin: 25px 0;">
         ${productsHtml.length > 0 ? productsHtml : '<p>কোনো প্রোডাক্ট পাওয়া যায়নি</p>'}
       </div>

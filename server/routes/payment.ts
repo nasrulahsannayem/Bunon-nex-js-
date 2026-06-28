@@ -238,7 +238,7 @@ router.post("/checkout/place-order", async (req, res) => {
         body: JSON.stringify({
           mode: "0011",
           payerReference: customer.phone,
-          callbackURL: `https://bunon.shop/api/payment/bkash-callback?order_id=${bfOrderId}&wid=${generatedOrderId}&token=${idToken}`,
+          callbackURL: `${process.env.DOMAIN_URL || 'https://bunon.shop'}/api/payment/bkash-callback?order_id=${bfOrderId}&wid=${generatedOrderId}&token=${idToken}`,
           amount: totalAmount.toString(),
           currency: "BDT",
           intent: "sale",
@@ -272,7 +272,7 @@ router.post("/checkout/place-order", async (req, res) => {
       paystationBody.append("cust_phone", customer.phone);
       paystationBody.append("cust_email", customer.email || `${customer.phone}@bunon.shop`);
       paystationBody.append("cust_address", customer.address || "Dhaka, Bangladesh");
-      paystationBody.append("callback_url", `https://bunon.shop/api/payment/paystation-callback?order_id=${bfOrderId}`);
+      paystationBody.append("callback_url", `${process.env.DOMAIN_URL || 'https://bunon.shop'}/api/payment/paystation-callback?order_id=${bfOrderId}`);
       paystationBody.append("checkout_items", "React Custom Premium Saree Purchase Feed");
 
       const psRes = await fetch("https://api.paystation.com.bd/initiate-payment", {

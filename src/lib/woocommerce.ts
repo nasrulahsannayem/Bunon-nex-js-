@@ -4,12 +4,44 @@ const CATALOG_URL = '/api/products';
 
 // 🔥 ওমনি-পিক্সেল ট্র্যাকিং মেকানিজম (যা কার্ট ও উইশলিস্ট ব্যবহার করে) 🔥
 export const trackPixel = (event: string, data?: any) => {
+  const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
   if (typeof window !== 'undefined') {
-    if ((window as any).fbq) (window as any).fbq('track', event, data);
+    // 🌐 BROWSER SIDE TRACKING WITH DEDUPLICATION
+    if ((window as any).fbq) (window as any).fbq('track', event, data, { eventID: eventId });
     if ((window as any).gtag) (window as any).gtag('event', event, data);
     if ((window as any).ttq) (window as any).ttq.track(event, data);
+
+    // 🚀 SERVER SIDE TRACKING (CAPI)
+    // We send the same eventId to the backend so Facebook deduplicates them!
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+      return null;
+    };
+    
+    // Automatically capture user data if available in cookies (Advanced Matching)
+    let userData = data?.user_data || {};
+    if (!userData.ph && getCookie('user_phone')) userData.ph = getCookie('user_phone');
+    if (!userData.fn && getCookie('user_name')) userData.fn = getCookie('user_name');
+    if (!userData.fbp && getCookie('_fbp')) userData.fbp = getCookie('_fbp');
+    if (!userData.fbc && getCookie('_fbc')) userData.fbc = getCookie('_fbc');
+
+    fetch('/api/track/capi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: event,
+        event_id: eventId,
+        event_source_url: window.location.href,
+        user_data: userData,
+        custom_data: data
+      })
+    }).catch(err => console.error('[CAPI FETCH ERROR]', err));
   }
-  console.log(`[Omni-Tracking] ${event}`, data);
+  
+  console.log(`[Omni-Tracking] ${event} (ID: ${eventId})`, data);
 };
 
 export interface Product {
