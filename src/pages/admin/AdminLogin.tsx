@@ -16,7 +16,7 @@ export default function AdminLogin() {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user.role === 'admin' || user.role === 'staff') {
+        if (user.role === 'admin' || user.role === 'staff' || user.role === 'super_admin') {
           navigate('/admin');
         }
       } catch (e) {}
@@ -37,7 +37,7 @@ export default function AdminLogin() {
       const data = await res.json();
 
       if (data.ok) {
-        if (data.user.role === 'admin' || data.user.role === 'staff') {
+        if (data.user.role === 'admin' || data.user.role === 'staff' || data.user.role === 'super_admin') {
           localStorage.setItem('bunon_token', data.token);
           localStorage.setItem('bunon_user', JSON.stringify(data.user));
           navigate('/admin');
