@@ -256,11 +256,6 @@ export default function Navbar() {
                   <div className="p-2">
                     {localStorage.getItem('bunon_token') ? (
                       <>
-                        {isAdmin && (
-                          <Link to="/admin" className="block px-4 py-2 text-sm font-bold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-lg transition-colors mb-1">
-                            অ্যাডমিন প্যানেল
-                          </Link>
-                        )}
                         <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary rounded-lg transition-colors">আমার প্রোফাইল</Link>
                         <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-brand-primary/5 hover:text-brand-primary rounded-lg transition-colors">আমার অর্ডার</Link>
                         <button 
