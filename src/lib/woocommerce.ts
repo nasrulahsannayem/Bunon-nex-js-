@@ -7,12 +7,21 @@ export const trackPixel = (event: string, data?: any) => {
   const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   if (typeof window !== 'undefined') {
-    // 🌐 BROWSER SIDE TRACKING WITH DEDUPLICATION
-    // fbq throws parameter validation errors if user_data is passed inside track()
+    // fbq throws parameter validation errors if user_data or unrecognized fields are passed inside track()
     const browserData = { ...data };
     delete browserData.user_data;
     
-    if ((window as any).fbq) (window as any).fbq('track', event, browserData, { eventID: eventId });
+    // Meta Pixel STRICT validation: only pass specific fields for Purchase
+    const metaPixelData = { ...browserData };
+    if (event === 'Purchase') {
+      delete metaPixelData.transaction_id;
+      delete metaPixelData.external_id;
+      // Ensure value is numeric and currency is string
+      if (metaPixelData.value) metaPixelData.value = Number(metaPixelData.value);
+      if (metaPixelData.currency) metaPixelData.currency = String(metaPixelData.currency);
+    }
+    
+    if ((window as any).fbq) (window as any).fbq('track', event, metaPixelData, { eventID: eventId });
     if ((window as any).gtag) (window as any).gtag('event', event, browserData);
     if ((window as any).ttq) (window as any).ttq.track(event, browserData);
 
