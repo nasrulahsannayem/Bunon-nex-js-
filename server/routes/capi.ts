@@ -3,8 +3,8 @@ import fetch from 'node-fetch';
 
 const router = express.Router();
 
-// Required: PIXEL_ID and META_CAPI_TOKEN in .env
-const PIXEL_ID = process.env.META_PIXEL_ID || '887459306920960'; // from index.html
+// Required: VITE_META_PIXEL_ID and META_CAPI_TOKEN in .env
+const PIXEL_ID = process.env.VITE_META_PIXEL_ID || '887459306920960'; // centralized with frontend
 const CAPI_TOKEN = process.env.META_CAPI_TOKEN || 'EACLzchGo0UQBRbGLqDZC2uZAIuYw5Lm6tkrXXqMgTZBNacx5fvUeOkPseOhhSZCPX1vcvbzNZAXhqxyiF4VmeY6sHZA0qtgSnYqNOIHeNxhUBLj0SEi0JJUbMMZArXYEfYqDacbPUFQgDkGljcSjO6y5eirwaJAKsbhCfAGW0qj6OucyfecEBw1dg7CdtTzeQixgQZDZD';
 
 router.post('/', async (req, res) => {

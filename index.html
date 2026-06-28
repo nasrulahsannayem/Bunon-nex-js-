@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/image/faveicon.png" />
     <title>বুনন ফেব্রিক্স | Bunon Fabrics - পুরোটাই সুতি শাড়ী</title>
-    <meta name="facebook-domain-verification" content="jnxhmy4sygz49l0difqxnxf1ah4twf" />
+    <meta name="facebook-domain-verification" content="%VITE_FB_DOMAIN_VERIFICATION%" />
     
     <!-- Tracking Scripts -->
     <script>
@@ -17,18 +17,18 @@
     t.src=v;s=b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t,s)}(window, document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '887459306920960');
+    fbq('init', '%VITE_META_PIXEL_ID%');
     fbq('track', 'PageView');
     </script>
 
     <!-- GA4 & Google Ads -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y4KWR202X6"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-Y4KWR202X6');
-      gtag('config', 'AW-16837869483');
+      gtag('config', '%VITE_GA_ID%');
+      gtag('config', '%VITE_AW_ID%');
     </script>
 
     <!-- Microsoft Clarity -->
@@ -37,21 +37,21 @@
             c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
             t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "xdb6au0k0s");
+        })(window, document, "clarity", "script", "%VITE_CLARITY_ID%");
     </script>
 
     <!-- TikTok Pixel -->
     <script>
     !function (w, d, t) {
       w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","trackSelf","untrackSelf"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=d.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
-      ttq.load('CU40Q4JC77UC5BF3IBNG');
+      ttq.load('%VITE_TTQ_ID%');
       ttq.page();
     }(window, document, 'ttq');
     </script>
   </head>
   <body>
     <!-- GTM (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=%VITE_GTM_ID%"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
