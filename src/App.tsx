@@ -5,7 +5,7 @@ import Navbar from './components/layout/Navbar';
 import ScrollToTop from './components/layout/ScrollToTop';
 import Footer from './components/layout/Footer';
 import { getProducts, Product } from './lib/woocommerce';
-import NewsletterPopup from './components/marketing/NewsletterPopup';
+
 
 
 
@@ -25,13 +25,8 @@ const Wishlist = lazy(() => import('./pages/Wishlist'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
 
-// Admin Pages
-const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
-const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
-const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
-const OrdersManager = lazy(() => import('./pages/admin/OrdersManager'));
-const AbandonedCarts = lazy(() => import('./pages/admin/AbandonedCarts'));
-const SettingsManager = lazy(() => import('./pages/admin/SettingsManager'));
+// Admin Pages removed as requested
+
 
 const PageLoader = () => (
   <div className="fixed inset-0 bg-gray-50 z-[300] flex items-center justify-center">
@@ -91,22 +86,12 @@ function AppContent() {
             <Route path="/privacy-policy" element={<Privacy />} />
             <Route path="/dmca" element={<DMCA />} />
             
-            {/* Admin Routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="orders" element={<OrdersManager />} />
-              <Route path="abandoned" element={<AbandonedCarts />} />
-              <Route path="settings" element={<SettingsManager />} />
-              {/* Placeholders for newly added menu items */}
-              <Route path="products" element={<div className="p-8 text-xl font-bold">প্রোডাক্টস ম্যানেজমেন্ট (Coming Soon)</div>} />
-              <Route path="customers" element={<div className="p-8 text-xl font-bold">কাস্টমার ম্যানেজমেন্ট (Coming Soon)</div>} />
-            </Route>          </Routes>
+            {/* Admin Routes removed as requested */}          </Routes>
         </Suspense>
       </main>
 
       {!hideLayout && <Footer />}
-      {!hideLayout && <NewsletterPopup />}
+      {/* Newsletter popup removed as requested */}
     </div>
   );
 }
