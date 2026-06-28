@@ -73,7 +73,6 @@ export default function Checkout() {
           
           // Re-insert each recovery item into cart store
           const { addItem } = useCart.getState();
-          const { products } = useCart.getState(); // Assuming products might be available, otherwise fallback
           
           // Add recovered items sequentially
           decodedItems.forEach(recovered => {
@@ -86,8 +85,16 @@ export default function Checkout() {
               tags: [],
               menu_order: 0,
               date_created: '',
-              total_sales: 0
-            };
+              total_sales: 0,
+              slug: '',
+              regular_price: String(recovered.price || '0'),
+              sale_price: '',
+              on_sale: false,
+              stock_status: 'instock',
+              stock_quantity: null,
+              description: '',
+              short_description: ''
+            } as any;
             addItem(mockProduct, recovered.selectedVariation || undefined);
           });
         }

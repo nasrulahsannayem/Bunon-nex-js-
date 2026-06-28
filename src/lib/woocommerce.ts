@@ -8,9 +8,13 @@ export const trackPixel = (event: string, data?: any) => {
 
   if (typeof window !== 'undefined') {
     // 🌐 BROWSER SIDE TRACKING WITH DEDUPLICATION
-    if ((window as any).fbq) (window as any).fbq('track', event, data, { eventID: eventId });
-    if ((window as any).gtag) (window as any).gtag('event', event, data);
-    if ((window as any).ttq) (window as any).ttq.track(event, data);
+    // fbq throws parameter validation errors if user_data is passed inside track()
+    const browserData = { ...data };
+    delete browserData.user_data;
+    
+    if ((window as any).fbq) (window as any).fbq('track', event, browserData, { eventID: eventId });
+    if ((window as any).gtag) (window as any).gtag('event', event, browserData);
+    if ((window as any).ttq) (window as any).ttq.track(event, browserData);
 
     // 🚀 SERVER SIDE TRACKING (CAPI)
     // We send the same eventId to the backend so Facebook deduplicates them!
@@ -58,6 +62,9 @@ export interface Product {
   description: string;
   short_description: string;
   images: { src: string }[];
+  thumbnail?: string;
+  shipping_class?: string;
+  free_shipping?: boolean;
   categories: { name: string; slug: string }[];
   tags: string[];
   menu_order: number;
