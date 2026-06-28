@@ -3,27 +3,62 @@ import { dbPool } from '../../db';
 
 const router = express.Router();
 
-// GET /api/admin/orders
+// GET /api/admin/orders (List with filters and status counts)
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = 50;
+    const limit = 20; // 20 per page like the old planner maybe?
     const offset = (page - 1) * limit;
 
+    const status = req.query.status as string;
+    const courier = req.query.courier as string;
+    const search = req.query.search as string;
+
+    let whereClauses = [];
+    let params: string[] = [];
+
+    if (status && status !== 'all' && status !== '') {
+      whereClauses.push('status = ?');
+      params.push(status);
+    }
+    if (courier && courier !== 'all' && courier !== '') {
+      // If courier is steadfast, we can check consignment_id IS NOT NULL
+      if (courier === 'steadfast') {
+        whereClauses.push('consignment_id IS NOT NULL');
+      } else {
+        whereClauses.push('consignment_id IS NULL');
+      }
+    }
+    if (search && search !== '') {
+      whereClauses.push('(invoice LIKE ? OR phone LIKE ? OR customer_name LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
     const [orders]: any = await dbPool.execute(
-      `SELECT id, invoice, created_at, status, total_payable, customer_name, phone, city 
+      `SELECT id, invoice, created_at, status, total_payable, customer_name, phone, city, address, consignment_id, tracking_code 
        FROM bf_orders 
+       ${whereString}
        ORDER BY created_at DESC 
        LIMIT ? OFFSET ?`,
-      [limit.toString(), offset.toString()]
+      [...params, limit.toString(), offset.toString()]
     );
 
-    const [countResult]: any = await dbPool.execute(`SELECT COUNT(id) as total FROM bf_orders`);
+    const [countResult]: any = await dbPool.execute(`SELECT COUNT(id) as total FROM bf_orders ${whereString}`, params);
     const total = countResult[0].total;
+
+    // Fetch Status Counts for the tabs
+    const [statusCounts]: any = await dbPool.execute(`
+      SELECT status, COUNT(id) as count 
+      FROM bf_orders 
+      GROUP BY status
+    `);
 
     res.json({
       ok: true,
       orders,
+      statusCounts,
       pagination: {
         page,
         limit,
@@ -35,6 +70,51 @@ router.get('/', async (req, res) => {
   } catch (error: any) {
     console.error('[Admin API] Orders Error:', error.message);
     res.status(500).json({ ok: false, msg: 'Server error fetching orders' });
+  }
+});
+
+// GET /api/admin/orders/:id (Details for Order Journey)
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Order info
+    const [orders]: any = await dbPool.execute(
+      `SELECT * FROM bf_orders WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    
+    if (orders.length === 0) {
+      return res.status(404).json({ ok: false, msg: 'Order not found' });
+    }
+    
+    const order = orders[0];
+
+    // Order Items
+    const [items]: any = await dbPool.execute(
+      `SELECT * FROM bf_order_items WHERE order_id = ?`,
+      [order.id || id] // Try fallback if id mismatch
+    );
+
+    // Order Logs (If exists, else empty array)
+    let logs = [];
+    try {
+      const [orderLogs]: any = await dbPool.execute(`SELECT * FROM bf_order_logs WHERE order_id = ? ORDER BY created_at DESC`, [id]);
+      logs = orderLogs;
+    } catch (e) {
+      // Table might not exist yet
+    }
+
+    res.json({
+      ok: true,
+      order,
+      items,
+      logs
+    });
+
+  } catch (error: any) {
+    console.error('[Admin API] Order Details Error:', error.message);
+    res.status(500).json({ ok: false, msg: 'Server error fetching order details' });
   }
 });
 
