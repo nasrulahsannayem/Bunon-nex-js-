@@ -13,6 +13,13 @@ git fetch origin
 echo "🔄 Resetting local files to match GitHub..."
 git reset --hard origin/master
 
+# Backup previous build for instant rollback
+if [ -d "dist" ]; then
+    echo "💾 Backing up previous build..."
+    rm -rf dist_backup
+    cp -r dist dist_backup
+fi
+
 # Build the project (This compiles server.ts into server.cjs!)
 echo "🏗️ Building the project (Compiling server.ts)..."
 npm install

@@ -115,6 +115,18 @@ const fetchFreshDataBackground = async () => {
     if (storeDataCache && storeDataCache.products && storeDataCache.products.length > 0) {
       return storeDataCache;
     }
+    // 🔥 FIX: Aggressively try to read from local storage if network fails
+    if (typeof window !== 'undefined') {
+      const fallbackData = localStorage.getItem(CACHE_KEY);
+      if (fallbackData) {
+        try {
+          storeDataCache = JSON.parse(fallbackData);
+          if (storeDataCache && storeDataCache.products) {
+            return storeDataCache;
+          }
+        } catch (e) {}
+      }
+    }
     return { categories: [], products: [] };
   }
 };
@@ -144,20 +156,7 @@ export const getProduct = async (idOrSlug: string | number) => {
   ) || null;
 };
 
-export const createOrder = async (orderData: any) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: Math.floor(Math.random() * 100000),
-        orderKey: `bunon_order_${Math.random().toString(36).substring(7)}`,
-        total: String(orderData.total || "0.00"),
-        paymentMethodTitle: orderData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment',
-        payment_url: null,
-        result: "success"
-      });
-    }, 1200);
-  });
-};
+
 
 // 🚀 FIXED: Added the missing searchProducts function for the Navbar Live Search
 export const searchProducts = async (query: string) => {

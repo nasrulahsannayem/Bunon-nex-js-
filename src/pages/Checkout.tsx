@@ -291,7 +291,8 @@ export default function Checkout() {
             product_id: item.id,
             name: item.name,
             price: Number(item.price),
-            quantity: Math.max(1, Number(item.quantity) || 1)
+            quantity: Math.max(1, Number(item.quantity) || 1),
+            thumbnail: item.images?.[0]?.src || item.thumbnail || ''
           }))
         };
 
@@ -365,7 +366,8 @@ export default function Checkout() {
           product_id: item.id,
           name: item.name,
           price: Number(item.price),
-          quantity: Math.max(1, Number(item.quantity) || 1)
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          thumbnail: item.images?.[0]?.src || item.thumbnail || ''
         }))
       };
 
@@ -378,7 +380,6 @@ export default function Checkout() {
       console.log('Incomplete sync skipped.');
     }
   };
-
   useEffect(() => {
     if (items.length > 0 && !pixelFired.current) {
       trackPixel('InitiateCheckout', {
@@ -628,7 +629,7 @@ export default function Checkout() {
                       className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                       value={formData.firstName}
                       onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                      onBlur={trackIncompleteOrderOnBlur}
+                      onBlur={() => trackIncompleteOrderOnBlur()}
                     />
                   </label>
                 </div>
@@ -668,7 +669,7 @@ export default function Checkout() {
                            setFormData({...formData, district: e.target.value});
                            setShippingMethod(e.target.value.toLowerCase() === 'dhaka' ? 'dhaka' : 'outside');
                         }}
-                        onBlur={trackIncompleteOrderOnBlur}
+                        onBlur={() => trackIncompleteOrderOnBlur()}
                       >
                         <option value="" disabled>জেলা সিলেক্ট করুন</option>
                         <option value="Dhaka">Dhaka</option>
@@ -696,7 +697,7 @@ export default function Checkout() {
                       className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none shadow-sm"
                       value={formData.address1}
                       onChange={(e) => setFormData({...formData, address1: e.target.value})}
-                      onBlur={trackIncompleteOrderOnBlur}
+                      onBlur={() => trackIncompleteOrderOnBlur()}
                     />
                   </label>
                 </div>

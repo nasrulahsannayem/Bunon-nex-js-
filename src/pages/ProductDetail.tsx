@@ -89,7 +89,8 @@ export default function ProductDetail() {
             product_id: product.id,
             name: product.name,
             price: Number(selectedVariation?.price || product.price),
-            quantity: 1
+            quantity: 1,
+            thumbnail: product.images?.[0]?.src || product.thumbnail || ''
           }]
         };
         fetch('/api/orders/save_to_wp.php', {
@@ -99,6 +100,8 @@ export default function ProductDetail() {
         }).catch(() => {});
       }
     } catch (e) {}
+
+
   };
 
   const handleBuyNow = () => {
@@ -134,7 +137,8 @@ export default function ProductDetail() {
             product_id: product.id,
             name: product.name,
             price: Number(selectedVariation?.price || product.price),
-            quantity: 1
+            quantity: 1,
+            thumbnail: product.images?.[0]?.src || product.thumbnail || ''
           }]
         };
         fetch('/api/orders/save_to_wp.php', {
@@ -144,6 +148,8 @@ export default function ProductDetail() {
         }).catch(() => {});
       }
     } catch (e) {}
+
+
 
     navigate('/checkout');
   };
@@ -218,7 +224,7 @@ export default function ProductDetail() {
                   {product.images.map((img, idx) => (
                     <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square relative">
                       <img 
-                        src={img.src || '/assets/images/woocommerce-placeholder-300x300.webp'} 
+                        src={img.src || '/assets/images/placeholder-300x300.webp'} 
                         className="w-full h-full object-cover" 
                         alt={`${product.name} - Image ${idx + 1}`}
                       />

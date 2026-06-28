@@ -19,14 +19,30 @@ redisClient.on('error', (err) => console.error('[REDIS] Client Error', err));
   }
 })();
 
+let memoryCache: any[] = [];
+
 export const getCachedProducts = async () => {
-  const data = await redisClient.get('products');
-  if (data) {
-    return JSON.parse(data);
+  try {
+    if (redisClient.isReady) {
+      const data = await redisClient.get('products');
+      if (data) {
+        return JSON.parse(data);
+      }
+    }
+  } catch (err) {
+    console.error('[REDIS] Error getting cache, using RAM fallback');
   }
-  return [];
+  return memoryCache;
 };
 
 export const setCachedProducts = async (products: any[]) => {
-  await redisClient.set('products', JSON.stringify(products));
+  memoryCache = products; // Always save to RAM fallback
+  try {
+    if (redisClient.isReady) {
+      await redisClient.set('products', JSON.stringify(products));
+    }
+  } catch (err) {
+    console.error('[REDIS] Error setting cache');
+  }
 };
+
