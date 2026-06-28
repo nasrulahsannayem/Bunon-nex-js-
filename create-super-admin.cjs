@@ -28,10 +28,10 @@ async function createSuperAdmin() {
     const permissions = JSON.stringify(['view_orders', 'edit_orders', 'view_products', 'edit_products', 'manage_users', 'manage_settings']);
 
     const [result] = await pool.execute(
-      `INSERT INTO bunon_users (name, phone, password, role, permissions) 
+      `INSERT INTO bunon_users (name, phone, password_hash, role, permissions) 
        VALUES (?, ?, ?, 'super_admin', ?)
        ON DUPLICATE KEY UPDATE 
-       password = ?, role = 'super_admin', permissions = ?`,
+       password_hash = ?, role = 'super_admin', permissions = ?`,
       [name, phone, hashedPassword, permissions, hashedPassword, permissions]
     );
 
