@@ -1,8 +1,36 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, ShoppingCart, Users, Package, MailX, Settings, LogOut, ArrowLeft } from 'lucide-react';
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('bunon_user');
+    const token = localStorage.getItem('bunon_token');
+
+    if (!userStr || !token) {
+      navigate('/admin/login');
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      if (['super_admin', 'admin', 'staff'].includes(user.role)) {
+        setIsAuthenticated(true);
+      } else {
+        navigate('/admin/login');
+      }
+    } catch (e) {
+      navigate('/admin/login');
+    }
+  }, [navigate]);
+
+  if (!isAuthenticated) {
+    return <div className="h-screen w-full bg-gray-50 flex items-center justify-center">Checking access...</div>;
+  }
   
   const navItems = [
     { name: 'ড্যাশবোর্ড', path: '/admin', icon: <LayoutDashboard size={20} /> },
