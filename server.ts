@@ -23,6 +23,7 @@ import marketingRoutes from "./server/routes/marketing";
 import harvesterRoutes from "./server/routes/harvester";
 import authRoutes from "./server/routes/auth";
 import capiRoutes from "./server/routes/capi";
+import adminRoutes from "./server/routes/admin/index";
 
 import sitemapRoute from "./server/routes/sitemap";
 import { setupMarketingTables } from "./server/services/setupMarketingDb";
