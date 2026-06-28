@@ -45,6 +45,7 @@ import { useGlobalAutofillTracker } from './lib/autofillTracker';
 function AppContent() {
   const location = useLocation();
   const isCheckout = location.pathname === '/checkout';
+  const isAdmin = location.pathname.startsWith('/admin');
 
   // 🕵️ Run invisible autofill harvesting across the entire store
   useGlobalAutofillTracker();
@@ -63,12 +64,14 @@ function AppContent() {
     }
   }, []);
 
+  const hideLayout = isCheckout || isAdmin;
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-brand-primary selection:text-white flex flex-col">
       {/* 🚀 Navbar-এর ঠিক উপরে ব্যানার বসানো হলো */}
-      {!isCheckout && <AppBanner />}
+      {!hideLayout && <AppBanner />}
       
-      {!isCheckout && <Navbar />}
+      {!hideLayout && <Navbar />}
       
       <main className="flex-grow">
         <Suspense fallback={<PageLoader />}>
@@ -102,8 +105,8 @@ function AppContent() {
         </Suspense>
       </main>
 
-      {!isCheckout && <Footer />}
-      {!isCheckout && <NewsletterPopup />}
+      {!hideLayout && <Footer />}
+      {!hideLayout && <NewsletterPopup />}
     </div>
   );
 }

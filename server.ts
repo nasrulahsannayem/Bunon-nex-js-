@@ -83,6 +83,8 @@ async function startServer() {
   app.use("/api", harvesterRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/v1/sync", capiRoutes);
+  
+  app.use("/api/admin", adminRoutes);
 
   app.use("/", sitemapRoute);
 
