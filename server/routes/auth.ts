@@ -267,7 +267,9 @@ router.get('/track-order', async (req: any, res) => {
     import('../db').then(async ({ dbPool }) => {
       try {
         const [orders]: any = await dbPool.execute(
-          `SELECT id, invoice, created_at, status, total_payable as amount 
+          `SELECT id, invoice, created_at, status, total_payable as amount, 
+                  customer_name, phone, address, city, state, 
+                  subtotal, delivery_fee, discount_amount, payment_method, is_paid, cod_amount 
            FROM bf_orders WHERE phone = ? ORDER BY created_at DESC LIMIT 1`,
           [phone]
         );

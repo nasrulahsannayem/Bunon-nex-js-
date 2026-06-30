@@ -142,29 +142,79 @@ export default function TrackOrder() {
 
               </div>
             </div>
-            
-            <div className="mt-10 pt-6 border-t border-gray-100">
-              <p className="text-sm text-gray-500 mb-4">Ordered on <span className="font-medium text-gray-900">{new Date(order.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+            <div className="mt-10 pt-6 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-8">
               
-              {order.items && order.items.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">Order Items</h3>
-                  {order.items.map((item: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-white shrink-0">
-                        <img src={item.thumbnail || 'https://via.placeholder.com/150'} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 line-clamp-1 text-sm">{item.name}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                      <div className="font-bold text-brand-primary text-sm">
-                        ৳{item.price}
-                      </div>
-                    </div>
-                  ))}
+              {/* Left Column: Customer & Order Details */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-3">Delivery Information</h3>
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2">
+                    <p className="text-sm"><span className="text-gray-500 w-20 inline-block">Name:</span> <span className="font-medium text-gray-900">{order.customer_name || 'N/A'}</span></p>
+                    <p className="text-sm"><span className="text-gray-500 w-20 inline-block">Phone:</span> <span className="font-medium text-gray-900">{order.phone}</span></p>
+                    <p className="text-sm"><span className="text-gray-500 w-20 inline-block">Address:</span> <span className="font-medium text-gray-900">{order.address || 'N/A'}, {order.city || ''} {order.state ? `(${order.state})` : ''}</span></p>
+                  </div>
                 </div>
-              )}
+
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-3">Payment Summary</h3>
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Payment Method</span>
+                      <span className="font-medium text-gray-900 uppercase">{order.payment_method}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Subtotal</span>
+                      <span className="font-medium text-gray-900">৳{order.subtotal || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Delivery Fee</span>
+                      <span className="font-medium text-gray-900">৳{order.delivery_fee || 0}</span>
+                    </div>
+                    {Number(order.discount_amount) > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Discount</span>
+                        <span className="font-medium">-৳{order.discount_amount}</span>
+                      </div>
+                    )}
+                    <div className="pt-2 mt-2 border-t border-gray-200 flex justify-between">
+                      <span className="font-bold text-gray-900">Total Payable</span>
+                      <span className="font-bold text-brand-primary text-lg">৳{order.amount}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Ordered Items */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-900">Ordered Items</h3>
+                  <p className="text-xs text-gray-500">Ordered on {new Date(order.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+                
+                {order.items && order.items.length > 0 ? (
+                  <div className="space-y-3">
+                    {order.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:border-brand-primary/20 transition-colors">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-50 shrink-0 border border-gray-50">
+                          <img src={item.thumbnail || 'https://via.placeholder.com/150'} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 line-clamp-2 text-sm leading-tight mb-1">{item.name}</p>
+                          <p className="text-xs text-gray-500 font-medium">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="font-bold text-brand-primary text-sm whitespace-nowrap">
+                          ৳{item.price}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
+                    <p className="text-gray-500 text-sm">No items found for this order.</p>
+                  </div>
+                )}
+              </div>
+              
             </div>
 
           </motion.div>
