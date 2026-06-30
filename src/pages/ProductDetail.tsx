@@ -318,21 +318,33 @@ export default function ProductDetail() {
                 )}
 
                 {/* Call To Actions (Side by Side on All Devices) */}
-                <div className="flex gap-2 sm:gap-3 pt-6 mt-6 border-t border-gray-100">
+                <div className="flex flex-col gap-2 sm:gap-3 pt-6 mt-6 border-t border-gray-100">
                    {!isOutOfStock ? (
                      <>
-                       <button 
-                         onClick={handleAddToCart} 
-                         className="flex-1 h-12 sm:h-14 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-[#2563EB] border border-[#1d4ed8] text-white text-[11px] sm:text-sm font-bold uppercase tracking-widest hover:bg-[#1d4ed8] active:scale-95 transition-all shadow-md shadow-blue-500/20"
+                       <div className="flex gap-2 sm:gap-3">
+                         <button 
+                           onClick={handleAddToCart} 
+                           className="flex-1 h-12 sm:h-14 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-[#2563EB] border border-[#1d4ed8] text-white text-[11px] sm:text-sm font-bold uppercase tracking-widest hover:bg-[#1d4ed8] active:scale-95 transition-all shadow-md shadow-blue-500/20"
+                         >
+                           <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /> Add to Cart
+                         </button>
+                         <button 
+                           onClick={handleBuyNow} 
+                           className="flex-1 h-12 sm:h-14 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-brand-primary text-white text-[11px] sm:text-sm font-bold uppercase tracking-widest shadow-md shadow-brand-primary/20 hover:brightness-110 active:scale-95 transition-all"
+                         >
+                           <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> Order Now
+                         </button>
+                       </div>
+                       {/* WhatsApp Order Button */}
+                       <a 
+                         href={`https://api.whatsapp.com/send?phone=8801618775368&text=${encodeURIComponent(`আসসালামু আলাইকুম Bunon Shop,\nআমি একটি অর্ডার করতে চাই:\n\n🛍 প্রোডাক্ট: ${product.name}\n🔗 লিংক: ${window.location.origin}/product/${product.slug}`)}`}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="w-full h-12 sm:h-14 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] text-white text-[13px] sm:text-base font-bold shadow-md shadow-[#25D366]/20 hover:brightness-110 active:scale-95 transition-all"
                        >
-                         <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /> Add to Cart
-                       </button>
-                       <button 
-                         onClick={handleBuyNow} 
-                         className="flex-1 h-12 sm:h-14 flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-brand-primary text-white text-[11px] sm:text-sm font-bold uppercase tracking-widest shadow-md shadow-brand-primary/20 hover:brightness-110 active:scale-95 transition-all"
-                       >
-                         <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> Order Now
-                       </button>
+                         <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp" className="w-5 h-5 sm:w-6 sm:h-6 invert" />
+                         হোয়াটসঅ্যাপ-এ অর্ডার করুন
+                       </a>
                      </>
                    ) : (
                      <div className="flex-1 h-12 sm:h-14 flex items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs sm:text-base font-bold uppercase tracking-widest">
