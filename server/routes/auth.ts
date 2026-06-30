@@ -271,6 +271,16 @@ router.get('/track-order', async (req: any, res) => {
            FROM bf_orders WHERE phone = ? ORDER BY created_at DESC LIMIT 1`,
           [phone]
         );
+        
+        if (orders.length > 0) {
+          const [items]: any = await dbPool.execute(
+            `SELECT product_name as name, qty as quantity, price, thumb as thumbnail 
+             FROM bf_order_items WHERE order_id = ?`,
+            [orders[0].id]
+          );
+          orders[0].items = items;
+        }
+
         res.json({ ok: true, orders });
       } catch (err) {
         res.json({ ok: true, orders: [] });

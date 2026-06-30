@@ -384,51 +384,39 @@ export default function Navbar() {
             exit={{ y: 50, opacity: 0 }}
             className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
-            <div className="flex items-center justify-between h-[65px] px-4 text-gray-500 relative pb-safe rounded-full mx-4 mb-4 backdrop-blur-lg bg-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-white/60">
+            <div className="flex items-center justify-between h-[70px] px-2 md:px-4 text-gray-500 relative pb-safe rounded-[30px] mx-4 mb-4 bg-white/70 backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.4)_inset] border border-white/50">
               
-              <Link to="/shop" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1">
-                <Store className={`w-5 h-5 mb-1 ${location.pathname === '/shop' ? 'text-brand-primary' : ''}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
-                <span className={`text-[10px] font-medium ${location.pathname === '/shop' ? 'text-brand-primary font-semibold' : ''}`}>Shop</span>
+              <Link to="/shop" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
+                <Store className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/shop' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
+                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/shop' ? 'text-brand-primary' : ''}`}>Shop</span>
               </Link>
 
               <a 
                 href="tel:09611900606"
-                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1"
+                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1"
               >
-                <PhoneCall className="w-5 h-5 mb-1" strokeWidth={2} />
-                <span className="text-[10px] font-medium">Call</span>
+                <PhoneCall className="w-[22px] h-[22px] mb-1 drop-shadow-sm" strokeWidth={2} />
+                <span className="text-[9px] uppercase tracking-wider font-bold">Call</span>
               </a>
 
               <div className="w-[20%] flex justify-center relative">
                 <Link 
                   to="/" 
-                  className="absolute -top-5 flex items-center justify-center w-[54px] h-[54px] bg-gradient-to-r from-brand-primary to-pink-600 text-white rounded-full shadow-[0_8px_20px_rgba(209,34,41,0.4)] border-4 border-white transform transition-transform active:scale-95 z-50"
+                  className="absolute -top-7 flex items-center justify-center w-[60px] h-[60px] bg-gradient-to-tr from-brand-primary via-[#e60023] to-[#ff4d6d] text-white rounded-full shadow-[0_15px_30px_-5px_rgba(230,0,35,0.6),0_0_0_4px_rgba(255,255,255,0.9)] transform transition-all hover:scale-110 active:scale-95 z-50 group"
                 >
-                  <HomeIcon className="w-6 h-6" fill="currentColor" />
+                  <HomeIcon className="w-7 h-7 drop-shadow-lg group-hover:animate-pulse" fill="currentColor" />
                 </Link>
               </div>
 
-              <Link to="/track" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1">
-                <div className="relative mb-1">
-                  <Package className={`w-5 h-5 ${location.pathname === '/track' ? 'text-brand-primary' : ''}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
-                </div>
-                <span className={`text-[10px] font-medium ${location.pathname === '/track' ? 'text-brand-primary font-semibold' : ''}`}>Track</span>
+              <Link to="/track" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
+                <Package className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/track' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
+                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/track' ? 'text-brand-primary' : ''}`}>Track</span>
               </Link>
 
-              <button 
-                onClick={() => setIsOpen(true)}
-                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1"
-              >
-                <div className="relative mb-1">
-                  <ShoppingCart className="w-5 h-5" strokeWidth={2} />
-                  {itemCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-gray-900 text-white text-[9px] font-bold h-[16px] min-w-[16px] px-1 flex items-center justify-center rounded-full border border-white shadow-sm">
-                      {itemCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-medium">Cart</span>
-              </button>
+              <Link to="/profile" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
+                <User className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/profile' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
+                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/profile' ? 'text-brand-primary' : ''}`}>Profile</span>
+              </Link>
 
             </div>
           </motion.div>

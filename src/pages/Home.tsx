@@ -374,7 +374,7 @@ export default function Home() {
         <motion.div 
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="fixed bottom-6 right-6 z-[999] flex flex-col items-center"
+          className="fixed bottom-[110px] right-6 z-[999] flex flex-col items-center"
         >
           <Link to="/checkout" className="w-14 h-14 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-[0_10px_25px_rgba(230,0,35,0.4)] hover:bg-[#b3001b] hover:scale-110 transition-all cursor-pointer relative group">
             <ShoppingCart className="w-6 h-6" />

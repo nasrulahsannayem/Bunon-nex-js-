@@ -143,6 +143,30 @@ export default function TrackOrder() {
               </div>
             </div>
             
+            <div className="mt-10 pt-6 border-t border-gray-100">
+              <p className="text-sm text-gray-500 mb-4">Ordered on <span className="font-medium text-gray-900">{new Date(order.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+              
+              {order.items && order.items.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900">Order Items</h3>
+                  {order.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-white shrink-0">
+                        <img src={item.thumbnail || 'https://via.placeholder.com/150'} alt={item.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 line-clamp-1 text-sm">{item.name}</p>
+                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                      <div className="font-bold text-brand-primary text-sm">
+                        ৳{item.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </motion.div>
         )}
 
