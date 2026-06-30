@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall, User, Package } from 'lucide-react';
+import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall, User, Package, Menu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -378,64 +378,67 @@ export default function Navbar() {
       {/* 🚀 Modern Professional Mobile Bottom Navigation */}
       <AnimatePresence>
         {!location.pathname.startsWith('/checkout') && !location.pathname.startsWith('/product/') && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="md:hidden fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none"
-          >
-            <div className="pointer-events-auto flex items-center gap-1.5 p-2 rounded-full bg-black/90 backdrop-blur-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)_inset]">
-              
-              {/* SHOP */}
-              <Link to="/shop" className="relative group">
-                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/shop' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
-                  <Store className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/shop' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
-                  {location.pathname === '/shop' && (
-                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Shop</motion.span>
-                  )}
-                </motion.div>
-              </Link>
-
-              {/* CALL */}
-              <a href="tel:09611900606" className="relative group">
-                <motion.div layout className="flex items-center justify-center gap-2 rounded-full h-12 w-12 transition-all duration-300 hover:bg-white/10">
-                  <PhoneCall className="w-[22px] h-[22px] text-gray-300 group-hover:text-white transition-colors duration-300" strokeWidth={2} />
-                </motion.div>
-              </a>
-
-              {/* HOME */}
-              <Link to="/" className="relative group">
-                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
-                  <HomeIcon className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/' ? 2.5 : 2} />
-                  {location.pathname === '/' && (
-                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Home</motion.span>
-                  )}
-                </motion.div>
-              </Link>
-
-              {/* TRACK */}
-              <Link to="/track" className="relative group">
-                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/track' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
-                  <Package className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/track' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
-                  {location.pathname === '/track' && (
-                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Track</motion.span>
-                  )}
-                </motion.div>
-              </Link>
-
-              {/* PROFILE */}
-              <Link to="/profile" className="relative group">
-                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/profile' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
-                  <User className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/profile' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
-                  {location.pathname === '/profile' && (
-                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Profile</motion.span>
-                  )}
-                </motion.div>
-              </Link>
-
-            </div>
-          </motion.div>
+          <div className="md:hidden fixed left-0 right-0 bottom-0 z-40 px-3 pt-2 pointer-events-none" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)' }}>
+            <nav aria-label="Primary" className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-gray-200/50 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35),0_4px_10px_-4px_rgba(0,0,0,0.18)] dark:bg-black/70 dark:border-white/10">
+              <div className="grid grid-cols-5 h-[60px] text-gray-500">
+                {/* Menu */}
+                <button type="button" className="h-full w-full">
+                  <span className="relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 hover:text-brand-primary">
+                    <span className="relative">
+                      <Menu className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <span className="text-xs font-medium leading-none">Menu</span>
+                  </span>
+                </button>
+                {/* Home */}
+                <Link to="/" className="h-full w-full">
+                  <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
+                    <span className="relative">
+                      <HomeIcon className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <span className="text-xs font-medium leading-none">Home</span>
+                  </span>
+                </Link>
+                {/* Cart */}
+                <button type="button" onClick={() => setIsOpen(true)} className="h-full w-full">
+                  <span className="relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 hover:text-brand-primary">
+                    <span className="relative">
+                      <ShoppingCart className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+                      {cartItems.length > 0 && (
+                        <span aria-label={`${cartItems.length} items in cart`} className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                          {cartItems.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-medium leading-none">Cart</span>
+                  </span>
+                </button>
+                {/* Wishlist */}
+                <Link to="/wishlist" className="h-full w-full">
+                  <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/wishlist' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
+                    <span className="relative">
+                      <Heart className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+                      {wishlistItems.length > 0 && (
+                        <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-bold bg-brand-primary text-white">
+                          {wishlistItems.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs font-medium leading-none">Wishlist</span>
+                  </span>
+                </Link>
+                {/* Profile */}
+                <Link to="/profile" className="h-full w-full">
+                  <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/profile' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
+                    <span className="relative">
+                      <User className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <span className="text-xs font-medium leading-none">Profile</span>
+                  </span>
+                </Link>
+              </div>
+            </nav>
+          </div>
         )}
       </AnimatePresence>
 
