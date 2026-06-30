@@ -219,7 +219,10 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     const cartParam = encodeURIComponent(JSON.stringify(cartItems.map(item => ({
       id: item.product_id || item.id,
       quantity: item.quantity,
-      selectedVariation: item.selectedVariation || null
+      selectedVariation: item.selectedVariation || null,
+      price: item.price,
+      name: item.name,
+      thumbnail: (item.images && item.images[0] && item.images[0].src) ? item.images[0].src : item.thumbnail
     }))));
     const magicCheckoutLink = `https://bunon.shop/checkout?restore_cart=${cartParam}&coupon=${generatedCoupon}`;
 

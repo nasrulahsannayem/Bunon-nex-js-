@@ -72,7 +72,7 @@ export default function Checkout() {
           clearCart();
           
           // Re-insert each recovery item into cart store
-          const { addItem } = useCart.getState();
+          const { addItem, updateQuantity } = useCart.getState();
           
           // Add recovered items sequentially
           decodedItems.forEach(recovered => {
@@ -96,6 +96,10 @@ export default function Checkout() {
               short_description: ''
             } as any;
             addItem(mockProduct, recovered.selectedVariation || undefined);
+            if (recovered.quantity && recovered.quantity > 1) {
+              const cartItemId = recovered.selectedVariation ? `${recovered.id}-${recovered.selectedVariation.databaseId}` : recovered.id;
+              updateQuantity(cartItemId, recovered.quantity - 1);
+            }
           });
         }
       }
