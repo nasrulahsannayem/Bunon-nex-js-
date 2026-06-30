@@ -383,45 +383,55 @@ export default function Navbar() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="md:hidden fixed bottom-6 left-0 right-0 z-40 px-4"
+            className="md:hidden fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none"
           >
-            <div className="flex items-center justify-between h-[72px] px-2 relative rounded-[2rem] bg-white/70 dark:bg-black/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.5)_inset] border border-white/40">
+            <div className="pointer-events-auto flex items-center gap-1.5 p-2 rounded-full bg-black/90 backdrop-blur-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)_inset]">
               
-              <Link to="/shop" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
-                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/shop' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
-                  <Store className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/shop' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
-                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/shop' ? 'text-brand-primary' : 'text-gray-500'}`}>Shop</span>
-                </div>
+              {/* SHOP */}
+              <Link to="/shop" className="relative group">
+                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/shop' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
+                  <Store className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/shop' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
+                  {location.pathname === '/shop' && (
+                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Shop</motion.span>
+                  )}
+                </motion.div>
               </Link>
 
-              <a href="tel:09611900606" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
-                <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 hover:bg-gray-100/50">
-                  <PhoneCall className="w-5 h-5 mb-0.5 text-gray-500 group-hover:text-brand-primary transition-colors duration-300" strokeWidth={2} />
-                  <span className="text-[10px] font-bold tracking-wide text-gray-500 group-hover:text-brand-primary transition-colors duration-300">Call</span>
-                </div>
+              {/* CALL */}
+              <a href="tel:09611900606" className="relative group">
+                <motion.div layout className="flex items-center justify-center gap-2 rounded-full h-12 w-12 transition-all duration-300 hover:bg-white/10">
+                  <PhoneCall className="w-[22px] h-[22px] text-gray-300 group-hover:text-white transition-colors duration-300" strokeWidth={2} />
+                </motion.div>
               </a>
 
-              <div className="w-1/5 flex justify-center relative z-20">
-                <Link 
-                  to="/" 
-                  className="absolute -top-6 flex items-center justify-center w-[64px] h-[64px] bg-gradient-to-tr from-brand-primary via-[#ff2a55] to-[#ff4d6d] text-white rounded-full shadow-[0_12px_24px_-6px_rgba(230,0,35,0.6),0_0_0_6px_rgba(255,255,255,0.8)] transform transition-transform duration-300 hover:scale-105 active:scale-95"
-                >
-                  <HomeIcon className="w-7 h-7 drop-shadow-md" fill="currentColor" strokeWidth={1} />
-                </Link>
-              </div>
-
-              <Link to="/track" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
-                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/track' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
-                  <Package className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/track' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
-                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/track' ? 'text-brand-primary' : 'text-gray-500'}`}>Track</span>
-                </div>
+              {/* HOME */}
+              <Link to="/" className="relative group">
+                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
+                  <HomeIcon className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/' ? 2.5 : 2} />
+                  {location.pathname === '/' && (
+                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Home</motion.span>
+                  )}
+                </motion.div>
               </Link>
 
-              <Link to="/profile" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
-                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/profile' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
-                  <User className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/profile' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
-                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/profile' ? 'text-brand-primary' : 'text-gray-500'}`}>Profile</span>
-                </div>
+              {/* TRACK */}
+              <Link to="/track" className="relative group">
+                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/track' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
+                  <Package className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/track' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
+                  {location.pathname === '/track' && (
+                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Track</motion.span>
+                  )}
+                </motion.div>
+              </Link>
+
+              {/* PROFILE */}
+              <Link to="/profile" className="relative group">
+                <motion.div layout className={`flex items-center justify-center gap-2 rounded-full h-12 transition-all duration-300 ${location.pathname === '/profile' ? 'bg-white px-5 shadow-sm' : 'w-12 hover:bg-white/10'}`}>
+                  <User className={`w-[22px] h-[22px] transition-colors duration-300 ${location.pathname === '/profile' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
+                  {location.pathname === '/profile' && (
+                    <motion.span layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} className="text-[13px] font-bold text-black whitespace-nowrap overflow-hidden">Profile</motion.span>
+                  )}
+                </motion.div>
               </Link>
 
             </div>
