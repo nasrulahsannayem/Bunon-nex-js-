@@ -1,4 +1,4 @@
-import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall, User } from 'lucide-react';
+import { ShoppingCart, Search, Home as HomeIcon, Heart, X, Store, PhoneCall, User, Package } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
