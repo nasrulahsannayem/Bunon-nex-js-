@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart, useWishlist } from '@/src/lib/store';
 import CartDrawer from '../cart/CartDrawer';
+import MobileMenuDrawer from './MobileMenuDrawer';
 import { searchProducts } from '../../lib/woocommerce'; // 🚀 FIXED: Correct relative path
 
 export default function Navbar() {
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   
   const location = useLocation();
@@ -382,7 +384,7 @@ export default function Navbar() {
             <nav aria-label="Primary" className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-gray-200/50 bg-white/70 backdrop-blur-xl shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35),0_4px_10px_-4px_rgba(0,0,0,0.18)] dark:bg-black/70 dark:border-white/10">
               <div className="grid grid-cols-5 h-[60px] text-gray-500">
                 {/* Menu */}
-                <button type="button" className="h-full w-full">
+                <button type="button" onClick={() => setIsMobileMenuOpen(true)} className="h-full w-full">
                   <span className="relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 hover:text-brand-primary">
                     <span className="relative">
                       <Menu className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
@@ -443,6 +445,7 @@ export default function Navbar() {
       </AnimatePresence>
 
       <CartDrawer />
+      <MobileMenuDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
     </>
   );
 }
