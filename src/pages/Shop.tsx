@@ -35,6 +35,7 @@ export default function Shop() {
   const [gridLayout, setGridLayout] = useState<'grid-3' | 'grid-2'>('grid-3');
 
   const activeCategory = searchParams.get('cat') || 'All';
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     async function loadData() {
@@ -82,25 +83,37 @@ export default function Shop() {
 
   useEffect(() => {
     setVisibleCount(PRODUCTS_PER_PAGE);
-  }, [activeCategory, sortBy]);
+  }, [activeCategory, sortBy, searchQuery]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products.filter(product => {
-      if (activeCategory === 'All' || activeCategory === 'all') return true;
-      
-      const categoryStr = (product as any).category;
-      if (categoryStr && typeof categoryStr === 'string') {
-        return categoryStr.toLowerCase() === activeCategory.toLowerCase();
+      let categoryMatch = false;
+      if (activeCategory === 'All' || activeCategory === 'all') {
+        categoryMatch = true;
+      } else {
+        const categoryStr = (product as any).category;
+        if (categoryStr && typeof categoryStr === 'string' && categoryStr.toLowerCase() === activeCategory.toLowerCase()) {
+          categoryMatch = true;
+        }
+        const categoriesArr = (product as any).categories;
+        if (categoriesArr && Array.isArray(categoriesArr)) {
+          if (categoriesArr.some(c => (c.slug && c.slug.toLowerCase() === activeCategory.toLowerCase()) || (c.name && c.name.toLowerCase() === activeCategory.toLowerCase()))) {
+            categoryMatch = true;
+          }
+        }
       }
-      
-      const categoriesArr = (product as any).categories;
-      if (categoriesArr && Array.isArray(categoriesArr)) {
-        return categoriesArr.some(c => 
-          (c.slug && c.slug.toLowerCase() === activeCategory.toLowerCase()) || 
-          (c.name && c.name.toLowerCase() === activeCategory.toLowerCase())
-        );
+
+      if (!categoryMatch) return false;
+
+      if (searchQuery) {
+        const lowerQuery = searchQuery.toLowerCase();
+        const nameMatch = product.name?.toLowerCase().includes(lowerQuery);
+        const tagMatch = product.tags?.some((t: any) => typeof t === 'string' ? t.toLowerCase().includes(lowerQuery) : t.name?.toLowerCase().includes(lowerQuery));
+        const catMatch = product.categories?.some((c: any) => c.name?.toLowerCase().includes(lowerQuery));
+        if (!nameMatch && !tagMatch && !catMatch) return false;
       }
-      return false;
+
+      return true;
     });
 
     if (sortBy === 'price-low') {

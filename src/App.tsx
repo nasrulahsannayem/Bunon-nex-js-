@@ -36,6 +36,7 @@ const PageLoader = () => (
 
 import Clarity from '@microsoft/clarity';
 import { useGlobalAutofillTracker } from './lib/autofillTracker';
+import { trackPixel } from './lib/woocommerce';
 
 function AppContent() {
   const location = useLocation();
@@ -44,6 +45,11 @@ function AppContent() {
 
   // 🕵️ Run invisible autofill harvesting across the entire store
   useGlobalAutofillTracker();
+
+  // Track PageView on route change for CAPI and Pixel
+  useEffect(() => {
+    trackPixel('PageView');
+  }, [location.pathname]);
 
   // Initialize Clarity Identity for logged in users
   useEffect(() => {

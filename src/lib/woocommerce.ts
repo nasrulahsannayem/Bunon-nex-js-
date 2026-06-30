@@ -38,6 +38,8 @@ export const trackPixel = (event: string, data?: any) => {
     let userData = data?.user_data || {};
     if (!userData.ph && getCookie('user_phone')) userData.ph = getCookie('user_phone');
     if (!userData.fn && getCookie('user_name')) userData.fn = getCookie('user_name');
+    if (!userData.em && getCookie('user_email')) userData.em = getCookie('user_email');
+    if (!userData.ct && getCookie('billing_city')) userData.ct = getCookie('billing_city');
     if (!userData.fbp && getCookie('_fbp')) userData.fbp = getCookie('_fbp');
     if (!userData.fbc && getCookie('_fbc')) userData.fbc = getCookie('_fbc');
 

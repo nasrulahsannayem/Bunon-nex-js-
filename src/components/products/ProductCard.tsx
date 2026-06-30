@@ -141,14 +141,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           type="button" 
           disabled={isOutOfStock}
           onClick={handleAddToCart}
-          className={`inline-flex items-center justify-center gap-1.5 h-8 w-full rounded-md text-xs font-semibold transition-all duration-200 ${
+          className={`group relative overflow-hidden inline-flex items-center justify-center gap-1.5 h-9 w-full rounded-xl text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300 z-10 ${
             isOutOfStock 
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-none' 
-              : 'bg-transparent text-brand-primary border border-brand-primary/40 hover:bg-brand-primary hover:text-white'
+              ? 'bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-100' 
+              : 'text-white bg-brand-primary shadow-md shadow-brand-primary/20 hover:shadow-xl hover:shadow-brand-primary/30 hover:-translate-y-0.5 active:scale-[0.97]'
           }`}
         >
-          <ShoppingBag className="w-3.5 h-3.5" />
-          <span>{isOutOfStock ? 'Out of Stock' : 'Add to cart'}</span>
+          {!isOutOfStock && (
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out -z-10" />
+          )}
+          <ShoppingBag className={`w-3.5 h-3.5 transition-transform duration-300 ${!isOutOfStock && 'group-hover:scale-110'}`} />
+          <span>{isOutOfStock ? 'Sold Out' : 'Add to cart'}</span>
         </button>
       </div>
     </div>

@@ -238,27 +238,26 @@ export default function Home() {
       {!loading && dealOfTheWeek && (
         <section className="py-16 bg-white">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
-            <div className="bg-brand-navy rounded-[2rem] overflow-hidden flex flex-col md:flex-row items-center shadow-2xl border border-brand-gold/20">
+            <div className="bg-gradient-to-br from-pink-50 via-white to-[#fcf8f2] rounded-[2rem] overflow-hidden flex flex-col md:flex-row items-center shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-pink-100">
               <div className="w-full md:w-1/2 p-8 md:p-16 flex flex-col justify-center items-start relative z-10">
-                <span className="text-brand-primary bg-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[2px] mb-4 shadow-sm flex items-center gap-2">
+                <span className="text-brand-primary bg-pink-100 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[2px] mb-4 shadow-sm flex items-center gap-2">
                   <Clock className="w-3 h-3" /> Deal of the Week
                 </span>
-                <h2 className="text-3xl md:text-5xl text-white font-display mb-4 leading-tight">{dealOfTheWeek.name}</h2>
+                <h2 className="text-3xl md:text-5xl text-brand-navy font-display mb-4 leading-tight font-semibold">{dealOfTheWeek.name}</h2>
                 <div className="flex items-center gap-3 mb-6">
                   {dealOfTheWeek.on_sale && <span className="text-gray-400 line-through text-lg">৳{dealOfTheWeek.regular_price}</span>}
-                  <span className="text-3xl font-bold text-brand-gold">৳{dealOfTheWeek.price}</span>
+                  <span className="text-3xl font-bold text-brand-primary">৳{dealOfTheWeek.price}</span>
                 </div>
                 <div className="w-full mb-8">
-                  <div className="flex justify-between text-xs text-gray-300 mb-2"><span>Sold: 84%</span><span>Only 6 left!</span></div>
-                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden"><div className="bg-brand-primary h-full rounded-full" style={{ width: '84%' }}></div></div>
+                  <div className="flex justify-between text-xs text-gray-500 font-medium mb-2"><span>Sold: 84%</span><span>Only 6 left!</span></div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div className="bg-brand-primary h-full rounded-full" style={{ width: '84%' }}></div></div>
                 </div>
-                <Link to={`/product/${dealOfTheWeek.slug}`} className="inline-flex items-center gap-2 px-8 py-4 bg-brand-gold text-brand-navy rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors">
+                <Link to={`/product/${dealOfTheWeek.slug}`} className="inline-flex items-center gap-2 px-8 py-4 bg-brand-navy text-white rounded-full font-bold uppercase tracking-widest text-xs hover:bg-brand-primary hover:shadow-lg hover:shadow-brand-primary/30 transition-all">
                   Grab This Deal <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
-              <div className="w-full md:w-1/2 h-[300px] md:h-full relative bg-white">
-                <img src={dealOfTheWeek.thumbnail} alt={dealOfTheWeek.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-navy to-transparent opacity-50 md:hidden" />
+              <div className="w-full md:w-1/2 h-[300px] md:h-full relative bg-white overflow-hidden p-4 md:p-8">
+                <img src={dealOfTheWeek.thumbnail} alt={dealOfTheWeek.name} className="w-full h-full object-cover rounded-[1.5rem] shadow-sm" />
               </div>
             </div>
           </div>

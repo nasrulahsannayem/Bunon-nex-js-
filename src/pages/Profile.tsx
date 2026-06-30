@@ -190,7 +190,7 @@ export default function Profile() {
               </div>
 
               {/* Tab Content */}
-              <div className="p-8">
+              <div className="p-4 sm:p-8 bg-gray-50/50">
                 <AnimatePresence mode="wait">
                   {activeTab === 'orders' && (
                     <motion.div
@@ -198,10 +198,10 @@ export default function Profile() {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
+                      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4"
                     >
                       {orders.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-gray-200">
                           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                             <ShoppingBag className="w-10 h-10 text-gray-300" />
                           </div>
@@ -221,43 +221,46 @@ export default function Profile() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.05 }}
                             key={order.id} 
-                            className="group bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-brand-primary/20 transition-all duration-300"
+                            className="group bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-xl hover:shadow-brand-primary/5 hover:-translate-y-1 hover:border-brand-primary/30 transition-all duration-300 flex flex-col justify-between"
                           >
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                              <div className="flex items-start gap-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                                  order.status === 'completed' || order.status === 'shipped' ? 'bg-green-50 text-green-600' :
-                                  order.status === 'processing' ? 'bg-blue-50 text-blue-600' :
-                                  'bg-orange-50 text-orange-600'
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
+                                  order.status === 'completed' || order.status === 'shipped' ? 'bg-green-100 text-green-600' :
+                                  order.status === 'processing' ? 'bg-blue-100 text-blue-600' :
+                                  'bg-orange-100 text-orange-600'
                                 }`}>
-                                  {order.status === 'completed' || order.status === 'shipped' ? <Package className="w-6 h-6" /> :
-                                   order.status === 'processing' ? <Clock className="w-6 h-6" /> :
-                                   <Clock className="w-6 h-6" />}
+                                  {order.status === 'completed' || order.status === 'shipped' ? <ShieldCheck className="w-5 h-5" /> :
+                                   order.status === 'processing' ? <Package className="w-5 h-5" /> :
+                                   <Clock className="w-5 h-5" />}
                                 </div>
-                                
                                 <div>
-                                  <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                                    <span className="font-extrabold text-gray-900 text-lg">#{order.invoice || order.id}</span>
-                                    <span className={`text-[10px] px-2.5 py-1 rounded-md font-bold tracking-wide uppercase ${
-                                      order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                                      order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                                      order.status === 'completed' || order.status === 'shipped' ? 'bg-green-100 text-green-700' :
-                                      'bg-gray-100 text-gray-700'
-                                    }`}>
-                                      {order.status || 'PENDING'}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-500 font-medium">
-                                    {new Date(order.created_at).toLocaleDateString('en-US', {
-                                      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'
-                                    })}
-                                  </p>
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Order ID</p>
+                                  <h4 className="font-black text-gray-900 text-base leading-none">#{order.invoice || order.id}</h4>
                                 </div>
                               </div>
-                              
-                              <div className="text-left sm:text-right sm:border-l sm:border-gray-100 sm:pl-6">
-                                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Total Amount</p>
-                                <p className="font-black text-gray-900 text-xl group-hover:text-brand-primary transition-colors">
+                              <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold tracking-wide uppercase border ${
+                                order.status === 'pending' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                order.status === 'processing' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                order.status === 'completed' || order.status === 'shipped' ? 'bg-green-50 text-green-600 border-green-200' :
+                                'bg-gray-50 text-gray-600 border-gray-200'
+                              }`}>
+                                {order.status || 'PENDING'}
+                              </span>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-gray-50 flex items-end justify-between">
+                              <div>
+                                <p className="text-xs text-gray-400 font-medium mb-0.5">Placed On</p>
+                                <p className="text-sm text-gray-600 font-semibold">
+                                  {new Date(order.created_at).toLocaleDateString('en-US', {
+                                    month: 'short', day: 'numeric', year: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-400 font-medium mb-0.5">Total</p>
+                                <p className="font-black text-brand-primary text-lg leading-none">
                                   ৳{Number(order.amount).toLocaleString()}
                                 </p>
                               </div>
