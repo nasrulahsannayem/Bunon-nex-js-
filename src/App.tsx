@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState, Suspense, lazy } from 'react';
 import AppBanner from './components/AppBanner'; // 🚀 ব্যানার ইমপোর্ট করা হলো
 import Navbar from './components/layout/Navbar';
@@ -86,7 +86,9 @@ function AppContent() {
             <Route path="/privacy-policy" element={<Privacy />} />
             <Route path="/dmca" element={<DMCA />} />
             
-            {/* Admin Routes removed as requested */}          </Routes>
+            {/* Catch-all route to redirect missing pages to Home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </Suspense>
       </main>
 
