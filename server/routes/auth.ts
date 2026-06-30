@@ -258,4 +258,28 @@ router.get('/orders', verifyToken, async (req: any, res) => {
   }
 });
 
+// Public endpoint for order tracking by phone number
+router.get('/track-order', async (req: any, res) => {
+  try {
+    const phone = req.query.phone;
+    if (!phone) return res.status(400).json({ ok: false, msg: 'Phone number required' });
+    
+    import('../db').then(async ({ dbPool }) => {
+      try {
+        const [orders]: any = await dbPool.execute(
+          `SELECT id, invoice, created_at, status, total_payable as amount 
+           FROM bf_orders WHERE phone = ? ORDER BY created_at DESC LIMIT 1`,
+          [phone]
+        );
+        res.json({ ok: true, orders });
+      } catch (err) {
+        res.json({ ok: true, orders: [] });
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ ok: false, msg: 'Server error' });
+  }
+});
+
 export default router;
+

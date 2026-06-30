@@ -384,16 +384,16 @@ export default function Navbar() {
             exit={{ y: 50, opacity: 0 }}
             className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
-            <div className="flex items-center justify-between h-[65px] px-2 text-gray-500 relative pb-safe">
+            <div className="flex items-center justify-between h-[65px] px-4 text-gray-500 relative pb-safe rounded-full mx-4 mb-4 backdrop-blur-lg bg-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-white/60">
               
-              <Link to="/shop" className="flex flex-col items-center justify-center w-[20%] h-full transition-colors hover:text-brand-primary pt-1">
+              <Link to="/shop" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1">
                 <Store className={`w-5 h-5 mb-1 ${location.pathname === '/shop' ? 'text-brand-primary' : ''}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
                 <span className={`text-[10px] font-medium ${location.pathname === '/shop' ? 'text-brand-primary font-semibold' : ''}`}>Shop</span>
               </Link>
 
               <a 
                 href="tel:09611900606"
-                className="flex flex-col items-center justify-center w-[20%] h-full transition-colors hover:text-brand-primary pt-1"
+                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1"
               >
                 <PhoneCall className="w-5 h-5 mb-1" strokeWidth={2} />
                 <span className="text-[10px] font-medium">Call</span>
@@ -402,28 +402,22 @@ export default function Navbar() {
               <div className="w-[20%] flex justify-center relative">
                 <Link 
                   to="/" 
-                  className="absolute -top-6 flex items-center justify-center w-[54px] h-[54px] bg-brand-primary text-white rounded-full shadow-[0_8px_20px_rgba(209,34,41,0.4)] border-4 border-white transform transition-transform active:scale-95 z-50"
+                  className="absolute -top-5 flex items-center justify-center w-[54px] h-[54px] bg-gradient-to-r from-brand-primary to-pink-600 text-white rounded-full shadow-[0_8px_20px_rgba(209,34,41,0.4)] border-4 border-white transform transition-transform active:scale-95 z-50"
                 >
                   <HomeIcon className="w-6 h-6" fill="currentColor" />
                 </Link>
-                <span className="text-[10px] font-medium mt-[38px]">Home</span>
               </div>
 
-              <Link to="/wishlist" className="flex flex-col items-center justify-center w-[20%] h-full transition-colors hover:text-brand-primary pt-1">
+              <Link to="/track" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1">
                 <div className="relative mb-1">
-                  <Heart className={`w-5 h-5 ${location.pathname === '/wishlist' ? 'text-brand-primary' : ''}`} strokeWidth={location.pathname === '/wishlist' ? 2.5 : 2} />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-brand-primary text-white text-[9px] font-bold h-[16px] min-w-[16px] px-1 flex items-center justify-center rounded-full border border-white shadow-sm">
-                      {wishlistCount}
-                    </span>
-                  )}
+                  <Package className={`w-5 h-5 ${location.pathname === '/track' ? 'text-brand-primary' : ''}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
                 </div>
-                <span className={`text-[10px] font-medium ${location.pathname === '/wishlist' ? 'text-brand-primary font-semibold' : ''}`}>Wishlist</span>
+                <span className={`text-[10px] font-medium ${location.pathname === '/track' ? 'text-brand-primary font-semibold' : ''}`}>Track</span>
               </Link>
 
               <button 
                 onClick={() => setIsOpen(true)}
-                className="flex flex-col items-center justify-center w-[20%] h-full transition-colors hover:text-brand-primary pt-1"
+                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:text-brand-primary pt-1"
               >
                 <div className="relative mb-1">
                   <ShoppingCart className="w-5 h-5" strokeWidth={2} />

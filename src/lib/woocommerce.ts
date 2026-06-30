@@ -78,6 +78,9 @@ export interface Product {
   free_shipping?: boolean;
   categories: { name: string; slug: string }[];
   tags: string[];
+  attributes?: any[];
+  displayPrice?: string;
+  variations?: any[];
   menu_order: number;
   date_created: string;
   total_sales: number;

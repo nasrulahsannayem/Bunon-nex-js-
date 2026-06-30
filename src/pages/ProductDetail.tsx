@@ -45,7 +45,10 @@ export default function ProductDetail() {
         }
         
         const catSlug = p.categories[0]?.slug || 'All';
-        const allProds = await getProducts(catSlug);
+        let allProds = await getProducts(catSlug);
+        if (allProds.length <= 1) {
+          allProds = await getProducts('All');
+        }
         setRelatedProducts(allProds.filter(prod => prod.id !== p.id).slice(0, 4));
       }
       setLoading(false);
@@ -55,7 +58,7 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addItem(product, selectedVariation, 1);
+    addItem(product, selectedVariation);
     trackPixel('AddToCart', {
       content_name: product.name,
       content_category: product.categories[0]?.name,
@@ -108,7 +111,7 @@ export default function ProductDetail() {
 
   const handleBuyNow = () => {
     if (!product) return;
-    buyNow(product, selectedVariation, 1);
+    buyNow(product, selectedVariation);
     trackPixel('InitiateCheckout', {
       content_name: product.name,
       value: Number(selectedVariation?.price || product.price),

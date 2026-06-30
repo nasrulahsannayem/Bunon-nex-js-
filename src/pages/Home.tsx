@@ -146,7 +146,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative w-full h-[75vh] min-h-[500px] bg-black flex items-center justify-center text-center overflow-hidden">
-        <img src="/assets/images/Bestselling-Saree-banner-1pc.jpg" className="absolute inset-0 w-full h-full object-cover opacity-85 hidden md:block" alt="Bunon Luxury Saree" fetchpriority="high" />
+        <img src="/assets/images/Bestselling-Saree-banner-1pc.jpg" className="absolute inset-0 w-full h-full object-cover opacity-85 hidden md:block" alt="Bunon Luxury Saree" fetchPriority="high" />
         <video className="absolute inset-0 w-full h-full object-cover opacity-85 md:hidden pointer-events-none" autoPlay loop muted playsInline poster="/image/Bestselling-Saree-banner-1-mobie-768x912.jpg">
           <source src="/assets/videos/snaptik_7543269370093456658_v3-1.mp4" type="video/mp4" />
         </video>

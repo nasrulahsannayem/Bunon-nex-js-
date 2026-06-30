@@ -24,6 +24,7 @@ const DMCA = lazy(() => import('./pages/DMCA'));
 const Wishlist = lazy(() => import('./pages/Wishlist'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
+const TrackOrder = lazy(() => import('./pages/TrackOrder'));
 
 // Admin Pages removed as requested
 
@@ -82,6 +83,7 @@ function AppContent() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-received" element={<OrderReceived />} />
+            <Route path="/track" element={<TrackOrder />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
