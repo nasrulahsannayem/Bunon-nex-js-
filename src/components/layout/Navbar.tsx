@@ -377,7 +377,7 @@ export default function Navbar() {
 
       {/* 🚀 Modern Professional Mobile Bottom Navigation */}
       <AnimatePresence>
-        {!location.pathname.startsWith('/checkout') && (
+        {!location.pathname.startsWith('/checkout') && !location.pathname.startsWith('/product/') && (
           <motion.div 
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

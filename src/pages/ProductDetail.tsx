@@ -187,7 +187,7 @@ export default function ProductDetail() {
   const isOutOfStock = product.stock_status === 'outofstock';
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-6 sm:pt-10 pb-16 sm:pb-32">
+    <div className="min-h-screen bg-gray-50 pt-6 sm:pt-10 pb-24 sm:pb-32">
       
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -385,8 +385,35 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
-        
       </div>
+
+      {/* 🚀 Mobile Sticky Bottom Action Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex items-center justify-between z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="flex flex-col">
+          {isSale ? (
+            <>
+              <span className="text-lg font-bold text-brand-primary leading-none">৳{priceNum.toLocaleString()}</span>
+              <span className="text-xs text-gray-400 line-through mt-0.5">৳{regularNum.toLocaleString()}</span>
+            </>
+          ) : (
+            <span className="text-lg font-bold text-brand-primary leading-none">৳{priceNum.toLocaleString()}</span>
+          )}
+        </div>
+        
+        {!isOutOfStock ? (
+          <button 
+            onClick={handleBuyNow}
+            className="flex-1 ml-4 h-11 flex items-center justify-center gap-2 rounded-xl bg-brand-primary text-white text-sm font-bold uppercase tracking-wider shadow-md shadow-brand-primary/20 hover:brightness-110 active:scale-95 transition-all"
+          >
+            <Zap className="w-4 h-4 fill-current" /> Order Now
+          </button>
+        ) : (
+          <div className="flex-1 ml-4 h-11 flex items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold uppercase tracking-wider">
+            Out of Stock
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
