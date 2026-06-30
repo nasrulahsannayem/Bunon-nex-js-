@@ -379,43 +379,49 @@ export default function Navbar() {
       <AnimatePresence>
         {!location.pathname.startsWith('/checkout') && !location.pathname.startsWith('/product/') && (
           <motion.div 
-            initial={{ y: 50, opacity: 0 }}
+            initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 50, opacity: 0 }}
-            className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="md:hidden fixed bottom-6 left-0 right-0 z-40 px-4"
           >
-            <div className="flex items-center justify-between h-[70px] px-2 md:px-4 text-gray-500 relative pb-safe rounded-[30px] mx-4 mb-4 bg-white/70 backdrop-blur-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.4)_inset] border border-white/50">
+            <div className="flex items-center justify-between h-[72px] px-2 relative rounded-[2rem] bg-white/70 dark:bg-black/40 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.5)_inset] border border-white/40">
               
-              <Link to="/shop" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
-                <Store className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/shop' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
-                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/shop' ? 'text-brand-primary' : ''}`}>Shop</span>
+              <Link to="/shop" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
+                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/shop' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
+                  <Store className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/shop' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/shop' ? 2.5 : 2} />
+                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/shop' ? 'text-brand-primary' : 'text-gray-500'}`}>Shop</span>
+                </div>
               </Link>
 
-              <a 
-                href="tel:09611900606"
-                className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1"
-              >
-                <PhoneCall className="w-[22px] h-[22px] mb-1 drop-shadow-sm" strokeWidth={2} />
-                <span className="text-[9px] uppercase tracking-wider font-bold">Call</span>
+              <a href="tel:09611900606" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
+                <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 hover:bg-gray-100/50">
+                  <PhoneCall className="w-5 h-5 mb-0.5 text-gray-500 group-hover:text-brand-primary transition-colors duration-300" strokeWidth={2} />
+                  <span className="text-[10px] font-bold tracking-wide text-gray-500 group-hover:text-brand-primary transition-colors duration-300">Call</span>
+                </div>
               </a>
 
-              <div className="w-[20%] flex justify-center relative">
+              <div className="w-1/5 flex justify-center relative z-20">
                 <Link 
                   to="/" 
-                  className="absolute -top-7 flex items-center justify-center w-[60px] h-[60px] bg-gradient-to-tr from-brand-primary via-[#e60023] to-[#ff4d6d] text-white rounded-full shadow-[0_15px_30px_-5px_rgba(230,0,35,0.6),0_0_0_4px_rgba(255,255,255,0.9)] transform transition-all hover:scale-110 active:scale-95 z-50 group"
+                  className="absolute -top-6 flex items-center justify-center w-[64px] h-[64px] bg-gradient-to-tr from-brand-primary via-[#ff2a55] to-[#ff4d6d] text-white rounded-full shadow-[0_12px_24px_-6px_rgba(230,0,35,0.6),0_0_0_6px_rgba(255,255,255,0.8)] transform transition-transform duration-300 hover:scale-105 active:scale-95"
                 >
-                  <HomeIcon className="w-7 h-7 drop-shadow-lg group-hover:animate-pulse" fill="currentColor" />
+                  <HomeIcon className="w-7 h-7 drop-shadow-md" fill="currentColor" strokeWidth={1} />
                 </Link>
               </div>
 
-              <Link to="/track" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
-                <Package className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/track' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
-                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/track' ? 'text-brand-primary' : ''}`}>Track</span>
+              <Link to="/track" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
+                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/track' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
+                  <Package className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/track' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/track' ? 2.5 : 2} />
+                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/track' ? 'text-brand-primary' : 'text-gray-500'}`}>Track</span>
+                </div>
               </Link>
 
-              <Link to="/profile" className="flex flex-col items-center justify-center w-[20%] h-full transition-all hover:-translate-y-1 hover:text-brand-primary pt-1">
-                <User className={`w-[22px] h-[22px] mb-1 ${location.pathname === '/profile' ? 'text-brand-primary drop-shadow-md' : 'drop-shadow-sm'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
-                <span className={`text-[9px] uppercase tracking-wider font-bold ${location.pathname === '/profile' ? 'text-brand-primary' : ''}`}>Profile</span>
+              <Link to="/profile" className="relative flex flex-col items-center justify-center w-1/5 h-full z-10 group">
+                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 ${location.pathname === '/profile' ? 'bg-brand-primary/10 scale-110 shadow-sm' : 'hover:bg-gray-100/50'}`}>
+                  <User className={`w-5 h-5 mb-0.5 transition-colors duration-300 ${location.pathname === '/profile' ? 'text-brand-primary' : 'text-gray-500'}`} strokeWidth={location.pathname === '/profile' ? 2.5 : 2} />
+                  <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${location.pathname === '/profile' ? 'text-brand-primary' : 'text-gray-500'}`}>Profile</span>
+                </div>
               </Link>
 
             </div>
