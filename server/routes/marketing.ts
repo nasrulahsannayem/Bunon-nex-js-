@@ -87,7 +87,7 @@ router.get("/test-marketing-emails", async (req, res) => {
       [
         { id: 101, name: "Traditional Silk Saree", price: 2450, quantity: 1, thumbnail: "/assets/images/saree.jpg" }
       ],
-      15 // 15% discount coupon
+      150 // 150 BDT discount coupon
     );
 
     // 3. Send Daily Newsletter Test

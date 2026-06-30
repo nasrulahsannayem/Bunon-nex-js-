@@ -34,10 +34,6 @@ export async function processCartRecoveryCampaign() {
         continue;
       }
 
-      // Generate a dynamic discount between 5% and 20%
-      const nextAttempt = job.attempts + 1;
-      const discountPercent = 5 + (nextAttempt * 5); // 1st try = 10%, 2nd = 15%, 3rd = 20%
-      
       let cartItems = [];
       try {
         cartItems = JSON.parse(job.cart_data || '[]');
@@ -48,15 +44,24 @@ export async function processCartRecoveryCampaign() {
         continue;
       }
 
+      // Calculate dynamic discount up to 150 BDT based on cart total and attempt
+      const nextAttempt = job.attempts + 1;
+      const discountPercent = 5 + (nextAttempt * 5); // 10%, 15%, 20%
+      const cartTotal = cartItems.reduce((sum: number, item: any) => sum + (Number(item.price) * Number(item.quantity)), 0);
+      
+      let calculatedDiscount = Math.floor((cartTotal * discountPercent / 100) / 10) * 10;
+      if (calculatedDiscount < 10) calculatedDiscount = 10;
+      const discountAmount = Math.min(calculatedDiscount, 150);
+
       // Send recovery email
-      await sendCartRecoveryEmail(job.email, job.phone, job.customer_name, cartItems, discountPercent);
+      await sendCartRecoveryEmail(job.email, job.phone, job.customer_name, cartItems, discountAmount);
 
       // Update queue job state
       await productDbPool.execute(`
         UPDATE wc_cart_recovery_queue 
         SET attempts = ?, last_attempt_at = NOW(), discount_offered = ?
         WHERE id = ?
-      `, [nextAttempt, discountPercent, job.id]);
+      `, [nextAttempt, discountAmount, job.id]);
     }
   } catch (err: any) {
     console.error("[Recovery] Cron job execution failed:", err.message);

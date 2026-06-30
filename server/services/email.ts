@@ -199,7 +199,7 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
 /**
  * Sends recovery email with dynamic discount coupons (5% to 20%)
  */
-export async function sendCartRecoveryEmail(email: string, phone: string, name: string, cartItems: any[], discountPercent: number) {
+export async function sendCartRecoveryEmail(email: string, phone: string, name: string, cartItems: any[], discountAmount: number) {
   if (email && email.endsWith('@bunon.shop')) {
     console.log(`[Email] Skip recovery mail for ${email} because it is a placeholder.`);
     return;
@@ -213,7 +213,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
     }
 
     const firstProduct = cartItems[0];
-    const generatedCoupon = `RECOVER${discountPercent}`;
+    const generatedCoupon = `RECOVER${discountAmount}`;
 
     // Construct checkout restoration query parameters
     const cartParam = encodeURIComponent(JSON.stringify(cartItems.map(item => ({
@@ -248,7 +248,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
         ${cartItems.length > 3 ? `<p style="font-size: 12px; color: #9ca3af;">এবং আরও ${cartItems.length - 3}টি আইটেম...</p>` : ''}
       </div>
       
-      <p>আপনাকে সাহায্য করতে বুনন ফেব্রিক্স দিচ্ছে <strong>ফ্ল্যাট ${discountPercent}% ডিসকাউন্ট কুপন!</strong> অফারটি সীমিত সময়ের জন্য প্রযোজ্য।</p>
+      <p>আপনাকে সাহায্য করতে বুনন ফেব্রিক্স দিচ্ছে <strong>ফ্ল্যাট ৳${discountAmount} ডিসকাউন্ট কুপন!</strong> অফারটি সীমিত সময়ের জন্য প্রযোজ্য।</p>
       
       <div style="background: #fff5f8; border: 1.5px dashed #e2136e; padding: 20px; border-radius: 12px; text-align: center; margin: 25px 0;">
         <span style="font-size: 13px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">আপনার বিশেষ ডিসকাউন্ট কোড</span>
@@ -263,12 +263,12 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
       <p style="font-size: 13px; color: #6b7280; margin-top: 20px;">* এই লিঙ্কটিতে ক্লিক করলে আপনার পছন্দের কার্ট আইটেমগুলো কুপনসহ সরাসরি রিকভার হবে।</p>
     `;
 
-    const html = wrapHtmlBody(`আপনার জন্য ${discountPercent}% বিশেষ ডিসকাউন্ট অফার!`, bodyContent, email);
+    const html = wrapHtmlBody(`আপনার জন্য ৳${discountAmount} বিশেষ ডিসকাউন্ট অফার!`, bodyContent, email);
 
     await mailTransporter.sendMail({
       from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
       to: email,
-      subject: `বুনন ফেব্রিক্স: আপনার জন্য বিশেষ ${discountPercent}% ডিসকাউন্ট উপহার! 🎁`,
+      subject: `বুনন ফেব্রিক্স: আপনার জন্য বিশেষ ৳${discountAmount} ডিসকাউন্ট উপহার! 🎁`,
       html: html,
       text: `আসসালামু আলাইকুম ${name}, আপনার শপিং কার্টের আইটেমগুলো নিয়ে অফারে সহজে অর্ডার সম্পন্ন করুন। কুপন কোড: ${generatedCoupon}`,
       headers: {
@@ -276,7 +276,7 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
       }
     });
 
-    console.log(`[Email] Recovery email sent successfully to ${email} with ${discountPercent}% discount`);
+    console.log(`[Email] Recovery email sent successfully to ${email} with ৳${discountAmount} discount`);
   } catch (err: any) {
     console.error('[Email] Failed to send cart recovery email:', err.message);
   }
