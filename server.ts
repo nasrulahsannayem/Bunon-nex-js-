@@ -140,3 +140,5 @@ async function startServer() {
 }
 
 startServer();
+
+// Auto-deploy trigger timestamp: 2026-07-02T09:40:00+06:00
