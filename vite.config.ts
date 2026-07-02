@@ -8,7 +8,18 @@ import browserslist from 'browserslist';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(), 
+      tailwindcss(),
+      {
+        name: 'html-transform',
+        transformIndexHtml(html) {
+          return html.replace(/%VITE_(\w+)%/g, (match, key) => {
+            return env[`VITE_${key}`] || '';
+          });
+        }
+      }
+    ],
     css: {
       transformer: 'lightningcss',
       lightningcss: {
