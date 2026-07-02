@@ -130,6 +130,12 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running successfully on port ${PORT} via High-Performance Unix Socket Grid!`);
+    // Trigger dynamic product campaign notification instantly on boot/restart
+    import("./server/services/notification").then(({ sendDailyPushCampaign }) => {
+      setTimeout(() => {
+        sendDailyPushCampaign().catch(() => {});
+      }, 5000);
+    });
   });
 }
 
