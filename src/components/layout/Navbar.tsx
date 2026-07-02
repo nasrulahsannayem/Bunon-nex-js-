@@ -415,18 +415,13 @@ export default function Navbar() {
                     <span className="text-xs font-medium leading-none">Cart</span>
                   </span>
                 </button>
-                {/* Wishlist */}
-                <Link to="/wishlist" className="h-full w-full">
-                  <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/wishlist' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
+                {/* Shop */}
+                <Link to="/shop" className="h-full w-full">
+                  <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/shop' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
                     <span className="relative">
-                      <Heart className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
-                      {wishlistItems.length > 0 && (
-                        <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-bold bg-brand-primary text-white">
-                          {wishlistItems.length}
-                        </span>
-                      )}
+                      <Store className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
                     </span>
-                    <span className="text-xs font-medium leading-none">Wishlist</span>
+                    <span className="text-xs font-medium leading-none">Shop</span>
                   </span>
                 </Link>
                 {/* Profile */}

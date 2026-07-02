@@ -293,5 +293,23 @@ router.get('/track-order', async (req: any, res) => {
   }
 });
 
+// Device token registration API
+router.post('/device-token', async (req: any, res) => {
+  try {
+    const { token, platform } = req.body;
+    if (!token) return res.status(400).json({ ok: false, msg: 'Token is required' });
+
+    const { dbPool } = await import('../db');
+    await dbPool.execute(
+      'INSERT INTO bf_device_tokens (token, platform) VALUES (?, ?) ON DUPLICATE KEY UPDATE platform = VALUES(platform)',
+      [token, platform || 'web']
+    );
+    res.json({ ok: true, msg: 'Device token registered successfully' });
+  } catch (err: any) {
+    console.error('Token registration error:', err.message);
+    res.status(500).json({ ok: false, msg: err.message });
+  }
+});
+
 export default router;
 

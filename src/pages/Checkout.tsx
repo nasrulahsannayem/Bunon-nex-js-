@@ -107,10 +107,11 @@ export default function Checkout() {
       if (promoCoupon) {
         setCouponCode(promoCoupon);
         // Automatically verify/apply coupon
+        const isRecover = promoCoupon.startsWith('RECOVER');
         setAppliedCoupon({
           code: promoCoupon,
-          amount: promoCoupon.startsWith('RECOVER') ? Number(promoCoupon.replace('RECOVER', '')) : 10,
-          type: 'percent',
+          amount: isRecover ? Number(promoCoupon.replace('RECOVER', '')) : 10,
+          type: isRecover ? 'fixed_cart' : 'percent',
           isOnlineOnly: false
         });
         setCouponMessage({ text: 'রিকভারি ডিসকাউন্ট কুপন যুক্ত হয়েছে!', type: 'success' });

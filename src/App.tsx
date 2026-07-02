@@ -5,6 +5,8 @@ import Navbar from './components/layout/Navbar';
 import ScrollToTop from './components/layout/ScrollToTop';
 import Footer from './components/layout/Footer';
 import { getProducts, Product } from './lib/woocommerce';
+import SocialProofNotifications from './components/marketing/SocialProofNotifications';
+import PushSubscriptionPrompt from './components/marketing/PushSubscriptionPrompt';
 
 
 
@@ -101,6 +103,8 @@ function AppContent() {
       </main>
 
       {!hideLayout && <Footer />}
+      {!hideLayout && <SocialProofNotifications />}
+      {!hideLayout && <PushSubscriptionPrompt />}
       {/* Newsletter popup removed as requested */}
     </div>
   );

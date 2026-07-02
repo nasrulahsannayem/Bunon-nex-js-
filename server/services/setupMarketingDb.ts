@@ -50,6 +50,16 @@ export async function setupMarketingTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 4. bf_device_tokens table for push notifications
+    await dbPool.execute(`
+      CREATE TABLE IF NOT EXISTS bf_device_tokens (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          token VARCHAR(500) NOT NULL UNIQUE,
+          platform VARCHAR(50) DEFAULT 'web',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Schema Updates (Migrations)
     try {
       await productDbPool.execute(`ALTER TABLE bunon_users MODIFY COLUMN role ENUM('customer', 'staff', 'admin', 'super_admin') DEFAULT 'customer'`);
