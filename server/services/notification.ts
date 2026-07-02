@@ -29,7 +29,7 @@ async function getGoogleAccessToken(serviceAccount: ServiceAccount): Promise<str
     const signature = crypto.sign(
       'RSA-SHA256',
       Buffer.from(signInput),
-      serviceAccount.private_key
+      serviceAccount.private_key.replace(/\\n/g, '\n')
     ).toString('base64url');
     
     const jwt = `${signInput}.${signature}`;
