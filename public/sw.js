@@ -22,6 +22,7 @@ messaging.onBackgroundMessage((payload) => {
   const options = {
     body: payload.notification?.body || payload.data?.body || 'আপনার জন্য নতুন ডিসকাউন্ট অফার!',
     icon: payload.notification?.icon || payload.data?.icon || '/image/faveicon.png',
+    image: payload.notification?.image || payload.data?.image || '',
     badge: '/image/faveicon.png',
     data: payload.data,
     vibrate: [200, 100, 200]

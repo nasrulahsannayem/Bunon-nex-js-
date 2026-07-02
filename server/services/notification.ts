@@ -126,7 +126,16 @@ export async function sendPushNotification(title: string, body: string, payload:
           body: JSON.stringify({
             message: {
               token,
-              notification: { title, body },
+              notification: { 
+                title, 
+                body,
+                image: formattedData['image'] || undefined
+              },
+              webpush: {
+                notification: {
+                  image: formattedData['image'] || undefined
+                }
+              },
               data: formattedData
             }
           })
@@ -155,8 +164,15 @@ export async function sendDailyPushCampaign() {
       return;
     }
     
+    // Filter only in-stock products
+    const inStockProducts = products.filter(p => p.stock_status !== 'outofstock' && p.stock_status !== 'out_of_stock');
+    if (!inStockProducts || inStockProducts.length === 0) {
+      console.log('[Push Campaign] No in-stock products found to promote.');
+      return;
+    }
+    
     // Prioritize discount products
-    const discountProducts = products.filter(p => {
+    const discountProducts = inStockProducts.filter(p => {
       const reg = Number(p.regular_price) || 0;
       const sale = Number(p.price) || 0;
       return sale > 0 && reg > sale;
@@ -164,7 +180,7 @@ export async function sendDailyPushCampaign() {
     
     const targetProduct = discountProducts.length > 0
       ? discountProducts[Math.floor(Math.random() * discountProducts.length)]
-      : products[Math.floor(Math.random() * products.length)];
+      : inStockProducts[Math.floor(Math.random() * inStockProducts.length)];
       
     const cleanPrice = (priceStr: string) => Number(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
     const salePrice = cleanPrice(targetProduct.price);
@@ -179,9 +195,14 @@ export async function sendDailyPushCampaign() {
       body = `"${targetProduct.name}"-এ ৳${discountAmt} বিশেষ ছাড়! আজকের অফার মূল্য মাত্র ৳${salePrice}`;
     }
     
+    let imageUrl = targetProduct.images?.[0]?.src || '';
+    if (imageUrl && imageUrl.startsWith('/')) {
+      imageUrl = `https://bunon.shop${imageUrl}`;
+    }
+    
     await sendPushNotification(title, body, {
       productId: targetProduct.id,
-      image: targetProduct.images?.[0]?.src || '',
+      image: imageUrl,
       url: `/product/${targetProduct.id}`
     });
     
