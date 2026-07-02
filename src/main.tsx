@@ -28,3 +28,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Register Service Worker for push notifications on PC and Mobile browsers
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[Service Worker] Registered successfully:', reg.scope))
+      .catch(err => console.error('[Service Worker] Registration failed:', err));
+  });
+}
