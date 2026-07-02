@@ -17,11 +17,83 @@ const loadScript = (src: string): Promise<void> => {
   });
 };
 
+const registerDevicePushToken = async () => {
+  try {
+    localStorage.setItem('bunon_push_subscribed', 'true');
+    let deviceToken = localStorage.getItem('bunon_device_token');
+    
+    try {
+      // Load Firebase Compat CDN scripts dynamically
+      await loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+      
+      const firebase = (window as any).firebase;
+      if (firebase) {
+        let fcmApp;
+        if (firebase.apps.length > 0) {
+          fcmApp = firebase.apps[0];
+        } else {
+          fcmApp = firebase.initializeApp({
+            apiKey: "AIzaSyCBoR-xYiuPSIw8PQu_kN52D7rLL5PCG5A",
+            authDomain: "nupur-ai-engine-480322.firebaseapp.com",
+            projectId: "nupur-ai-engine-480322",
+            storageBucket: "nupur-ai-engine-480322.firebasestorage.app",
+            messagingSenderId: "1046784973762",
+            appId: "1:1046784973762:web:084c3979b8216a171ed45b"
+          });
+        }
+        
+        const messaging = fcmApp.messaging();
+        
+        // Register FCM Service Worker explicitly to match path
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        
+        // Get FCM Token using Web Push VAPID key
+        const fcmToken = await messaging.getToken({
+          serviceWorkerRegistration: reg,
+          vapidKey: 'BOmUE2O3sEUlEclkS33cKCPt4feUG1O-A6jvB16gckshZn_cis1eove_-MwDlbpe6po9sBf_Nba1vWsdz4v_zFg'
+        });
+        
+        if (fcmToken) {
+          deviceToken = fcmToken;
+          localStorage.setItem('bunon_device_token', fcmToken);
+          console.log('FCM Token registered successfully:', fcmToken);
+        }
+      }
+    } catch (fcmErr) {
+      console.warn('FCM token retrieval failed, falling back to local ID:', fcmErr);
+    }
+
+    if (!deviceToken) {
+      deviceToken = 'web_push_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('bunon_device_token', deviceToken);
+    }
+
+    // Post the token to the server
+    await fetch('/api/auth/device-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: deviceToken, platform: 'web' })
+    });
+
+    return deviceToken;
+  } catch (error) {
+    console.error('Error in registerDevicePushToken:', error);
+    return null;
+  }
+};
+
 export default function PushSubscriptionPrompt() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
+    // If native notification permission is already granted, register in the background
+    if ('Notification' in window && Notification.permission === 'granted') {
+      registerDevicePushToken();
+      return;
+    }
+
     // Check if user already subscribed, permanently denied, or recently dismissed
     const isSubscribed = localStorage.getItem('bunon_push_subscribed');
     const dismissedTime = localStorage.getItem('bunon_push_dismissed_time');
@@ -56,72 +128,17 @@ export default function PushSubscriptionPrompt() {
       const permission = await Notification.requestPermission();
       
       if (permission === 'granted') {
-        localStorage.setItem('bunon_push_subscribed', 'true');
-        
-        let deviceToken = localStorage.getItem('bunon_device_token');
-        
-        try {
-          // Load Firebase Compat CDN scripts dynamically
-          await loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
-          await loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
-          
-          const firebase = (window as any).firebase;
-          if (firebase) {
-            let fcmApp;
-            if (firebase.apps.length > 0) {
-              fcmApp = firebase.apps[0];
-            } else {
-              fcmApp = firebase.initializeApp({
-                apiKey: "AIzaSyCBoR-xYiuPSIw8PQu_kN52D7rLL5PCG5A",
-                authDomain: "nupur-ai-engine-480322.firebaseapp.com",
-                projectId: "nupur-ai-engine-480322",
-                storageBucket: "nupur-ai-engine-480322.firebasestorage.app",
-                messagingSenderId: "1046784973762",
-                appId: "1:1046784973762:web:084c3979b8216a171ed45b"
-              });
-            }
-            
-            const messaging = fcmApp.messaging();
-            
-            // Register FCM Service Worker explicitly to match path
-            const reg = await navigator.serviceWorker.register('/sw.js');
-            
-            // Get FCM Token using Web Push VAPID key
-            const fcmToken = await messaging.getToken({
-              serviceWorkerRegistration: reg,
-              vapidKey: 'BOmUE2O3sEUlEclkS33cKCPt4feUG1O-A6jvB16gckshZn_cis1eove_-MwDlbpe6po9sBf_Nba1vWsdz4v_zFg'
+        const token = await registerDevicePushToken();
+        if (token) {
+          // Trigger a native welcome notification
+          try {
+            new Notification('বুনন ফেব্রিক্স', {
+              body: '🎉 স্বাগতম! সফলভাবে নোটিফিকেশন সাবস্ক্রাইব করা হয়েছে। নতুন অফারগুলো সবার আগে পাবেন!',
+              icon: '/placeholder.png'
             });
-            
-            if (fcmToken) {
-              deviceToken = fcmToken;
-              localStorage.setItem('bunon_device_token', fcmToken);
-              console.log('FCM Token registered successfully:', fcmToken);
-            }
+          } catch (e) {
+            console.log('Native notification alert fallback');
           }
-        } catch (fcmErr) {
-          console.warn('FCM token retrieval failed, falling back to local ID:', fcmErr);
-        }
-
-        if (!deviceToken) {
-          deviceToken = 'web_push_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-          localStorage.setItem('bunon_device_token', deviceToken);
-        }
-
-        // Post the token to the server
-        await fetch('/api/auth/device-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: deviceToken, platform: 'web' })
-        });
-
-        // Trigger a native welcome notification
-        try {
-          new Notification('বুনন ফেব্রিক্স', {
-            body: '🎉 স্বাগতম! সফলভাবে নোটিফিকেশন সাবস্ক্রাইব করা হয়েছে। নতুন অফারগুলো সবার আগে পাবেন!',
-            icon: '/placeholder.png'
-          });
-        } catch (e) {
-          console.log('Native notification alert fallback');
         }
       } else {
         localStorage.setItem('bunon_push_dismissed_time', Date.now().toString());
