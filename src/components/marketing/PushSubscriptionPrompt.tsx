@@ -57,11 +57,10 @@ const registerDevicePushToken = async () => {
         if (fcmToken) {
           deviceToken = fcmToken;
           localStorage.setItem('bunon_device_token', fcmToken);
-          console.log('FCM Token registered successfully:', fcmToken);
         }
       }
     } catch (fcmErr) {
-      console.warn('FCM token retrieval failed, falling back to local ID:', fcmErr);
+      // Silently fall back to local ID
     }
 
     if (!deviceToken) {
@@ -78,7 +77,6 @@ const registerDevicePushToken = async () => {
 
     return deviceToken;
   } catch (error) {
-    console.error('Error in registerDevicePushToken:', error);
     return null;
   }
 };
@@ -147,14 +145,14 @@ export default function PushSubscriptionPrompt() {
               icon: '/placeholder.png'
             });
           } catch (e) {
-            console.log('Native notification alert fallback');
+            // Silently swallow native notification errors
           }
         }
       } else {
         localStorage.setItem('bunon_push_dismissed_time', Date.now().toString());
       }
     } catch (error) {
-      console.error('Error subscribing to push notifications:', error);
+      // Silently swallow permission error logs
     }
   };
 
