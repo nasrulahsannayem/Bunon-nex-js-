@@ -110,9 +110,9 @@ export default function PushSubscriptionPrompt() {
       if (hoursPassed < 24) return;
     }
 
-    // Trigger conditions: 12 seconds wait OR on Order Success page immediately
+    // Trigger conditions: 3 seconds wait OR on Order Success page immediately
     const isOrderSuccessPage = location.pathname === '/order-received';
-    const delay = isOrderSuccessPage ? 2000 : 12000;
+    const delay = isOrderSuccessPage ? 1000 : 3000;
 
     const timer = setTimeout(() => {
       setIsOpen(true);
