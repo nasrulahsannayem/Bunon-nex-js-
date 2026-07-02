@@ -29,6 +29,7 @@ import sitemapRoute from "./server/routes/sitemap";
 import { setupMarketingTables } from "./server/services/setupMarketingDb";
 import { processCartRecoveryCampaign } from "./server/services/recoveryCron";
 import { sendDailyNewsletter } from "./server/services/email";
+import { sendDailyPushCampaign } from "./server/services/notification";
 
 async function startServer() {
   const app = express();
@@ -71,6 +72,13 @@ async function startServer() {
       sendDailyNewsletter();
     }, {
       timezone: "Asia/Dhaka" // Local time in BD
+    });
+
+    // 📩 Run Daily dynamic push retargeting campaign 4 times a day (every 6 hours)
+    cron.default.schedule('0 */6 * * *', () => {
+      sendDailyPushCampaign();
+    }, {
+      timezone: "Asia/Dhaka"
     });
   });
 
