@@ -85,9 +85,14 @@ const registerDevicePushToken = async () => {
 
 export default function PushSubscriptionPrompt() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
+    // Detect if device is iOS (iPhone/iPad/iPod)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOSDevice(isIOS);
+
     // If native notification permission is already granted, register in the background
     if ('Notification' in window && Notification.permission === 'granted') {
       registerDevicePushToken();
@@ -120,7 +125,12 @@ export default function PushSubscriptionPrompt() {
     setIsOpen(false);
     
     if (!('Notification' in window)) {
-      alert('আপনার ব্রাউজারটি পুশ নোটিফিকেশন সাপোর্ট করে না।');
+      // If iOS, they must add to Home Screen first
+      if (isIOSDevice) {
+        alert('iOS ডিভাইসে পুশ নোটিফিকেশন পেতে বুনন ফেব্রিক্স-কে হোম স্ক্রিনে যুক্ত করুন। (নিচের Share আইকনে ক্লিক করে Add to Home Screen সিলেক্ট করুন)');
+      } else {
+        alert('আপনার ব্রাউজারটি পুশ নোটিফিকেশন সাপোর্ট করে না। গুগল ক্রোম বা সাফারি আপডেট করুন।');
+      }
       return;
     }
 
@@ -153,6 +163,8 @@ export default function PushSubscriptionPrompt() {
     localStorage.setItem('bunon_push_dismissed_time', Date.now().toString());
   };
 
+  const showIOSGuide = isIOSDevice && !('Notification' in window);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -161,7 +173,7 @@ export default function PushSubscriptionPrompt() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 40, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-          className="fixed bottom-6 right-4 md:right-6 z-[150] max-w-sm w-[92%] md:w-[380px] bg-white/95 backdrop-blur-xl border border-pink-100/50 shadow-[0_20px_50px_rgba(226,19,110,0.15)] rounded-2xl overflow-hidden p-6 relative"
+          className="fixed bottom-[88px] md:bottom-6 right-4 md:right-6 z-[150] max-w-sm w-[92%] md:w-[380px] bg-white/95 backdrop-blur-xl border border-pink-100/50 shadow-[0_20px_50px_rgba(226,19,110,0.15)] rounded-2xl overflow-hidden p-6 relative"
         >
           {/* Subtle Pink/Purple background glow */}
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
@@ -182,30 +194,51 @@ export default function PushSubscriptionPrompt() {
             </div>
             <div>
               <span className="text-[10px] text-brand-primary font-bold uppercase tracking-widest font-sans">Bunon Privilege</span>
-              <h3 className="text-base font-bold text-gray-900 leading-tight mt-0.5 font-display">নোটিফিকেশন অন করুন ⚡</h3>
+              <h3 className="text-base font-bold text-gray-900 leading-tight mt-0.5 font-display">
+                {showIOSGuide ? 'হোম স্ক্রিনে যুক্ত করুন 📱' : 'নোটিফিকেশন অন করুন ⚡'}
+              </h3>
             </div>
           </div>
 
           {/* Description */}
           <p className="text-xs text-gray-600 mt-4 leading-relaxed font-semibold font-sans">
-            বুনন ফেব্রিক্স-এর লিমিটেড স্টক আপডেট, ফ্ল্যাশ সেল অফার এবং বিশেষ ডিসকাউন্ট কোডগুলো সবার আগে পেতে নোটিফিকেশনটি চালু রাখুন!
+            {showIOSGuide 
+              ? 'iOS ডিভাইসে সরাসরি অফার নোটিফিকেশন পেতে বুনন ফেব্রিক্স-কে হোম স্ক্রিনে যুক্ত করুন:' 
+              : 'বুনন ফেব্রিক্স-এর লিমিটেড স্টক আপডেট, ফ্ল্যাশ সেল অফার এবং বিশেষ ডিসকাউন্ট কোডগুলো সবার আগে পেতে নোটিফিকেশনটি চালু রাখুন!'}
           </p>
 
-          {/* Bullet points */}
-          <div className="mt-4 space-y-2.5">
-            <div className="flex items-center gap-2.5 text-[11px] text-gray-600 font-medium font-sans">
-              <div className="w-5 h-5 rounded-full bg-pink-50 flex items-center justify-center flex-shrink-0 text-brand-primary">
-                <Gift className="w-3 h-3" />
+          {/* iOS Guide Steps or Standard Bullet points */}
+          {showIOSGuide ? (
+            <div className="mt-4 space-y-3 p-3 bg-gray-50/80 rounded-xl border border-gray-100 font-sans">
+              <div className="flex gap-2 text-xs font-semibold text-gray-700">
+                <span className="text-brand-primary">১.</span>
+                <span>সাফারি ব্রাউজারের নিচে থাকা <strong>শেয়ার (Share)</strong> আইকনে চাপ দিন।</span>
               </div>
-              <span>প্রতি সপ্তাহে বিশেষ মেম্বার-অনলি ডিসকাউন্ট কোড</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-[11px] text-gray-600 font-medium font-sans">
-              <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 text-green-600">
-                <ShieldCheck className="w-3 h-3" />
+              <div className="flex gap-2 text-xs font-semibold text-gray-700">
+                <span className="text-brand-primary">২.</span>
+                <span>মেনু স্ক্রল করে নিচে নামুন এবং <strong>'Add to Home Screen'</strong> সিলেক্ট করুন।</span>
               </div>
-              <span>সহজেই ওয়ান-ক্লিক আন-সাবস্ক্রাইব করার সুবিধা</span>
+              <div className="flex gap-2 text-xs font-semibold text-gray-700">
+                <span className="text-brand-primary">৩.</span>
+                <span>এবার হোম স্ক্রিনে তৈরি হওয়া Bunon Fabrics অ্যাপটি ওপেন করলেই পুশ নোটিফিকেশন অন হয়ে যাবে!</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 space-y-2.5">
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-600 font-medium font-sans">
+                <div className="w-5 h-5 rounded-full bg-pink-50 flex items-center justify-center flex-shrink-0 text-brand-primary">
+                  <Gift className="w-3 h-3" />
+                </div>
+                <span>প্রতি সপ্তাহে বিশেষ মেম্বার-অনলি ডিসকাউন্ট কোড</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-600 font-medium font-sans">
+                <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 text-green-600">
+                  <ShieldCheck className="w-3 h-3" />
+                </div>
+                <span>সহজেই ওয়ান-ক্লিক আন-সাবস্ক্রাইব করার সুবিধা</span>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 mt-6">
@@ -215,12 +248,14 @@ export default function PushSubscriptionPrompt() {
             >
               পরে করবো
             </button>
-            <button
-              onClick={handleSubscribe}
-              className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-gradient-to-r from-brand-primary to-pink-500 hover:from-brand-primary-dark hover:to-pink-600 shadow-lg shadow-brand-primary/20 active:scale-[0.98] rounded-xl transition-all duration-200 font-sans"
-            >
-              হ্যাঁ, অন করুন
-            </button>
+            {!showIOSGuide && (
+              <button
+                onClick={handleSubscribe}
+                className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-gradient-to-r from-brand-primary to-pink-500 hover:from-brand-primary-dark hover:to-pink-600 shadow-lg shadow-brand-primary/20 active:scale-[0.98] rounded-xl transition-all duration-200 font-sans"
+              >
+                হ্যাঁ, অন করুন
+              </button>
+            )}
           </div>
         </motion.div>
       )}
