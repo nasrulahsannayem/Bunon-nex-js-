@@ -1,41 +1,37 @@
-// Service Worker for receiving background web push notifications
-self.addEventListener('push', function(event) {
-  console.log('[Service Worker] Push Received.');
-  
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data = {
-        notification: {
-          title: 'বুনন ফেব্রিক্স',
-          body: event.data.text()
-        }
-      };
-    }
-  }
+// Import Firebase scripts from CDN
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-  // Fallback structures if payload is not nested inside FCM format
-  const title = data.notification?.title || data.title || 'বুনন ফেব্রিক্স';
+// Initialize Firebase App in service worker
+firebase.initializeApp({
+  apiKey: "AIzaSyCBoR-xYiuPSIw8PQu_kN52D7rLL5PCG5A",
+  authDomain: "nupur-ai-engine-480322.firebaseapp.com",
+  projectId: "nupur-ai-engine-480322",
+  storageBucket: "nupur-ai-engine-480322.firebasestorage.app",
+  messagingSenderId: "1046784973762",
+  appId: "1:1046784973762:web:084c3979b8216a171ed45b"
+});
+
+const messaging = firebase.messaging();
+
+// Handle background messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[Service Worker] Background Message Received:', payload);
+  
+  const title = payload.notification?.title || payload.data?.title || 'বুনন ফেব্রিক্স';
   const options = {
-    body: data.notification?.body || data.body || 'আপনার জন্য নতুন ডিসকাউন্ট অফার!',
-    icon: '/image/faveicon.png',
+    body: payload.notification?.body || payload.data?.body || 'আপনার জন্য নতুন ডিসকাউন্ট অফার!',
+    icon: payload.notification?.icon || payload.data?.icon || '/image/faveicon.png',
     badge: '/image/faveicon.png',
-    data: data.data || data, // payload metadata
+    data: payload.data,
     vibrate: [200, 100, 200]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  self.registration.showNotification(title, options);
 });
 
 self.addEventListener('notificationclick', function(event) {
-  console.log('[Service Worker] Notification click Received.');
   event.notification.close();
-
-  // Navigate to product detail or home page when notification is clicked
   const payload = event.notification.data || {};
   const targetUrl = payload.url || '/';
 
