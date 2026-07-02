@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { dbPool } from '../db';
-import { getProducts } from '../../src/lib/woocommerce';
+import { getCachedProducts } from './redisClient';
 
 interface ServiceAccount {
   project_id: string;
@@ -149,7 +149,7 @@ export async function sendPushNotification(title: string, body: string, payload:
 export async function sendDailyPushCampaign() {
   console.log('[Push Campaign] Starting push campaign processor...');
   try {
-    const products = await getProducts();
+    const products = await getCachedProducts();
     if (!products || products.length === 0) {
       console.log('[Push Campaign] No products found to promote.');
       return;
