@@ -118,7 +118,11 @@ export default function Navbar() {
           <div className="flex justify-between items-center h-16 relative">
             
             {/* 🚀 FIXED: Logo Implementation */}
-            <Link to="/" className="flex-shrink-0 flex items-center pr-8">
+            <Link 
+              to="/" 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex-shrink-0 flex items-center pr-8"
+            >
               <img 
                 src="/image/shop logo.png" 
                 alt="Bunon Fabrics" 
@@ -393,7 +397,11 @@ export default function Navbar() {
                   </span>
                 </button>
                 {/* Home */}
-                <Link to="/" className="h-full w-full">
+                <Link 
+                  to="/" 
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="h-full w-full"
+                >
                   <span className={`relative inline-flex flex-col items-center justify-center gap-0.5 h-full w-full transition-colors duration-200 ${location.pathname === '/' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}>
                     <span className="relative">
                       <HomeIcon className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
