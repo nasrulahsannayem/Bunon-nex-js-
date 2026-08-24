@@ -9,3 +9,11 @@ coverage/
 image/
 *.zip
 *.cjs.map
+
+# === secrets: never commit ===
+nupur-ai-engine-*.json
+firebase-service-account.json
+_nupur_backup_20260813/
+dist_backup/
+*.apk
+bunonfabrics-update.json

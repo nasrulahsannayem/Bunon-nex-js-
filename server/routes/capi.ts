@@ -70,13 +70,32 @@ router.post('/', async (req, res) => {
 
     const url = `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${CAPI_TOKEN}`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    // RETRY: Meta CAPI egress is intermittently blocked on this host (ConnectTimeout).
+    // 3 attempts, exponential backoff, hard 8s timeout per attempt so we never hang the request.
+    let response = null;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: ctrl.signal
+        });
+        clearTimeout(timer);
+        break;
+      } catch (e) {
+        lastErr = e;
+        console.warn(`[CAPI] attempt ${attempt}/3 failed: ${e.message}`);
+        if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 800));
+      }
+    }
+    if (!response) {
+      console.error('[CAPI EXCEPTION] all retries failed:', lastErr);
+      return res.status(500).json({ success: false, error: 'Upstream CAPI unreachable' });
+    }
 
     const result = await response.json();
     

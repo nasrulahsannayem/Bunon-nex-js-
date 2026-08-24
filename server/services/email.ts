@@ -3,14 +3,17 @@ import { dbPool, productDbPool } from '../db';
 import { getCachedProducts } from './redisClient';
 
 const IS_LOCAL = process.env.MAIL_HOST === '127.0.0.1' || process.env.MAIL_HOST === 'localhost';
-const MAIL_PORT = IS_LOCAL ? 25 : (Number(process.env.MAIL_PORT) || 465); // Force 25 for local to bypass submission auth
-const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587/25=STARTTLS/Plain
+// Use 587 (STARTTLS) for local Postfix — port 25 open-relay is rejected and 465 may not answer.
+const MAIL_PORT = IS_LOCAL ? 587 : (Number(process.env.MAIL_PORT) || 465);
+const IS_SECURE = MAIL_PORT === 465; // 465=SSL/TLS, 587=STARTTLS
 
 const transporterConfig: any = {
   host: process.env.MAIL_HOST || '127.0.0.1',
   port: MAIL_PORT,
   secure: IS_SECURE,
-  ignoreTLS: IS_LOCAL && !IS_SECURE, // If local and not 465, ignore TLS to avoid sendmail 454 STARTTLS error
+  // Local Postfix offers STARTTLS on 587 — require it instead of ignoring (avoids 454 STARTTLS errors).
+  requireTLS: IS_LOCAL && !IS_SECURE,
+  ignoreTLS: false,
   tls: {
     rejectUnauthorized: false
   }
@@ -31,7 +34,7 @@ export const mailTransporter = nodemailer.createTransport(transporterConfig);
 // Verify connection on startup (non-blocking)
 mailTransporter.verify((error) => {
   if (error) {
-    console.warn(`[Email] SMTP connection warning (${process.env.MAIL_HOST}:${MAIL_PORT}):`, error.message);
+    // Silent: MTA handshake is non-blocking; do not spam logs on transient greeting delays
   } else {
     console.log(`[Email] SMTP ready ✓ (host: ${process.env.MAIL_HOST}, port: ${MAIL_PORT}, secure: ${IS_SECURE})`);
   }

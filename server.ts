@@ -59,9 +59,13 @@ async function startServer() {
   syncLocalDatabase();
   setupMarketingTables();
   
-  // 🟢 EcomOS Sync initial run and scheduling
-  syncEcomosProducts();
-  setInterval(syncEcomosProducts, 60 * 60 * 1000); 
+  // 🟢 EcomOS Sync disabled to stop 401 spam.
+  // Products now come from local DB/RAM fallback.
+  // Re-enable only if ECOMOS_SYNC_ENABLED=true.
+  if (process.env.ECOMOS_SYNC_ENABLED === "true") {
+    syncEcomosProducts();
+    setInterval(syncEcomosProducts, 60 * 60 * 1000);
+  }
 
   // 📩 Run marketing cart recovery cron every 1 hour
   setInterval(processCartRecoveryCampaign, 60 * 60 * 1000);
