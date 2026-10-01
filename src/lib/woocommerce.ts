@@ -10,7 +10,7 @@ const CATALOG_URL = '/api/products';
 const FUNNEL_DEDUPE_WINDOW_MS = 30_000;
 const _funnelFiredAt: Record<string, number> = {};
 
-export const trackPixel = async (event: string, data?: any) => {
+export const trackPixel = (event: string, data?: any) => {
   const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   if (typeof window !== 'undefined') {
@@ -90,8 +90,6 @@ export const trackPixel = async (event: string, data?: any) => {
         ttq.track(event, ttData);
       } catch { /* TikTok non-critical */ }
     }
-
-    // 🚀 SERVER SIDE TRACKING (CAPI)
     // We send the same eventId to the backend so Facebook deduplicates them!
     const getCookie = (name: string) => {
       const value = `; ${document.cookie}`;
@@ -125,47 +123,25 @@ export const trackPixel = async (event: string, data?: any) => {
     }
     if (!userData.session_id) userData.session_id = ga4Session;
 
-    // Tracking endpoints require a first-party nonce so third parties cannot POST
-    // synthetic conversion events into the ad accounts.
-    let nonce: string | null = null;
-    try {
-      const cached = sessionStorage.getItem('bf_trk_nonce');
-      if (cached) {
-        nonce = cached;
-      } else {
-        const r = await fetch('/api/v1/tracking/nonce');
-        const j = await r.json();
-        nonce = j?.nonce || null;
-        if (nonce) sessionStorage.setItem('bf_trk_nonce', nonce);
-      }
-    } catch { /* server restarting; skip this event rather than spam the console */ }
 
-    const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (nonce) authHeaders['x-trk-nonce'] = nonce;
-
-    const serverPayload = {
-      event_name: event,
-      event_id: eventId,
-      event_source_url: window.location.href,
-      user_data: userData,
-      custom_data: data
-    };
-
+    // Server-side tracking (CAPI + GA4 MP).
+    // No secret is sent: the server scrubs monetary fields from browser events,
+    // so this call can never inject revenue into the ad accounts. Purchase value
+    // is reported only by the signed server-owned pipeline (orders/WhatsApp).
     fetch('/api/v1/sync', {
       method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify(serverPayload)
-    }).catch(err => console.error('[CAPI FETCH ERROR]', err));
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: event,
+        event_id: eventId,
+        event_source_url: window.location.href,
+        user_data: userData,
+        custom_data: data
+      })
+    }).catch(() => { /* tracking is best-effort */ });
 
-    // Same payload to TikTok Events API. Fire-and-forget so a TikTok failure can
-    // never delay or break the Meta/GA4 path.
-    fetch('/api/v1/tiktok/sync', {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify(serverPayload)
-    }).catch(err => console.error('[TIKTOK FETCH ERROR]', err));
   }
-  
+
   console.log(`[Omni-Tracking] ${event} (ID: ${eventId})`, data);
 };
 

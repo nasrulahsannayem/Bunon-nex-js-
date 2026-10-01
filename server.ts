@@ -25,7 +25,7 @@ import authRoutes from "./server/routes/auth";
 import teleSalesRoutes from './server/routes/tele-sales';
 import capiRoutes from "./server/routes/capi";
 import tiktokRoutes from "./server/routes/tiktokEvents";
-import { requireTrackingAuth, currentNonce } from "./server/utils/trackingAuth";
+import { requireSignedTracking, browserEventGuard } from "./server/utils/trackingAuth";
 import waAnalyticsRoutes from "./server/routes/waAnalytics";
 import adminRoutes from "./server/routes/admin/index";
 import { productDbPool } from "./server/db";
@@ -103,13 +103,16 @@ async function startServer() {
   app.use("/api", marketingRoutes);
   app.use("/api", harvesterRoutes);
   app.use("/api/auth", authRoutes);
-  // Public so the SPA can read the nonce before its first event fires.
-  app.get("/api/v1/tracking/nonce", (_req, res) => res.json({ nonce: currentNonce() }));
-
   // Attribution payloads are attacker-controlled (event_name, value, phone), so
   // an open endpoint lets anyone inject synthetic purchases into the ad accounts.
-  app.use("/api/v1/sync", requireTrackingAuth, capiRoutes);
-  app.use("/api/v1/tiktok", requireTrackingAuth, tiktokRoutes);
+  // Browser events (no secret possible) may pass, but only after their monetary
+  // fields are stripped server-side. Purchase/PlaceAnOrder values must come from
+  // the signed server-owned pipeline (orders, WhatsApp) so a browser one-liner
+  // cannot inject fake revenue into the ad accounts.
+  app.use("/api/v1/sync", browserEventGuard, capiRoutes);
+
+  // TikTok has no equivalent safe split server-side today, so it stays signed-only.
+  app.use("/api/v1/tiktok", requireSignedTracking, tiktokRoutes);
   app.use("/api/v1/wa-analytics", waAnalyticsRoutes);
   app.use("/api/recruitment", teleSalesRoutes);
   
