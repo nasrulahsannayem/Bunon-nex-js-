@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Mail, Phone, MapPin, Heart, Youtube, Truck, ShieldCheck, Music2 } from 'lucide-react';
+import { Facebook, Mail, Phone, MapPin, Heart, Youtube, Truck, ShieldCheck, Music2, Instagram, Linkedin, Pin } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -23,6 +23,15 @@ export default function Footer() {
               </a>
               <a href="https://www.tiktok.com/@bunon.fabrics" target="_blank" rel="noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-primary hover:text-white transition-all">
                 <Music2 className="w-4 h-4" />
+              </a>
+              <a href="https://www.instagram.com/bunonfabricsbd" target="_blank" rel="noreferrer" aria-label="Instagram" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-primary hover:text-white transition-all">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="https://www.pinterest.com/bunonfabricsbd/" target="_blank" rel="noreferrer" aria-label="Pinterest" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-primary hover:text-white transition-all">
+                <Pin className="w-4 h-4" />
+              </a>
+              <a href="https://www.linkedin.com/company/bunon-fabrics/" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-primary hover:text-white transition-all">
+                <Linkedin className="w-4 h-4" />
               </a>
               <a href="mailto:bunonfabric@gmail.com" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-brand-primary hover:text-white transition-all">
                 <Mail className="w-4 h-4" />

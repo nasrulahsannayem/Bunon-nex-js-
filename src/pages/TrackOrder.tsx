@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Package, CheckCircle2, Clock, Truck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import ProductImage, { bestProductImage } from '../components/ProductImage';
 export default function TrackOrder() {
   const [phone, setPhone] = useState('');
   const [order, setOrder] = useState<any>(null);
@@ -213,7 +214,7 @@ export default function TrackOrder() {
                           {order.items.map((item: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:border-brand-primary/20 hover:shadow-md transition-all">
                               <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-50 shrink-0 border border-gray-50">
-                                <img src={item.thumbnail || 'https://via.placeholder.com/150'} alt={item.name} className="w-full h-full object-cover" />
+                                <ProductImage src={bestProductImage(item)} alt={item.name} className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1">
                                 <p className="font-medium text-gray-900 line-clamp-2 text-sm leading-tight mb-1">{item.name}</p>

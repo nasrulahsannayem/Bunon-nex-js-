@@ -1,11 +1,104 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { LayoutDashboard, ShoppingCart, Users, Package, MailX, Settings, LogOut, ArrowLeft } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, CheckCheck } from 'lucide-react';
+import WAFloatingBubble from '../../components/admin/WAFloatingBubble';
+import { UserAvatar } from '../../components/admin/ui';
+import { LayoutDashboard, ShoppingCart, Users, Package, MailX, Settings, LogOut, ArrowLeft, FolderTree, Newspaper, Menu, X, TicketPercent, Activity, Undo2, Sun, Moon } from 'lucide-react';
+
+const NOTIF_SEEN_KEY = 'bunon_notif_seen';
 
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [role, setRole] = useState('');
+  const [perms, setPerms] = useState<string[]>([]);
+  const [meName, setMeName] = useState('');
+  const [mePhoto, setMePhoto] = useState('');
+  const [nowStr, setNowStr] = useState('');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [lastSeen, setLastSeen] = useState<number>(() => Number(localStorage.getItem(NOTIF_SEEN_KEY) || 0) || 0);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const [muted, setMuted] = useState(() => localStorage.getItem('bunon_notif_mute') === '1');
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('color-theme');
+      if (saved) return saved === 'dark';
+      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch { return false; }
+  });
+  const prevCount = useRef(0);
+  const firstPoll = useRef(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const beep = () => {
+    try { if (!(window as any).__bunonGestured) return; } catch { return; }
+    try {
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      [523, 659, 784].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        o.connect(g); g.connect(ctx.destination);
+        const t0 = ctx.currentTime + i * 0.15;
+        g.gain.setValueAtTime(0.001, t0);
+        g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.14);
+        o.start(t0); o.stop(t0 + 0.16);
+      });
+      setTimeout(() => ctx.close().catch(() => {}), 800);
+    } catch { /* audio unsupported */ }
+  };
+  const handleLogout = () => { localStorage.removeItem('bunon_token'); localStorage.removeItem('bunon_user'); navigate('/admin/login'); };
+
+  // T4: dark mode — orders.html parity (localStorage 'color-theme' <-> <html class="dark">)
+  useEffect(() => {
+    try {
+      document.documentElement.classList.toggle('dark', dark);
+      localStorage.setItem('color-theme', dark ? 'dark' : 'light');
+    } catch { /* storage unavailable */ }
+  }, [dark]);
+
+  // Gesture gate: browsers block AudioContext before first interaction
+  useEffect(() => {
+    const on = () => { (window as any).__bunonGestured = true; };
+    window.addEventListener('pointerdown', on, { once: true });
+    window.addEventListener('keydown', on, { once: true });
+    return () => { window.removeEventListener('pointerdown', on); window.removeEventListener('keydown', on); };
+  }, []);
+
+  // RBAC freshness: reload role+permissions from DB on every admin mount (no re-login needed).
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('bunon_token');
+        if (!token) return;
+        const r = await fetch('/api/admin/me', { headers: { Authorization: 'Bearer ' + token } });
+        const d = await r.json();
+        if (d.ok && d.user) {
+          const prev = JSON.parse(localStorage.getItem('bunon_user') || '{}');
+          localStorage.setItem('bunon_user', JSON.stringify({ ...prev, role: d.user.role ?? prev.role, permissions: d.user.permissions ?? prev.permissions }));
+        }
+      } catch { /* fail-open: keep cached user */ }
+    })();
+  }, []);
+
+  // T4: notification sound — chat-notify.mp3 first, WebAudio beep fallback
+  const playNotifSound = () => {
+    try {
+      const el = audioRef.current;
+      if (el) {
+        el.currentTime = 0;
+        const pr = el.play();
+        if (pr && typeof (pr as any).catch === 'function') (pr as any).catch(() => beep());
+        return;
+      }
+    } catch { /* fall through to beep */ }
+    beep();
+  };
 
   useEffect(() => {
     const userStr = localStorage.getItem('bunon_user');
@@ -20,6 +113,10 @@ export default function AdminLayout() {
       const user = JSON.parse(userStr);
       if (['super_admin', 'admin', 'staff'].includes(user.role)) {
         setIsAuthenticated(true);
+        setRole(user.role);
+        if (Array.isArray((user as any).permissions)) setPerms((user as any).permissions.filter((x: unknown) => typeof x === 'string'));
+        setMeName(user.name || (user as any).username || user.phone || 'Admin');
+        if ((user as any).photo) setMePhoto((user as any).photo);
       } else {
         navigate('/admin/login');
       }
@@ -28,59 +125,280 @@ export default function AdminLayout() {
     }
   }, [navigate]);
 
+  // Close mobile drawer on route change
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
+  // Own photo for header avatar (+ seed global avatar map)
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('bunon_token');
+        if (!token) return;
+        const r = await fetch('/api/admin/users?role=staff', { headers: { Authorization: 'Bearer ' + token } });
+        const d = await r.json();
+        if (!d.ok || !Array.isArray(d.users)) return;
+        const me = JSON.parse(localStorage.getItem('bunon_user') || '{}');
+        const keys = [me.username, me.phone, me.name].filter(Boolean).map((x: any) => String(x));
+        const m: Record<string, string> = {};
+        for (const u of d.users) {
+          if (u.photo) {
+            m[u.username || u.phone || String(u.id)] = u.photo;
+            if (u.name) m[u.name] = u.photo;
+            if (u.phone) m[u.phone] = u.photo;
+          }
+        }
+        (window as any).USER_PHOTO_MAP = Object.assign((window as any).USER_PHOTO_MAP || {}, m);
+        try {
+          const prev = JSON.parse(localStorage.getItem('bunon_user_photos') || '{}');
+          localStorage.setItem('bunon_user_photos', JSON.stringify({ ...prev, ...m }));
+        } catch { /* storage unavailable */ }
+        const hit = d.users.find((u: any) => keys.includes(String(u.username)) || keys.includes(String(u.phone)) || keys.includes(String(u.name)));
+        if (hit?.photo) setMePhoto(hit.photo);
+      } catch { /* avatar unavailable */ }
+    })();
+  }, []);
+
+  // Dash-style live clock
+  useEffect(() => {
+    const tick = () => {
+      try {
+        const d = new Date();
+        setNowStr(d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }));
+      } catch { /* clock unavailable */ }
+    };
+    tick();
+    const t = setInterval(tick, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const res = await fetch('/api/admin/orders?status=pending&page=1&limit=10', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('bunon_token') } });
+        const d = await res.json();
+        const orders = Array.isArray(d.orders) ? d.orders : [];
+        setPendingOrders(orders);
+        const total = d.pagination ? d.pagination.total : orders.length;
+        setPendingCount((prev) => {
+          if (!firstPoll.current && total > prev && localStorage.getItem('bunon_notif_mute') !== '1') playNotifSound();
+          prevCount.current = total;
+          return total;
+        });
+        firstPoll.current = false;
+      } catch (e) {}
+    };
+    fetchPending();
+    const t = setInterval(fetchPending, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Deep-link retrigger: ?highlight=<id> marks that order seen so badge/sound state resyncs
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(location.search);
+      const h = Number(q.get('highlight') || 0);
+      if (h > 0) {
+        setLastSeen((prev) => {
+          const n = Math.max(prev, h);
+          try { localStorage.setItem(NOTIF_SEEN_KEY, String(n)); } catch {}
+          return n;
+        });
+      }
+    } catch {}
+  }, [location.search]);
+
+  // Outside-click close for notification panel
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [notifOpen]);
+
+  const unread = pendingOrders.filter((o) => Number(o.id || 0) > lastSeen);
+  const unreadCount = lastSeen ? unread.length : pendingCount;
+
+  const markAllRead = () => {
+    const maxId = pendingOrders.reduce((m, o) => Math.max(m, Number(o.id || 0)), lastSeen);
+    setLastSeen(maxId);
+    localStorage.setItem(NOTIF_SEEN_KEY, String(maxId));
+  };
+
+  const openOrder = (id: number | string) => {
+    setNotifOpen(false);
+    setLastSeen((prev) => {
+      const n = Math.max(prev, Number(id) || prev);
+      localStorage.setItem(NOTIF_SEEN_KEY, String(n));
+      return n;
+    });
+    navigate('/admin/orders?highlight=' + id);
+  };
+
+  const fmtTime = (o: any) => {
+    const t = o.created_at || o.createdAt || o.ordered_at;
+    if (!t) return '';
+    try { return new Date(t).toLocaleString('bn-BD', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+    catch { return ''; }
+  };
   if (!isAuthenticated) {
     return <div className="h-screen w-full bg-gray-50 flex items-center justify-center">Checking access...</div>;
   }
-  
+
+  // Permission-based nav: super_admin sees everything. When bunon_user carries
+  // a permissions[] array it gates each item; otherwise legacy role fallback applies.
+  const can = (perm: string, fallbackRoles: string[] = []) => {
+    if (role === 'super_admin') return true;
+    if (perms.length > 0) return perms.includes(perm);
+    return fallbackRoles.includes(role);
+  };
+  const ALL = ['super_admin', 'admin', 'staff'];
+  const ADM = ['super_admin', 'admin'];
+
   const navItems = [
-    { name: 'ড্যাশবোর্ড', path: '/admin', icon: <LayoutDashboard size={20} /> },
-    { name: 'অর্ডার লিস্ট', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
-    { name: 'প্রোডাক্টস', path: '/admin/products', icon: <Package size={20} /> },
-    { name: 'কাস্টমারস', path: '/admin/customers', icon: <Users size={20} /> },
-    { name: 'কার্ট রিকভারি', path: '/admin/abandoned', icon: <MailX size={20} /> },
-    { name: 'সাইট সেটিংস', path: '/admin/settings', icon: <Settings size={20} /> },
-    { name: 'মেইন সাইটে যান', path: '/', icon: <ArrowLeft size={20} /> }
+    ...(can('view_dashboard', ALL) ? [{ name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> }] : []),
+    ...(can('view_orders', ALL) ? [{ name: 'Orders', path: '/admin/orders', icon: <ShoppingCart size={20} /> }] : []),
+    ...(can('view_products', ALL) ? [{ name: 'Products', path: '/admin/products', icon: <Package size={20} /> }] : []),
+    ...(can('view_categories', ALL) ? [{ name: 'Categories', path: '/admin/categories', icon: <FolderTree size={20} /> }] : []),
+    ...(can('view_blogs', ALL) ? [{ name: 'Blog', path: '/admin/blogs', icon: <Newspaper size={20} /> }] : []),
+    ...(can('view_customers', ALL) ? [{ name: 'Customers', path: '/admin/customers', icon: <Users size={20} /> }] : []),
+    ...(can('view_marketing', ALL) ? [{ name: 'Cart Recovery', path: '/admin/abandoned', icon: <MailX size={20} /> }] : []),
+    ...(can('view_coupons', ADM) ? [{ name: 'Coupons', path: '/admin/coupons', icon: <TicketPercent size={20} /> }] : []),
+    ...(can('view_reports', ADM) ? [{ name: 'Reports', path: '/admin/reports', icon: <Activity size={20} /> }] : []),
+    ...(can('view_inventory', ADM) ? [{ name: 'Inventory', path: '/admin/inventory', icon: <Package size={20} /> }] : []),
+    ...(can('view_reports', ADM) ? [{ name: 'Profit', path: '/admin/profit', icon: <Activity size={20} /> }] : []),
+    ...(can('view_reports', ADM) ? [{ name: 'Payout', path: '/admin/payout', icon: <TicketPercent size={20} /> }] : []),
+    ...(can('view_orders', ADM) ? [{ name: 'Returns', path: '/admin/returns', icon: <Undo2 size={20} /> }] : []),
+    ...(role === 'super_admin' ? [{ name: 'Audit Log', path: '/admin/audit', icon: <Newspaper size={20} /> }] : []),
+    ...(can('view_dashboard', ALL) ? [{ name: 'Leave', path: '/admin/leave', icon: <Newspaper size={20} /> }] : []),
+    ...(can('view_marketing', ADM) ? [{ name: 'Meta KPI', path: '/admin/meta', icon: <Activity size={20} /> }] : []),
+    ...(can('view_dashboard', ALL) ? [{ name: 'Tasks', path: '/admin/tasks', icon: <Activity size={20} /> }] : []),
+    ...(can('view_settings', ALL) ? [{ name: 'Site Settings', path: '/admin/settings', icon: <Settings size={20} /> }] : []),
+    ...(can('manage_users') ? [{ name: 'Users & Roles', path: '/admin/users', icon: <Users size={20} /> }] : []),
+    { name: 'Back to Store', path: '/', icon: <ArrowLeft size={20} /> }
   ];
+
+  const renderNav = (onItemClick?: () => void) => (
+    <nav className="space-y-1 px-2">
+      {navItems.map((item) => (
+        <Link
+          key={item.path}
+          to={item.path}
+          onClick={onItemClick}
+          className={`flex items-center px-2.5 py-2.5 text-[13px] font-medium rounded-xl transition-colors ${
+            location.pathname === item.path
+              ? 'bg-white/10 text-yellow-300 shadow-inner'
+              : 'text-slate-300 hover:bg-white/5 hover:text-white'
+          }`}
+        >
+          <span className="mr-2.5">{item.icon}</span>
+          {item.name}
+        </Link>
+      ))}
+    </nav>
+  );
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col shadow-sm">
-        <div className="h-16 flex items-center px-6 border-b border-gray-100">
-          <span className="text-xl font-black text-brand-navy tracking-tight">বুনন <span className="text-brand-primary">অ্যাডমিন</span></span>
+      {/* Desktop Sidebar */}
+      <div className="w-52 bg-[#0e1b33] hidden md:flex flex-col shadow-xl shrink-0">
+        <div className="h-16 flex items-center px-4 border-b border-white/10">
+          <span className="text-lg font-black text-white tracking-tight">Bunon <span className="text-yellow-300">Admin</span></span>
+          <span className="ml-2 text-[10px] bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-full">v2.0</span>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
-          <nav className="space-y-1 px-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-colors ${
-                  location.pathname === item.path
-                    ? 'bg-brand-primary/10 text-brand-primary'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <span className="mr-3">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
-          </nav>
+          {renderNav()}
         </div>
       </div>
 
+      {/* Mobile Drawer (overlay) */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-[85vw] max-w-64 bg-[#0e1b33] shadow-xl flex flex-col">
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
+              <span className="text-xl font-black text-white tracking-tight">Bunon <span className="text-yellow-300">Admin</span></span>
+              <button onClick={() => setDrawerOpen(false)}><X size={22} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-4">
+              {renderNav(() => setDrawerOpen(false))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header for Mobile */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:hidden shadow-sm">
-          <span className="text-xl font-black text-brand-navy">বুনন <span className="text-brand-primary">অ্যাডমিন</span></span>
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Dash-style gradient header */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between gap-2 px-3 sm:px-4 shadow-sm shrink-0">
+          <button className="md:hidden p-2 -ml-2" onClick={() => setDrawerOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="truncate text-base sm:text-lg font-black tracking-tight text-slate-800">Bunon <span className="text-brand-primary">Admin</span></span>
+            <span className="hidden lg:inline text-[10px] text-slate-400 whitespace-nowrap">No Theory, Just Execution.</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 bg-slate-100 pl-1 pr-2.5 py-1 rounded-full border border-slate-200 shrink-0">
+            <UserAvatar name={meName} src={mePhoto} size={28} />
+            <span className="text-[11px] md:text-[13px] font-semibold text-slate-700 max-w-[120px] truncate">{meName}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-[10px] md:text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-full border border-slate-200 whitespace-nowrap shrink-0">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            <span>{nowStr}</span>
+          </div>
+          <audio ref={audioRef as any} id="bunon_notify" src="/chat-notify.mp3" preload="auto" />
+          <button onClick={() => setDark((v) => !v)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 shrink-0" title={dark ? 'Light mode' : 'Dark mode'} aria-label="Toggle theme">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
+          <button onClick={() => { const v = !muted; setMuted(v); localStorage.setItem('bunon_notif_mute', v ? '1' : '0'); }} className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 shrink-0" title={muted ? 'Unmute notification sound' : 'Mute notification sound'}>{muted ? '\uD83D\uDD07' : '\uD83D\uDD14'}</button>
+          <button onClick={handleLogout} className="flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-red-50 text-red-600 text-sm font-medium shrink-0" title="Log out"><LogOut size={18} /><span className="hidden sm:inline">Log out</span></button>
+          <div className="relative shrink-0" ref={notifRef}>
+            <button onClick={() => setNotifOpen((v) => !v)} className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-600" title="Pending orders" aria-label="Notifications">
+              <Bell size={22} />
+              {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-2 w-[92vw] max-w-sm bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <span className="font-bold text-sm text-gray-800">Pending Orders {pendingCount > 0 && <span className="text-gray-400 font-medium">({pendingCount})</span>}</span>
+                  {unread.length > 0 && (
+                    <button onClick={markAllRead} className="flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline">
+                      <CheckCheck size={14} /> Mark all as read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto divide-y divide-gray-50">
+                  {unread.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-400">No new pending orders ✅</div>
+                  ) : (
+                    unread.slice(0, 10).map((o: any) => (
+                      <button key={o.id} onClick={() => openOrder(o.id)} className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono font-bold text-sm text-slate-800">#{o.invoice || o.id}</span>
+                          <span className="font-bold text-sm text-slate-800 shrink-0">৳{Number(o.total_payable ?? o.total ?? o.grand_total ?? 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <span className="text-xs text-slate-500 truncate">{o.customer_name || o.customer || '—'}</span>
+                          <span className="text-[11px] text-slate-400 shrink-0">{fmtTime(o)}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+                <button onClick={() => { setNotifOpen(false); navigate('/admin/orders'); }} className="w-full px-4 py-2.5 text-center text-xs font-bold text-brand-primary hover:bg-gray-50 border-t border-gray-100">
+                  View all orders →
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-clip p-3 sm:p-4 md:p-8">
           <Outlet />
         </main>
       </div>
+      <WAFloatingBubble />
     </div>
   );
 }

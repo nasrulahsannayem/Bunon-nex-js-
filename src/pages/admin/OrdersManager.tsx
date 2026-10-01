@@ -1,239 +1,1008 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiRefreshCw, FiChevronLeft, FiChevronRight, FiX, FiTruck, FiMapPin, FiPhone, FiUser, FiPackage, FiFileText } from 'react-icons/fi';
+import ConfirmModal from '../../components/admin/ConfirmModal';
+import { UserAvatar } from '../../components/admin/ui';
+import WAChatModal from '../../components/admin/WAChatModal';
+import { timeAgoBn } from '../../lib/timeAgoBn';
+import { FiSearch, FiRefreshCw, FiChevronLeft, FiChevronRight, FiX, FiTruck, FiMapPin, FiPhone, FiUser, FiPackage, FiFileText, FiPlus, FiPrinter, FiSend, FiMinus, FiTrash2 } from 'react-icons/fi';
 
+const authHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` });
+// Button-level RBAC: hide actions the user may not perform (backend still enforces).
+// super_admin/admin pass; empty perms array (legacy) => show (route gate still applies).
+const can = (p: string, ...alt: string[]): boolean => {
+  try {
+    const u = JSON.parse(localStorage.getItem('bunon_user') || '{}');
+    if (u.role === 'super_admin' || u.role === 'admin') return true;
+    const perms: string[] = Array.isArray(u.permissions) ? u.permissions : [];
+    if (perms.length === 0) return true;
+    return perms.includes(p) || alt.some((a) => perms.includes(a));
+  } catch { return true; }
+};
+const authJson = () => ({ ...authHeaders(), 'Content-Type': 'application/json' } as Record<string,string>);
+
+// 11 tabs = All + 10 dash-canonical statuses (must match backend CANONICAL_STATUSES)
+const STATUSES: { value: string; bn: string }[] = [
+  { value: 'pending', bn: 'Pending' },
+  { value: 'incomplete', bn: 'Incomplete' },
+  { value: 'confirmed', bn: 'Confirmed' },
+  { value: 'on_hold', bn: 'On Hold' },
+  { value: 'ready', bn: 'Ready to Ship' },
+  { value: 'in_transit', bn: 'In Transit' },
+  { value: 'delivered', bn: 'Delivered' },
+  { value: 'cancelled', bn: 'Cancelled' },
+  { value: 'partial_return', bn: 'Partial Return' },
+  { value: 'return', bn: 'Return' },
+  { value: 'trash', bn: 'Trash' },
+];
+
+const COURIERS = [
+  { value: 'all', bn: 'All Couriers' },
+  { value: 'steadfast', bn: 'Steadfast' },
+  { value: 'pathao', bn: 'Pathao' },
+  { value: 'redx', bn: 'RedX' },
+  { value: 'manual', bn: 'Manual' },
+];
+
+// orders.html visual system port: per-status pill (soft tint + border) + tab active color.
+// Palette: pending amber / incomplete slate / confirmed blue / on_hold orange / ready indigo
+// / in_transit purple / delivered emerald / cancelled rose / partial_return yellow / return red.
+const STATUS_PILL: Record<string, string> = {
+  pending: 'bg-amber-50 text-amber-700 border-amber-200',
+  incomplete: 'bg-slate-100 text-slate-500 border-slate-200',
+  confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
+  on_hold: 'bg-orange-50 text-orange-700 border-orange-200',
+  ready: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  ready_to_ship: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  in_transit: 'bg-purple-50 text-purple-700 border-purple-200',
+  delivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  cancelled: 'bg-rose-50 text-rose-700 border-rose-200',
+  partial_return: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  partial_returned: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  return: 'bg-red-50 text-red-700 border-red-200',
+  returned: 'bg-red-50 text-red-700 border-red-200',
+  trash: 'bg-stone-100 text-stone-500 border-stone-300',
+};
+const statusPill = (s: string) => STATUS_PILL[String(s || '').toLowerCase()] || 'bg-slate-100 text-slate-600 border-slate-200';
+
+const STATUS_TAB_ACTIVE: Record<string, string> = {
+  all: 'bg-slate-800 text-white border-slate-800 shadow-[0_4px_15px_rgba(30,41,59,0.3)]',
+  pending: 'bg-amber-500 text-white border-amber-500 shadow-[0_4px_15px_rgba(245,158,11,0.35)]',
+  incomplete: 'bg-slate-500 text-white border-slate-500 shadow-[0_4px_15px_rgba(100,116,139,0.35)]',
+  confirmed: 'bg-blue-600 text-white border-blue-600 shadow-[0_4px_15px_rgba(59,130,246,0.35)]',
+  on_hold: 'bg-orange-500 text-white border-orange-500 shadow-[0_4px_15px_rgba(249,115,22,0.35)]',
+  ready: 'bg-indigo-600 text-white border-indigo-600 shadow-[0_4px_15px_rgba(99,102,241,0.35)]',
+  in_transit: 'bg-purple-600 text-white border-purple-600 shadow-[0_4px_15px_rgba(147,51,234,0.35)]',
+  delivered: 'bg-emerald-600 text-white border-emerald-600 shadow-[0_4px_15px_rgba(16,185,129,0.35)]',
+  cancelled: 'bg-rose-600 text-white border-rose-600 shadow-[0_4px_15px_rgba(244,63,94,0.35)]',
+  partial_return: 'bg-yellow-500 text-white border-yellow-500 shadow-[0_4px_15px_rgba(234,179,8,0.35)]',
+  return: 'bg-red-600 text-white border-red-600 shadow-[0_4px_15px_rgba(220,38,38,0.35)]',
+  trash: 'bg-stone-500 text-white border-stone-500 shadow-[0_4px_15px_rgba(120,113,108,0.35)]',
+};
+const statusTabActive = (s: string) => STATUS_TAB_ACTIVE[s] || STATUS_TAB_ACTIVE.all;
+
+import ProductImage, { PRODUCT_PLACEHOLDER, bestProductImage } from '../../components/ProductImage';
 export default function OrdersManager() {
+  const [searchParams] = useSearchParams();
+  const highlight = searchParams.get('highlight');
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [statusCounts, setStatusCounts] = useState<any[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(50);
+  const PAGE_SIZES = [20, 50, 100];
   const [loading, setLoading] = useState(true);
-  
+
   const [filters, setFilters] = useState({
     status: 'all',
     courier: 'all',
     search: '',
+    from: '',
+    to: '',
   });
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [waOpen, setWaOpen] = useState(false);
   const [orderDetails, setOrderDetails] = useState<{items: any[], logs: any[], loading: boolean}>({ items: [], logs: [], loading: false });
 
-  const fetchOrders = (page = 1) => {
+  // multi-select
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // journey timeline + bulk status bar
+  const [journey, setJourney] = useState<any[]>([]);
+  const [journeyLoading, setJourneyLoading] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState('confirmed');
+
+  // POS drawer (right-side panel)
+  const [showManual, setShowManual] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); // mobile-only toggle; always expanded on md+ via CSS
+  const [pq, setPq] = useState('');
+  const [presults, setPresults] = useState<any[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
+  const [mcust, setMcust] = useState({ customer_name: '', phone: '', address: '', city: '' });
+  const [mfee, setMfee] = useState(0);
+  const [mdisc, setMdisc] = useState(0);
+  const [mnote, setMnote] = useState('');
+  const [mBusy, setMBusy] = useState(false);
+
+  // drawer edits
+  const [editItems, setEditItems] = useState<any[]>([]);
+  const [retQty, setRetQty] = useState<Record<string, number>>({});
+  const [retReason, setRetReason] = useState('');
+  const [riderMsg, setRiderMsg] = useState('');
+  const [drawerBusy, setDrawerBusy] = useState('');
+
+  // §10 drawer: editable customer + money box + note + fraud + pending status
+  const [custName, setCustName] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [custAddr, setCustAddr] = useState('');
+  const [dFee, setDFee] = useState(0);
+  const [dDisc, setDDisc] = useState(0);
+  const [internalNote, setInternalNote] = useState('');
+  const [pendingStatus, setPendingStatus] = useState('');
+  const [fraud, setFraud] = useState<any | null>(null);
+  const [fraudLoading, setFraudLoading] = useState(false);
+  // T2: duplicate-order check + connected couriers + delete modal
+  const [dupInfo, setDupInfo] = useState<any | null>(null);
+  const [posDup, setPosDup] = useState<any | null>(null);
+  const [courierStatus, setCourierStatus] = useState<{ steadfast: boolean; pathao: boolean; redx: boolean } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [delForce, setDelForce] = useState(false);
+  useEffect(() => {
+    fetch('/api/admin/couriers/status', { headers: authHeaders() })
+      .then(r => r.json()).then(d => { if (d.ok) setCourierStatus(d); }).catch(() => {});
+  }, []);
+  const VISIBLE_COURIERS = COURIERS.filter(c => c.value === 'all' || c.value === 'manual' || (courierStatus ? !!(courierStatus as any)[c.value] : true));
+
+  const changePageSize = (n: number) => {
+    setPageSize(n);
+    fetchOrders(1, n);
+  };
+
+  const pageNumbers = (): number[] => {
+    const total = pagination.totalPages || 1;
+    const cur = pagination.page || 1;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const set = new Set([1, 2, cur - 1, cur, cur + 1, total - 1, total]);
+    return [...set].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  };
+
+  const fetchOrders = (page = 1, limit: number = pageSize) => {
     setLoading(true);
+    // Incomplete tab: read from cart-recovery queue (real orders table has no incomplete rows)
+    if (filters.status === 'incomplete') {
+      fetch('/api/admin/marketing/abandoned-carts', { headers: authHeaders() })
+        .then(res => res.json())
+        .then(data => {
+          const carts: any[] = (data.ok && data.carts) ? data.carts : [];
+          const q = (filters.search || '').trim().toLowerCase();
+          const rows = carts
+            .filter((c: any) => !q || String(c.customer_name || '').toLowerCase().includes(q) || String(c.phone || '').includes(q) || String(c.email || '').toLowerCase().includes(q))
+            .map((c: any) => {
+              const items: any[] = Array.isArray(c.cart_data) ? c.cart_data : [];
+              const total = items.reduce((s: number, it: any) => s + Number(it.price || 0) * Math.max(1, Number(it.quantity || 1)), 0);
+              return {
+                id: 'INC-' + c.id, invoice: 'INC-' + c.id,
+                customer_name: c.customer_name || 'Guest', phone: c.phone || '',
+                address: c.address || '', city: c.city || '', email: c.email || '',
+                status: 'incomplete', total_payable: total,
+                courier_name: '', tracking_code: '', created_at: c.updated_at || c.created_at,
+                is_incomplete: 1, cart_items: items,
+              };
+            });
+          setOrders(rows);
+          setStatusCounts((prev: any) => Array.isArray(prev)
+            ? [...prev.filter((s: any) => s.status !== 'incomplete'), { status: 'incomplete', count: carts.length }]
+            : { ...(prev || {}), incomplete: carts.length });
+          setPagination({ page: 1, limit: rows.length, total: rows.length, totalPages: 1 });
+        })
+        .catch(() => setOrders([]))
+        .finally(() => setLoading(false));
+      return;
+    };
     const query = new URLSearchParams({
       page: page.toString(),
+      limit: limit.toString(),
       status: filters.status,
       courier: filters.courier,
-      search: filters.search
+      search: filters.search,
+      from: filters.from,
+      to: filters.to,
     });
 
-    fetch(`/api/admin/orders?${query.toString()}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` }
-    })
+    fetch(`/api/admin/orders?${query.toString()}`, { headers: authHeaders() })
       .then(res => res.json())
       .then(data => {
         if (data.ok) {
           setOrders(data.orders);
           setStatusCounts(data.statusCounts || []);
-          setPagination(data.pagination);
+          const pg = data.pagination || {};
+          const totalPages = pg.totalPages ?? pg.pages ?? 1;
+          setPagination({ page: pg.page ?? page, limit: pg.limit ?? limit, total: pg.total ?? 0, totalPages });
         }
       })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetchOrders(1);
+    const t = setTimeout(() => fetchOrders(1), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const fetchOrderDetails = (orderId: string) => {
     setOrderDetails(prev => ({ ...prev, loading: true }));
-    fetch(`/api/admin/orders/${orderId}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` }
-    })
+    fetch(`/api/admin/orders/${orderId}`, { headers: authHeaders() })
       .then(res => res.json())
       .then(data => {
         if (data.ok) {
           setOrderDetails({ items: data.items || [], logs: data.logs || [], loading: false });
+          setEditItems((data.items || []).map((i: any) => ({ ...i })));
           setSelectedOrder(data.order);
+          setRetQty({});
+          // §10: seed editable fields from order
+          const o = data.order || {};
+          setCustName(o.customer_name || '');
+          setCustPhone(o.phone || '');
+          setCustAddr([o.address, o.city].filter(Boolean).join(', '));
+          setDFee(Number(o.delivery_fee) || 0);
+          setDDisc(Number((o as any).discount_amount ?? o.discount) || 0);
+          setInternalNote(o.internal_note || o.notes || '');
+          setPendingStatus(o.status || '');
+          // §10(3): courier summary via fraud proxy
+          const ph = String(o.phone || '').replace(/\D/g, '');
+          if (ph) {
+            setFraud(null); setFraudLoading(true);
+            fetch(`/api/admin/fraud/check?phone=${encodeURIComponent(ph)}`, { headers: authHeaders() })
+              .then(r => r.json())
+              .then(d => setFraud(d.ok ? d : null))
+              .catch(() => setFraud(null))
+              .finally(() => setFraudLoading(false));
+          } else { setFraud(null); setFraudLoading(false); }
+          const ph2 = String(o.phone || '').replace(/\D/g, '');
+          if (ph2.length >= 6) {
+            setDupInfo(null);
+            fetch(`/api/admin/orders/check?phone=${encodeURIComponent(ph2)}&invoice=${encodeURIComponent(o.invoice || '')}`, { headers: authHeaders() })
+              .then(r => r.json()).then(d => { if (d.ok) setDupInfo(d); }).catch(() => {});
+          } else setDupInfo(null);
         }
       })
       .catch(() => setOrderDetails(prev => ({ ...prev, loading: false })));
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
+    if (selectedOrder?.is_incomplete) { alert('ইনকমপ্লিট সারিতে এই কাজ করা যায় না — AbandonedCarts পেজ থেকে Remind/Offer পাঠান।'); return; }
     try {
       const res = await fetch(`/api/admin/orders/${id}/status`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` 
-        },
+        headers: authJson(),
         body: JSON.stringify({ status: newStatus })
       });
       const data = await res.json();
       if (data.ok) {
-        alert('Order status updated!');
+        alert('Status updated!');
         fetchOrders(pagination.page);
-        if (selectedOrder && selectedOrder.id === id) {
-          setSelectedOrder({ ...selectedOrder, status: newStatus });
-        }
+        if (selectedOrder && selectedOrder.id === id) setSelectedOrder({ ...selectedOrder, status: newStatus });
+      } else alert(data.msg || 'Failed!');
+    } catch { alert('Status update failed!'); }
+  };
+
+  // backend sends statusCounts as {status: count} object (supports legacy array too)
+  const countMap: Record<string, number> = Array.isArray(statusCounts)
+    ? Object.fromEntries((statusCounts as any[]).map((s: any) => [s.status, Number(s.count) || 0]))
+    : ((statusCounts as Record<string, number>) || {});
+  const getStatusCount = (statusName: string) => Number(countMap[statusName] || 0);
+  const totalOrders = Object.entries(countMap).filter(([k]) => k !== 'trash').reduce((acc: number, [, curr]: any) => acc + (Number(curr) || 0), 0);
+
+  // ---- bulk courier ----
+  const toggleCheck = (id: string) => {
+    const n = new Set(checked);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    setChecked(n);
+  };
+  const toggleAll = () => {
+    if (checked.size === orders.length && orders.length) setChecked(new Set());
+    else setChecked(new Set(orders.map(o => String(o.id))));
+  };
+  const bulkCourier = async (courier: string) => {
+    if (!checked.size) return alert('Select at least one order!');
+    setBulkBusy(true);
+    try {
+      const res = await fetch('/api/admin/orders/bulk-courier', {
+        method: 'POST', headers: authJson(),
+        body: JSON.stringify({ ids: [...checked].map(Number).filter((n) => Number.isInteger(n) && n > 0), courier })
+      });
+      const data = await res.json();
+      if (data.ok) { alert(`Bulk courier (${courier}) done!`); setChecked(new Set()); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setBulkBusy(false);
+  };
+
+  // ---- POS drawer logic ----
+  const DRAFT_KEY = 'bunon_draft_order';
+  const openPos = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (Array.isArray(d.cart) && d.cart.length) setCart(d.cart);
+        if (d.mcust) setMcust({ customer_name: d.mcust.customer_name || '', phone: d.mcust.phone || '', address: d.mcust.address || '', city: d.mcust.city || '' });
+        if (typeof d.mfee === 'number') setMfee(d.mfee);
+        if (typeof d.mdisc === 'number') setMdisc(d.mdisc);
+        if (typeof d.mnote === 'string') setMnote(d.mnote);
       }
-    } catch (e) {
-      alert('Failed to update status!');
+    } catch { /* ignore corrupt draft */ }
+    setShowManual(true);
+  };
+  const resetPos = () => {
+    setCart([]); setMcust({ customer_name: '', phone: '', address: '', city: '' });
+    setMfee(0); setMdisc(0); setMnote(''); setPq(''); setPresults([]);
+  };
+  const holdDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ cart, mcust, mfee, mdisc, mnote, savedAt: Date.now() }));
+      alert('Draft saved!');
+    } catch { alert('Draft save failed!'); }
+  };
+  const searchProducts = (q: string) => {
+    setPq(q);
+    if (!q.trim()) { setPresults([]); return; }
+    fetch(`/api/admin/products?q=${encodeURIComponent(q)}`, { headers: authHeaders() })
+      .then(r => r.json()).then(d => setPresults(d.products || d.items || d.data || []))
+      .catch(() => {});
+  };
+  const addToCart = (p: any) => {
+    const price = Number(p.sale_price ?? p.price ?? 0);
+    const ex = cart.find(c => String(c.product_id) === String(p.id));
+    if (ex) setCart(cart.map(c => String(c.product_id) === String(p.id) ? { ...c, qty: c.qty + 1 } : c));
+    else setCart([...cart, { product_id: p.id, name: p.name || p.title, price, qty: 1 }]);
+  };
+  const cartTotal = cart.reduce((a, c) => a + Number(c.price) * Number(c.qty), 0);
+  const cartQty = cart.reduce((a, c) => a + Number(c.qty), 0);
+  const grandTotal = cartTotal + Number(mfee || 0) - Number(mdisc || 0);
+  const phoneOk = /^01\d{9}$/.test((mcust.phone || '').trim());
+  useEffect(() => {
+    const ph = (mcust.phone || '').replace(/\D/g, '');
+    if (!/^01\d{9}$/.test(ph)) { setPosDup(null); return; }
+    const t = setTimeout(() => {
+      fetch(`/api/admin/orders/check?phone=${encodeURIComponent(ph)}`, { headers: authHeaders() })
+        .then(r => r.json()).then(d => { if (d.ok) setPosDup(d); }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(t);
+  }, [mcust.phone]);
+  const submitManual = async () => {
+    if (!mcust.customer_name.trim() || !cart.length) return alert('Name and products are required!');
+    if (!phoneOk) return alert('Enter a valid 11-digit mobile number (01...)!');
+    if (!mcust.address.trim()) return alert('Address is required!');
+    setMBusy(true);
+    try {
+      const res = await fetch('/api/admin/orders/manual', {
+        method: 'POST', headers: authJson(),
+        body: JSON.stringify({ ...mcust, items: cart.map(c => ({ product_id: c.product_id, product_name: c.name, qty: Number(c.qty), price: Number(c.price) })), delivery_fee: Number(mfee) || 0, discount: Number(mdisc) || 0, note: mnote, source: 'pos' })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+        alert('Order confirmed! Invoice: ' + (data.invoice || data.order?.invoice || ''));
+        setShowManual(false); resetPos();
+        fetchOrders(1);
+      } else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setMBusy(false);
+  };
+
+  // ---- drawer: items edit ----
+  const saveItems = async () => {
+    if (selectedOrder?.is_incomplete) { alert('ইনকমপ্লিট সারিতে এই কাজ করা যায় না — AbandonedCarts পেজ থেকে Remind/Offer পাঠান।'); return; }
+    if (!selectedOrder) return;
+    setDrawerBusy('items');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}/items`, {
+        method: 'PUT', headers: authJson(),
+        body: JSON.stringify({ items: editItems.map(i => ({ id: i.id, product_id: i.product_id, qty: Number(i.qty), price: Number(i.price) })) })
+      });
+      const data = await res.json();
+      if (data.ok) { alert('Items updated!'); fetchOrderDetails(selectedOrder.id); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
+  };
+
+  // D4: amount-only edit (PUT /:id/amount) + guarded delete (DELETE /:id)
+  const saveAmount = async () => {
+    if (selectedOrder?.is_incomplete) { alert('ইনকমপ্লিট সারিতে এই কাজ করা যায় না — AbandonedCarts পেজ থেকে Remind/Offer পাঠান।'); return; }
+    if (!selectedOrder) return;
+    setDrawerBusy('amount');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}/amount`, {
+        method: 'PUT', headers: authJson(),
+        body: JSON.stringify({ delivery_fee: Number(dFee) || 0, discount: Number(dDisc) || 0 })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert('Amount updated!');
+        setSelectedOrder((prev: any) => prev ? { ...prev, delivery_fee: data.delivery_fee, discount: data.discount, total_payable: data.total_payable } : prev);
+        fetchOrderDetails(selectedOrder.id); fetchOrders(pagination.page);
+      } else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
+  };
+
+  const deleteOrder = async (force = false): Promise<void> => {
+    if (!selectedOrder) return;
+    if (selectedOrder?.is_incomplete) {
+      if (!window.confirm('এই ইনকমপ্লিট সারি মুছবেন?')) return;
+      setDrawerBusy('delete');
+      try {
+        const cartId = String(selectedOrder.id).replace(/^INC-/, '');
+        const res = await fetch(`/api/admin/marketing/abandoned-carts/${cartId}`, { method: 'DELETE', headers: authHeaders() });
+        const data = await res.json();
+        if (data.ok) { alert('ইনকমপ্লিট সারি মোছা হয়েছে।'); setConfirmDelete(false); setDelForce(false); setSelectedOrder(null); fetchOrders(1); }
+        else alert(data.msg || 'Failed!');
+      } catch { alert('Failed!'); }
+      setDrawerBusy('');
+      return;
     }
+    setDrawerBusy('delete');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}${force ? '?force=1' : ''}`, { method: 'DELETE', headers: authHeaders() });
+      const data = await res.json();
+      if (data.ok) { alert('Order deleted!'); setConfirmDelete(false); setDelForce(false); setSelectedOrder(null); fetchOrders(pagination.page); }
+      else if ((data as any).courier && !force) {
+        setDrawerBusy('');
+        setDelForce(true);
+        return;
+      } else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
   };
 
-  const getStatusCount = (statusName: string) => {
-    const s = statusCounts.find(s => s.status === statusName);
-    return s ? s.count : 0;
+  const exportOrdersCsv = () => {
+    const q = new URLSearchParams({ status: filters.status, courier: filters.courier, search: filters.search, from: filters.from, to: filters.to });
+    window.open(`/api/admin/orders/export?${q.toString()}&token=${printToken()}`, '_blank');
+  };
+  const submitPartialReturn = async () => {
+    if (!selectedOrder) return;
+    if (selectedOrder?.is_incomplete) { alert('ইনকমপ্লিট সারিতে এই কাজ করা যায় না — AbandonedCarts পেজ থেকে Remind/Offer পাঠান।'); return; }
+    const items = Object.entries(retQty).filter(([, q]) => Number(q) > 0).map(([id, qty]) => ({ order_item_id: id, qty: Number(qty) }));
+    if (!items.length) return alert('Enter return qty!');
+    setDrawerBusy('ret');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}/partial-return`, {
+        method: 'POST', headers: authJson(),
+        body: JSON.stringify({ items, reason: retReason })
+      });
+      const data = await res.json();
+      if (data.ok) { alert('Partial return completed!'); setRetQty({}); setRetReason(''); fetchOrderDetails(selectedOrder.id); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
   };
 
-  const totalOrders = statusCounts.reduce((acc, curr) => acc + curr.count, 0);
+  const sendRiderReply = async () => {
+    if (selectedOrder?.is_incomplete) { alert('ইনকমপ্লিট সারিতে এই কাজ করা যায় না — AbandonedCarts পেজ থেকে Remind/Offer পাঠান।'); return; }
+    if (!selectedOrder || !riderMsg.trim()) return;
+    setDrawerBusy('rider');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}/rider-reply`, {
+        method: 'POST', headers: authJson(),
+        body: JSON.stringify({ message: riderMsg })
+      });
+      const data = await res.json();
+      if (data.ok) { alert('Reply sent to rider!'); setRiderMsg(''); fetchOrderDetails(selectedOrder.id); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
+  };
 
-  const TABS = [
-    { label: 'All Orders', value: 'all', count: totalOrders },
-    { label: 'Pending', value: 'pending', count: getStatusCount('pending') },
-    { label: 'Processing', value: 'processing', count: getStatusCount('processing') },
-    { label: 'Transit', value: 'transit', count: getStatusCount('transit') },
-    { label: 'Delivered', value: 'delivered', count: getStatusCount('delivered') },
-    { label: 'Cancelled', value: 'cancelled', count: getStatusCount('cancelled') },
-  ];
+  // ---- §10 drawer helpers ----
+  // imgSrc-style thumb unwrap: string fields first, then images JSON/array, then object {url|src}
+  // Order/cart line-item thumbnail. Delegates to the shared bestProductImage() so
+// admin orders use the same resolution chain as the storefront and the product
+// list (handles JSON strings, arrays, {src} objects, relative paths, and
+// prefers local /uploads over dead WordPress hotlinks).
+const itemThumb = (i: any): string => bestProductImage({
+  ...i,
+  images: i?.images || i?.product_images,
+  image: i?.image || i?.img,
+});
+  // fraud/check -> normalized { overall, perCourier } with legacy flat-payload fallback
+  const fraudTiles = () => {
+    const ov = fraud?.overall;
+    if (ov && typeof ov === 'object') {
+      const total = Number(ov.total) || 0;
+      const delivered = Number(ov.delivered) || 0;
+      const canceled = Number(ov.cancelled) || 0;
+      const pct = typeof ov.success_pct === 'number' ? ov.success_pct : (typeof fraud?.success_pct === 'number' ? fraud.success_pct : 0);
+      const pc = fraud?.perCourier && typeof fraud.perCourier === 'object' ? fraud.perCourier : {};
+      const perCourier = ['steadfast', 'redx', 'pathao', 'carrybee'].map(k => ({
+        key: k,
+        delivered: Number(pc?.[k]?.delivered) || 0,
+        total: Number(pc?.[k]?.total) || 0,
+      }));
+      return { total, delivered, canceled, pct, perCourier };
+    }
+    const flat: Record<string, any> = {};
+    const merge = (o: any) => { if (o && typeof o === 'object' && !Array.isArray(o)) Object.assign(flat, o); };
+    if (fraud) { merge(fraud.data); merge(fraud.data?.data); merge(fraud.data?.result); merge(fraud.data?.summary); merge(fraud); }
+    const lower: Record<string, any> = {};
+    for (const k of Object.keys(flat)) lower[k.toLowerCase()] = flat[k];
+    const pick = (...keys: string[]) => {
+      for (const k of keys) { const v = lower[k.toLowerCase()]; if (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v))) return Number(v); }
+      return 0;
+    };
+    const total = pick('total', 'total_orders', 'orders', 'count');
+    const delivered = pick('delivered', 'delivered_orders', 'success', 'successful', 'success_count');
+    const canceled = pick('cancelled', 'canceled', 'cancel', 'cancelled_orders') + pick('returned', 'return', 'returns', 'returned_orders');
+    const pct = typeof fraud?.success_pct === 'number' ? fraud.success_pct : (total > 0 ? +(delivered * 100 / total).toFixed(1) : 0);
+    const perCourier = ['steadfast', 'redx', 'pathao', 'carrybee'].map(k => ({ key: k, delivered: 0, total: 0 }));
+    return { total, delivered, canceled, pct, perCourier };
+  };
+  const drawerSubtotal = editItems.reduce((a, i) => a + Number(i.qty || 0) * Number(i.price || 0), 0);
+  const drawerTotal = drawerSubtotal + (Number(dFee) || 0) - (Number(dDisc) || 0);
+  const drawerPaid = (() => {
+    if (!selectedOrder) return false;
+    const ps = String(selectedOrder.payment_status || '').toLowerCase();
+    if (selectedOrder.is_paid === true || selectedOrder.is_paid === 1 || ps === 'paid') return true;
+    return selectedOrder.status === 'delivered' && (Number(selectedOrder.total_payable) || 0) <= 0;
+  })();
+  const saveCustomerNote = async (): Promise<boolean> => {
+    const phone = custPhone.trim() || selectedOrder?.phone || '';
+    if (!phone || !internalNote.trim()) return true;
+    try {
+      const res = await fetch(`/api/admin/customers/${encodeURIComponent(phone)}/note`, {
+        method: 'PUT', headers: authJson(), body: JSON.stringify({ note: internalNote.trim(), order_id: selectedOrder?.id })
+      });
+      const data = await res.json();
+      if (!data.ok) alert(data.msg || 'Note save failed!');
+      return !!data.ok;
+    } catch { alert('Note save failed!'); return false; }
+  };
+  // §10(8): Save = status (if changed) + internal note; Confirm/Cancel = quick status + note
+  const saveDrawer = async (forceStatus?: string) => {
+    if (!selectedOrder) return;
+    const target = forceStatus || pendingStatus;
+    setDrawerBusy('save');
+    try {
+      if (target && target !== selectedOrder.status) await updateStatus(selectedOrder.id, target);
+      try {
+        const custRes = await fetch(`/api/admin/orders/${selectedOrder.id}/customer`, {
+          method: 'PUT', headers: authJson(),
+          body: JSON.stringify({ customer_name: custName, phone: custPhone, address: custAddr, delivery_fee: Number(dFee) || 0, discount: Number(dDisc) || 0 })
+        });
+        const custData = await custRes.json().catch(() => ({} as any));
+        if (!custRes.ok || (custData && (custData as any).ok === false)) alert((custData as any).msg || 'Customer save failed!');
+      } catch { alert('Customer save failed!'); }
+      await saveCustomerNote();
+      setSelectedOrder((prev: any) => prev ? { ...prev, customer_name: custName, phone: custPhone, address: custAddr, delivery_fee: dFee, discount: dDisc, status: target || prev.status } : prev);
+      fetchOrders(pagination.page);
+    } finally { setDrawerBusy(''); }
+  };
+  // §10(4): stepper updates qty locally then persists via PUT /:id/items
+  const stepQty = async (idx: number, delta: number) => {
+    if (!selectedOrder) return;
+    const next = editItems.map((e, i) => i === idx ? { ...e, qty: Math.max(1, Number(e.qty || 1) + delta) } : e);
+    setEditItems(next);
+    setDrawerBusy('items');
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}/items`, {
+        method: 'PUT', headers: authJson(),
+        body: JSON.stringify({ items: next.map(i => ({ id: i.id, product_id: i.product_id, qty: Number(i.qty), price: Number(i.price) })) })
+      });
+      const data = await res.json();
+      if (data.ok) { fetchOrderDetails(selectedOrder.id); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setDrawerBusy('');
+  };
+
+  const printToken = () => encodeURIComponent(localStorage.getItem('bunon_token') || '');
+  const printInvoice = () => {
+    if (!selectedOrder) return;
+    window.open(`/api/admin/orders/print?id=${selectedOrder.id}&token=${printToken()}`, '_blank', 'width=800,height=900');
+  };
+
+  const fetchJourney = (orderId: string) => {
+    setJourneyLoading(true);
+    setJourney([]);
+    fetch(`/api/admin/orders/${orderId}/journey`, { headers: authHeaders() })
+      .then(res => res.json())
+      .then(data => setJourney(data.ok ? (data.journey || []) : []))
+      .catch(() => setJourney([]))
+      .finally(() => setJourneyLoading(false));
+  };
+
+  // DB stores UTC without TZ marker -> interpret as UTC, render Asia/Dhaka (+6h).
+  const asUtcDate = (raw: any): Date | null => {
+    const str = String(raw || '').trim();
+    if (!str) return null;
+    const hasTZ = /z$/i.test(str) || /[+-]\d{2}:?\d{2}$/.test(str);
+    const d = new Date(hasTZ ? str : str.replace(' ', 'T') + 'Z');
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dhakaTime = (raw: any): string => {
+    const d = asUtcDate(raw);
+    if (!d) { const s = String(raw || ''); return s || '-'; }
+    try {
+      const parts: Record<string, string> = {};
+      for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).formatToParts(d)) parts[x.type] = x.value;
+      return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} ${String(parts.dayPeriod || '').toUpperCase()}`;
+    } catch { return d.toLocaleString(); }
+  };
+
+  // order_journey.js theme port: status keyword -> color theme
+  const journeyTheme = (msg: string, type: string): string => {
+    const t = `${type || ''} ${msg || ''}`.toLowerCase();
+    if (/deliver|complete|success/.test(t)) return 'emerald';
+    if (/cancel|fail|return|reject|lost|damage/.test(t)) return 'rose';
+    if (/rider|pickup|picked|handover|agent|deliveryman/.test(t)) return 'cyan';
+    if (/transit|ship|transit|on[ _-]?the[ _-]?way|dispatch|out for/.test(t)) return 'indigo';
+    if (/hub|warehouse|facility|receiv|arriv|sort|depot/.test(t)) return 'blue';
+    if (/pend|confirm|hold|creat|book|order placed|assign/.test(t)) return 'amber';
+    return 'slate';
+  };
+  const JBADGE: Record<string, string> = {
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    rose: 'bg-rose-50 text-rose-700 border-rose-200',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    slate: 'bg-slate-50 text-slate-600 border-slate-200',
+  };
+  const jMsg = (j: any) => j.tracking_message || j.message || j.raw_status || '-';
+  const jAt = (j: any) => j.webhook_updated_at || j.created_at || j.at;
+
+  const bulkStatusApply = async () => {
+    if (!checked.size) return alert('Select at least one order!');
+    setBulkBusy(true);
+    try {
+      const res = await fetch('/api/admin/orders/bulk-status', {
+        method: 'POST', headers: authJson(),
+        body: JSON.stringify({ ids: [...checked].map(Number).filter(n => n > 0), status: bulkStatus })
+      });
+      const data = await res.json();
+      if (data.ok) { alert(`Bulk status (${bulkStatus}) done! Updated: ${data.updated ?? checked.size}`); setChecked(new Set()); fetchOrders(pagination.page); }
+      else alert(data.msg || 'Failed!');
+    } catch { alert('Failed!'); }
+    setBulkBusy(false);
+  };
+
+  const bulkDeleteIncomplete = async () => {
+    if (!checked.size) return alert('Select at least one order!');
+    const ids = [...checked].map(s => String(s).replace(/^INC-/, '')).filter(s => /^\d+$/.test(s));
+    if (!ids.length) return alert('No valid rows!');
+    if (!window.confirm(`${ids.length}টি ইনকমপ্লিট সারি মুছবেন?`)) return;
+    setBulkBusy(true);
+    try {
+      for (const id of ids) {
+        await fetch(`/api/admin/marketing/abandoned-carts/${id}`, { method: 'DELETE', headers: authHeaders() });
+      }
+      alert(`${ids.length}টি সারি মোছা হয়েছে।`);
+      setChecked(new Set()); fetchOrders(1);
+    } catch { alert('Failed!'); }
+    setBulkBusy(false);
+  };
+
+  const printBulkInvoices = () => {
+    if (!checked.size) return alert('Select at least one order!');
+    const ids = [...checked].map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (!ids.length) return alert('No valid orders!');
+    if (ids.length > 8) {
+      if (!window.confirm(`Print ${ids.length} invoices together?`)) return;
+      window.open(`/api/admin/orders/print?ids=${ids.join(',')}&token=${printToken()}`, '_blank', 'width=800,height=900');
+      return;
+    }
+    if (!window.confirm(`Open ${ids.length} invoices?`)) return;
+    ids.forEach((id, i) => setTimeout(() => {
+      window.open(`/api/admin/orders/print?id=${id}&token=${printToken()}`, '_blank', 'width=800,height=900');
+    }, i * 500));
+  };
 
   const handleRowClick = (order: any) => {
     setSelectedOrder(order);
+    if (order.is_incomplete) {
+      // Incomplete rows have no real order — seed drawer from queue data directly
+      const items = (order.cart_items || []).map((it: any) => ({ name: it.name || it.product_name, qty: Number(it.quantity || it.qty || 1), price: Number(it.price || 0), product_thumb: bestProductImage(it) }));
+      setOrderDetails({ items, logs: [], loading: false });
+      setEditItems(items.map((i: any) => ({ ...i })));
+      setRetQty({});
+      setCustName(order.customer_name || '');
+      setCustPhone(order.phone || '');
+      setCustAddr([order.address, order.city].filter(Boolean).join(', '));
+      setDFee(0); setDDisc(0); setInternalNote(''); setPendingStatus('incomplete');
+      setJourneyLoading(false);
+      setJourney([{ message: '🛒 কার্টে পণ্য রেখে গেছে — এখনো অর্ডার সম্পন্ন হয়নি', type: 'incomplete', created_at: order.created_at }]);
+      const ph = String(order.phone || '').replace(/\D/g, '');
+      if (ph) {
+        setFraud(null); setFraudLoading(true);
+        fetch(`/api/admin/fraud/check?phone=${encodeURIComponent(ph)}`, { headers: authHeaders() })
+          .then(r => r.json())
+          .then(d => setFraud(d.ok ? d : null))
+          .catch(() => setFraud(null))
+          .finally(() => setFraudLoading(false));
+      } else { setFraud(null); setFraudLoading(false); }
+      if (ph.length >= 6) {
+        setDupInfo(null);
+        fetch(`/api/admin/orders/check?phone=${encodeURIComponent(ph)}&invoice=${encodeURIComponent(order.invoice || '')}`, { headers: authHeaders() })
+          .then(r => r.json()).then(d => { if (d.ok) setDupInfo(d); }).catch(() => {});
+      } else setDupInfo(null);
+      return;
+    }
     fetchOrderDetails(order.id);
+    fetchJourney(order.id);
   };
 
+  useEffect(() => {
+    const h = searchParams.get('highlight');
+    if (h) {
+      setHighlightId(String(h));
+      const inList = orders.some((o: any) => String(o.id) === String(h) || String(o.invoice) === String(h));
+      if (!inList) setFilters((f: any) => ({ ...f, search: String(h) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!highlightId || orders.length === 0) return;
+    const hit = orders.find((o: any) => String(o.id) === String(highlightId) || String(o.invoice) === String(highlightId));
+    if (hit) {
+      handleRowClick(hit);
+      requestAnimationFrame(() => {
+        document.querySelector('[data-order-id="' + hit.id + '"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+      const t = setTimeout(() => setHighlightId(null), 8000);
+      return () => clearTimeout(t);
+    } else if (highlightId) {
+      fetchOrderDetails(highlightId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightId, orders]);
+
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#f8fafc] -mx-4 -my-6 px-4 py-6">
+    <div className="relative flex flex-col md:flex-row md:min-h-[calc(100vh-24px)] bg-[#f8fafc] -mx-4 -my-6 px-4 py-6 md:px-6 w-full">
+      {/* orders.html visual system: status-tab badges, tracking timeline, bulk-btn lift */}
+      <style>{`
+        .ord-status-tab .tab-badge { transition: all 0.3s; }
+        .ord-status-tab:not(.ord-active):hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.04); }
+        .ord-bulk-btn { transition: all 0.2s; }
+        .ord-bulk-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .tracking-timeline { position: relative; padding-left: 1.75rem; margin-top: 0.5rem; }
+        .tracking-timeline::before { content: ''; position: absolute; left: 0.5rem; top: 0.5rem; bottom: 0; width: 2px; background: #e2e8f0; border-radius: 999px; }
+        .tracking-item { position: relative; margin-bottom: 1rem; }
+        .tracking-item:last-child { margin-bottom: 0; }
+        .tracking-dot { position: absolute; left: -1.75rem; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; border: 3px solid #cbd5e1; z-index: 10; }
+        .tracking-item.active .tracking-dot { border-color: #3b82f6; box-shadow: 0 0 0 5px rgba(59,130,246,0.15); animation: ord-pulse-border 2s infinite; }
+        .tracking-item.completed .tracking-dot { border-color: #10b981; background: #10b981; }
+        .tracking-item.error .tracking-dot { border-color: #ef4444; background: #ef4444; }
+        .tracking-time { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tracking-content { font-size: 0.85rem; font-weight: 600; color: #334155; line-height: 1.5; }
+        @keyframes ord-pulse-border { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 70% { box-shadow: 0 0 0 8px rgba(59,130,246,0); } 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); } }
+      `}</style>
       {/* LEFT PANE: List */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${selectedOrder ? 'w-2/3 pr-4' : 'w-full'}`}>
-        
+      <div className={`w-full min-w-0 md:flex-1 md:flex md:flex-col md:min-h-0 transition-all duration-300 ${selectedOrder ? 'md:w-2/3 md:pr-4' : 'md:w-full'}`}>
+
         {/* Header Snapshot */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white mb-6 shadow-[0_10px_25px_-5px_rgba(59,130,246,0.4)]">
-          <h2 className="text-sm font-bold tracking-widest uppercase mb-1 opacity-80">Today's Snapshot</h2>
-          <div className="text-4xl font-black mb-4">{totalOrders}</div>
-          <div className="flex gap-8 text-sm font-semibold">
-            <div>Pend <span className="text-yellow-300">{getStatusCount('pending')}+</span></div>
-            <div>Ship <span className="text-blue-300">{getStatusCount('processing')}+</span></div>
-            <div>Del <span className="text-green-300">{getStatusCount('delivered')}+</span></div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-sm font-bold tracking-widest uppercase mb-1 opacity-80">Today's Summary</h2>
+              <div className="text-4xl font-black mb-4">{totalOrders}</div>
+              <div className="flex gap-8 text-sm font-semibold">
+                <div>Pending <span className="text-yellow-300">{getStatusCount('pending')}+</span></div>
+                <div>Shipped <span className="text-blue-300">{getStatusCount('in_transit') + getStatusCount('ready')}+</span></div>
+                <div>Delivered <span className="text-green-300">{getStatusCount('delivered')}+</span></div>
+              </div>
+            </div>
+            {can('create_orders') && (<button onClick={openPos} className="bg-white text-indigo-700 px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-50 transition shrink-0">
+              <FiPlus /> New Manual Order
+            </button>)}
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 flex gap-4 items-center">
-          <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 flex-1 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition">
+        {/* Filters: collapsible on mobile */}
+        <button onClick={() => setShowFilters(v => !v)} className="md:hidden mb-2 w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 flex items-center justify-between shadow-sm">
+          <span>Filters</span><span>{showFilters ? '▲' : '▼'}</span>
+        </button>
+        <div className={`${showFilters ? 'flex' : 'hidden'} md:flex bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 gap-3 items-center flex-wrap flex-col md:flex-row`}>
+          <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 flex-1 min-w-[200px] focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition">
             <FiSearch className="text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search Invoice / Phone..."
+            <input
+              type="text"
+              placeholder="Search invoice / phone / order ID..."
               className="bg-transparent border-none outline-none w-full text-sm"
               value={filters.search}
               onChange={e => setFilters({...filters, search: e.target.value})}
             />
           </div>
-          <select 
-            className="border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none bg-slate-50"
-            value={filters.courier}
-            onChange={e => setFilters({...filters, courier: e.target.value})}
-          >
-            <option value="all">Courier: All</option>
-            <option value="steadfast">Steadfast</option>
-            <option value="none">None</option>
+          <label className="text-xs font-bold text-slate-500">From <input type="date" className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-slate-50 ml-1" value={filters.from} onChange={e => setFilters({...filters, from: e.target.value})} /></label>
+          <label className="text-xs font-bold text-slate-500">To <input type="date" className="border border-slate-200 rounded-lg px-2 py-2 text-sm bg-slate-50 ml-1" value={filters.to} onChange={e => setFilters({...filters, to: e.target.value})} /></label>
+          <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})} className="border border-slate-200 rounded-lg px-2 py-2 text-sm font-bold bg-slate-50 text-slate-700 outline-none" aria-label="Filter by status">
+            <option value="all">All Statuses</option>
+            {STATUSES.map(s => (<option key={s.value} value={s.value}>{s.bn}</option>))}
           </select>
           <button onClick={() => fetchOrders(pagination.page)} className="bg-slate-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-slate-800 transition">
             <FiRefreshCw /> Reload
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{scrollbarWidth: 'none'}}>
-          {TABS.map(tab => (
+        {/* Status tabs (11) */}
+        <div className="relative z-20 flex gap-2 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible pb-2 mb-2 -mx-1 px-1 scroll-smooth" style={{scrollbarWidth: 'none'}}>
+          <button
+            onClick={(e) => { setFilters({...filters, status: 'all'}); e.currentTarget.scrollIntoView({inline: 'center', block: 'nearest', behavior: 'smooth'}); }}
+            className={`ord-status-tab inline-flex items-center justify-center gap-2 pl-5 pr-2 py-1 min-h-[36px] rounded-full text-xs font-bold leading-none whitespace-nowrap transition border snap-start shrink-0 ${filters.status === 'all' ? 'ord-active ' + statusTabActive('all') : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+          >All Orders<span className={`tab-badge px-2.5 py-1 rounded-full text-[10px] font-black ${filters.status === 'all' ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{totalOrders}</span></button>
+          {STATUSES.map(s => (
             <button
-              key={tab.value}
-              onClick={() => setFilters({...filters, status: tab.value})}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${
-                filters.status === tab.value 
-                  ? 'bg-slate-800 text-white border-slate-800' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+              key={s.value}
+              onClick={(e) => { setFilters({...filters, status: s.value}); e.currentTarget.scrollIntoView({inline: 'center', block: 'nearest', behavior: 'smooth'}); }}
+              className={`ord-status-tab inline-flex items-center justify-center gap-2 pl-5 pr-2 py-1 min-h-[36px] rounded-full text-xs font-bold leading-none whitespace-nowrap transition border snap-start shrink-0 ${filters.status === s.value ? 'ord-active ' + statusTabActive(s.value) : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
             >
-              {tab.label}
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                filters.status === tab.value ? 'bg-white/20' : 'bg-slate-100 text-slate-500'
-              }`}>
-                {tab.count}
-              </span>
+              {s.bn}
+              <span className={`tab-badge px-2.5 py-1 rounded-full text-[10px] font-black ${filters.status === s.value ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{getStatusCount(s.value)}</span>
             </button>
           ))}
         </div>
 
-        {/* Table */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col">
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider z-10">
+        {/* Courier tabs */}
+        <div className="relative z-20 flex gap-2 overflow-x-auto no-scrollbar md:flex-wrap md:overflow-visible pb-2 mb-2 -mx-1 px-1 scroll-smooth" style={{scrollbarWidth: 'none'}}>
+          {VISIBLE_COURIERS.map(c => (
+            <button
+              key={c.value}
+              onClick={(e) => { setFilters({...filters, courier: c.value}); e.currentTarget.scrollIntoView({inline: 'center', block: 'nearest', behavior: 'smooth'}); }}
+              className={`inline-flex items-center justify-center gap-2 px-3 min-h-[30px] rounded-full text-[11px] font-bold leading-none whitespace-nowrap transition border snap-start shrink-0 ${filters.courier === c.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+            ><FiTruck /> {c.bn}</button>
+          ))}
+          {checked.size > 0 && (
+            <div className="flex flex-col w-full gap-2 md:flex-row md:items-center md:w-auto md:ml-2 min-w-full md:min-w-0 basis-full md:basis-auto">
+              <span className="text-[11px] font-bold text-slate-600">{checked.size} selected</span>
+              {filters.status === 'incomplete' ? (
+              can('delete_orders') && (<button disabled={bulkBusy} onClick={bulkDeleteIncomplete} className="ord-bulk-btn w-full md:w-auto px-3 py-1.5 rounded-full text-[11px] font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50">
+                {bulkBusy ? '...' : `🗑 Bulk Delete (${checked.size})`}
+              </button>)
+              ) : (
+              <>
+              <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} className="w-full md:w-auto border border-slate-200 rounded-full px-3 py-1.5 text-[11px] font-bold bg-white outline-none">
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="on_hold">On Hold</option>
+                <option value="ready">Ready to Ship</option>
+                <option value="in_transit">In Transit</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              {can('bulk_orders', 'edit_orders') && (<button disabled={bulkBusy} onClick={bulkStatusApply} className="ord-bulk-btn w-full md:w-auto px-3 py-1.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+                {bulkBusy ? '...' : 'Apply Status'}
+              </button>)}
+              <button onClick={printBulkInvoices} className="ord-bulk-btn w-full md:w-auto px-3 py-1.5 rounded-full text-[11px] font-bold bg-slate-800 text-white hover:bg-slate-900 flex items-center gap-1">
+                <FiPrinter size={12} /> Print Invoices ({checked.size})
+              </button>
+              <button onClick={exportOrdersCsv} className="ord-bulk-btn w-full md:w-auto px-3 py-1.5 rounded-full text-[11px] font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1">
+                ⬇ Export CSV
+              </button>
+              {['steadfast','pathao','redx'].map(c => (
+                can('book_courier', 'sync_courier_status', 'bulk_orders') && (<button key={c} disabled={bulkBusy} onClick={() => bulkCourier(c)} className="ord-bulk-btn w-full md:w-auto px-3 py-1.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                  Send via {c}
+                </button>)
+              ))}
+              </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Snapshot mini-cards: orders.html 7-status palette (soft tint + tinted border) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 items-stretch">
+          <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 text-center shadow-sm flex flex-col items-center justify-center min-h-[88px]"><div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total</div><div className="text-xl font-black tabular-nums leading-none mt-1 text-slate-800">{totalOrders}</div></div>
+          <div className="bg-amber-50/60 border border-amber-200 rounded-2xl px-4 py-3 text-center shadow-sm flex flex-col items-center justify-center min-h-[88px]"><div className="text-[10px] font-extrabold text-amber-700/80 uppercase tracking-wider">Pending</div><div className="text-xl font-black tabular-nums leading-none mt-1 text-amber-600">{getStatusCount('pending')}</div></div>
+          <div className="bg-indigo-50/60 border border-indigo-200 rounded-2xl px-4 py-3 text-center shadow-sm flex flex-col items-center justify-center min-h-[88px]"><div className="text-[10px] font-extrabold text-indigo-700/80 uppercase tracking-wider">Ready</div><div className="text-xl font-black tabular-nums leading-none mt-1 text-indigo-600">{getStatusCount('ready')}</div></div>
+          <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl px-4 py-3 text-center shadow-sm flex flex-col items-center justify-center min-h-[88px]"><div className="text-[10px] font-extrabold text-emerald-700/80 uppercase tracking-wider">Delivered</div><div className="text-xl font-black tabular-nums leading-none mt-1 text-emerald-600">{getStatusCount('delivered')}</div></div>
+        </div>
+
+        {/* Table: taller desktop scroll area (mobile stays natural-flow) */}
+        <div className="relative z-0 overflow-x-auto bg-white border border-slate-200 rounded-2xl shadow-sm md:flex-1 md:min-h-[78vh]">
+          <div className="hidden md:block md:overflow-y-auto md:flex-1 md:min-h-0 thin-scroll">
+            <table className="w-full text-left text-sm whitespace-nowrap align-middle">
+              <thead className="bg-[#f8fafc] sticky top-0 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider z-[1]">
                 <tr>
-                  <th className="p-4 w-10">
-                    <input type="checkbox" className="rounded border-slate-300" />
-                  </th>
-                  <th className="p-4">Invoice</th>
-                  <th className="p-4">Customer</th>
-                  <th className="p-4">Phone</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Amount</th>
-                  <th className="p-4">Courier</th>
+                  <th className="p-4 align-middle w-10"><input type="checkbox" className="rounded border-slate-300" checked={orders.length > 0 && checked.size === orders.length} onChange={toggleAll} /></th>
+                  <th className="p-4 align-middle">Invoice</th>
+                  <th className="p-4 align-middle">Customer</th>
+                  <th className="p-4 align-middle">Phone</th>
+                  <th className="p-4 align-middle">Status</th>
+                  <th className="p-4 align-middle">Amount</th>
+                  <th className="p-4 align-middle">Courier</th>
+                  <th className="p-4 align-middle">Tracking</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={7} className="text-center p-8 text-slate-500">Loading...</td></tr>
+                  <tr><td colSpan={8} className="text-center p-8 text-slate-500">Loading...</td></tr>
                 ) : orders.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center p-8 text-slate-500">No orders found.</td></tr>
+                  <tr><td colSpan={8} className="text-center p-8 text-slate-500">No orders found.</td></tr>
                 ) : orders.map(order => (
-                  <tr 
-                    key={order.id} 
+                  <tr
+                    key={order.id}
+                    data-order-id={order.id}
                     onClick={() => handleRowClick(order)}
-                    className={`cursor-pointer hover:bg-slate-50 transition ${selectedOrder?.id === order.id ? 'bg-blue-50/50' : ''}`}
+                    className={`table-row cursor-pointer hover:bg-slate-100 transition ${selectedOrder?.id === order.id || String(highlightId) === String(order.id) || String(highlightId) === String(order.invoice) ? 'bg-blue-50/50 ring-2 ring-blue-400' : ''}`}
                   >
-                    <td className="p-4"><input type="checkbox" className="rounded border-slate-300" onClick={e=>e.stopPropagation()} /></td>
-                    <td className="p-4 font-bold text-slate-700">#{order.invoice}</td>
-                    <td className="p-4 font-medium text-slate-600">{order.customer_name}</td>
-                    <td className="p-4 text-slate-500 font-mono">{order.phone}</td>
-                    <td className="p-4">
-                      <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                        {order.status}
-                      </span>
+                    <td className="px-4 py-3.5 align-middle"><input type="checkbox" className="rounded border-slate-300" checked={checked.has(String(order.id))} onChange={() => toggleCheck(String(order.id))} onClick={e=>e.stopPropagation()} /></td>
+                    <td className="px-4 py-3.5 align-middle font-bold text-slate-700">#{order.invoice}</td>
+                    <td className="px-4 py-3.5 align-middle font-medium text-slate-600">{order.customer_name}</td>
+                    <td className="px-4 py-3.5 align-middle text-slate-500 font-mono">{order.phone}</td>
+                    <td className="px-4 py-3.5 align-middle">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusPill(order.status)}`}>{order.status}</span>
                     </td>
-                    <td className="p-4 font-bold text-slate-800">৳{order.total_payable}</td>
-                    <td className="p-4">
-                      {order.consignment_id ? (
-                        <span className="text-blue-600 text-xs font-semibold flex items-center gap-1">
-                          <FiTruck /> Steadfast
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-xs">-</span>
-                      )}
+                    <td className="px-4 py-3.5 align-middle font-bold text-slate-800">৳{order.total_payable}</td>
+                    <td className="px-4 py-3.5 align-middle">
+                      {order.consignment_id || order.courier ? (
+                        <span className="text-blue-600 text-xs font-semibold flex items-center gap-1"><FiTruck /> {order.courier || 'Steadfast'}</span>
+                      ) : (<span className="text-slate-400 text-xs">-</span>)}
+                    </td>
+                    <td className="px-4 py-3.5 align-middle" onClick={e => e.stopPropagation()}>
+                      {order.tracking_url || order.tracking_link ? (
+                        <a href={order.tracking_url || order.tracking_link} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold underline">Track</a>
+                      ) : order.consignment_id ? (
+                        <span className="text-slate-500 text-xs font-mono">{order.consignment_id}</span>
+                      ) : (<span className="text-slate-300 text-xs">-</span>)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          
-          {/* Pagination Footer */}
-          <div className="border-t border-slate-200 p-4 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
-            <div>Showing page {pagination.page} of {pagination.totalPages}</div>
-            <div className="flex gap-2">
-              <button 
-                disabled={pagination.page === 1}
-                onClick={() => fetchOrders(pagination.page - 1)}
-                className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50"
-              ><FiChevronLeft /></button>
-              <button 
-                disabled={pagination.page === pagination.totalPages}
-                onClick={() => fetchOrders(pagination.page + 1)}
-                className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50"
-              ><FiChevronRight /></button>
+          {/* Mobile stacked cards (<md only) */}
+          <div className="md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="text-center p-8 text-slate-500 text-sm">Loading...</div>
+            ) : orders.length === 0 ? (
+              <div className="text-center p-8 text-slate-500 text-sm">No orders found.</div>
+            ) : orders.map(order => (
+              <div key={order.id} data-order-id={order.id} onClick={() => handleRowClick(order)} className={`p-4 flex gap-3 cursor-pointer active:bg-slate-50 ${selectedOrder?.id === order.id || String(highlightId) === String(order.id) || String(highlightId) === String(order.invoice) ? 'bg-blue-50/50 ring-2 ring-blue-400' : ''}`}>
+                <input type="checkbox" className="rounded border-slate-300 mt-1 shrink-0 w-4 h-4" checked={checked.has(String(order.id))} onChange={() => toggleCheck(String(order.id))} onClick={e=>e.stopPropagation()} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-700 text-sm">#{order.invoice}</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border shrink-0 ml-auto text-right ${statusPill(order.status)}`}>{order.status}</span>
+                  </div>
+                  <div className="text-sm font-medium text-slate-600 truncate mt-0.5 min-w-0">{order.customer_name}</div>
+                  <div className="text-xs text-slate-500 font-mono">{order.phone}</div>
+                  <div className="text-[11px] text-slate-400">{order.created_at ? timeAgoBn(order.created_at) : ''}</div>
+                  <div className="flex items-center justify-between gap-2 mt-1.5 text-xs">
+                    <span className="font-bold text-slate-800">৳{order.total_payable}</span>
+                    <span className="text-blue-600 font-semibold flex items-center gap-1 ml-auto text-right"><FiTruck size={12} /> {order.courier || order.consignment_id || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Footer — per page + responsive pagination */}
+          <div className="border-t border-slate-200 p-3 md:p-4 bg-slate-50 flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-xs text-slate-500">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>Page {pagination.page} / {pagination.totalPages} (Total {pagination.total})</span>
+              <label className="flex items-center gap-1.5 ml-1">
+                <span className="whitespace-nowrap">Per page:</span>
+                <select value={pageSize} onChange={(e) => changePageSize(Number(e.target.value))} className="bg-white border border-slate-200 rounded px-2 py-1.5 text-xs font-semibold text-slate-700">
+                  {PAGE_SIZES.map((n) => (<option key={n} value={n}>{n}</option>))}
+                </select>
+              </label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button disabled={pagination.page === 1} onClick={() => fetchOrders(pagination.page - 1, pageSize)} aria-label="Previous page" className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50"><FiChevronLeft /></button>
+              {/* xs: compact current/total only */}
+              <span className="md:hidden px-2 font-bold text-slate-700 whitespace-nowrap">{pagination.page}/{pagination.totalPages}</span>
+              {/* md+: full page numbers */}
+              <div className="hidden md:flex items-center gap-1">
+                {pageNumbers().map((n) => (
+                  <button key={n} onClick={() => fetchOrders(n, pageSize)} className={n === pagination.page ? 'min-w-[32px] px-2 py-1.5 rounded bg-slate-900 text-white font-bold' : 'min-w-[32px] px-2 py-1.5 rounded bg-white border border-slate-200 hover:bg-slate-100 font-semibold'}>{n}</button>
+                ))}
+              </div>
+              <button disabled={pagination.page === pagination.totalPages || pagination.totalPages === 0} onClick={() => fetchOrders(pagination.page + 1, pageSize)} aria-label="Next page" className="p-2 bg-white border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50"><FiChevronRight /></button>
             </div>
           </div>
         </div>
@@ -242,103 +1011,423 @@ export default function OrdersManager() {
       {/* RIGHT PANE: Order Journey */}
       <AnimatePresence>
         {selectedOrder && (
-          <motion.div 
+          <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: '33.333333%', opacity: 1 }}
+            animate={{ width: '22%', opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="h-full bg-white border-l border-slate-200 shadow-xl overflow-hidden flex flex-col rounded-2xl"
+            className="h-full bg-white border-l border-slate-200 shadow-xl overflow-hidden flex flex-col rounded-2xl max-md:!w-full max-md:fixed max-md:inset-0 max-md:z-50 max-md:rounded-none"
           >
-            {/* Pane Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 uppercase tracking-widest">
-                <FiFileText /> Order Journey
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 uppercase tracking-widest"><FiFileText /> Order Journey</div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setWaOpen(true)} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs font-bold transition">💬 WA Chat</button>
+                <button onClick={() => setSelectedOrder(null)} className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition"><FiX /></button>
               </div>
-              <button onClick={() => setSelectedOrder(null)} className="p-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 transition">
-                <FiX />
-              </button>
             </div>
 
             <div className="p-6 flex-1 overflow-y-auto">
-              {/* Order Info Card */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white mb-6 relative overflow-hidden shadow-[0_10px_25px_-5px_rgba(59,130,246,0.4)]">
-                <div className="absolute top-0 right-0 p-4 opacity-20">
-                  <FiPackage size={100} />
+              {/* §10(1) gradient header: invoice mono + status pill + Payable + Collected + tracking */}
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-4 rounded-xl text-white shadow-sm border border-blue-500 relative overflow-hidden mb-4">
+                <div className="flex justify-between items-start mb-2 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-xl font-mono">#{selectedOrder.invoice}</h3>
+                  </div>
+                  <span className="text-[10px] font-black uppercase bg-white/20 px-2.5 py-1 rounded-full shadow-sm">{selectedOrder.status}</span>
+                  <div className="text-[11px] opacity-80 mt-1 relative z-10">{selectedOrder.created_at ? timeAgoBn(selectedOrder.created_at) : ''}</div>
                 </div>
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Invoice</div>
-                      <div className="text-3xl font-black mb-4">#{selectedOrder.invoice}</div>
-                    </div>
-                    <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm uppercase">
-                      {selectedOrder.status}
+                <div className="flex justify-between items-end relative z-10 mt-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest opacity-80 mb-0.5">Payable Amount</p>
+                    <p className="font-mono text-lg font-black mb-1">৳{Number(drawerTotal || selectedOrder.total_payable || 0).toLocaleString('en-IN')}</p>
+                    <div className="inline-flex items-center gap-1.5 bg-emerald-900/40 border border-emerald-400/30 px-2 py-1 rounded">
+                      <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wide">Collected:</span>
+                      <span className="text-white text-[11px] font-mono font-black">৳{drawerPaid ? Number(selectedOrder.total_payable || 0).toLocaleString('en-IN') : 0}</span>
                     </div>
                   </div>
-                  <div className="text-2xl font-bold font-mono">৳{selectedOrder.total_payable}</div>
+                  <div>{(selectedOrder.consignment_id || selectedOrder.tracking_code) ? (<span className="bg-white/10 px-3 py-1 rounded-full text-[10px] border border-white/10 font-mono">{selectedOrder.consignment_id || selectedOrder.tracking_code}</span>) : (<span className="bg-white/10 px-3 py-1 rounded-full text-[10px] border border-white/10 opacity-70">No Tracking</span>)}</div>
+                </div>
+                <button onClick={printInvoice} className="mt-3 bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition relative z-10"><FiPrinter /> Print Invoice</button>
+              </div>
+
+              {dupInfo && dupInfo.count > 0 && (
+                <div className="mb-2 text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">⚠️ {dupInfo.count} orders from this number in the last 7 days (duplicate risk)</div>
+              )}
+              {/* §10(2) editable customer + Call button */}
+              <div className="bg-slate-50 p-3 rounded border border-slate-100 space-y-2 mb-2">
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold">Customer Name</label>
+                  <input className="w-full mt-0.5 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" value={custName} onChange={e => setCustName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold">Phone</label>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                    <input className="w-full flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" value={custPhone} onChange={e => setCustPhone(e.target.value)} />
+                    {custPhone.trim() && (<a href={`tel:${custPhone.trim()}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shadow-sm whitespace-nowrap"><span>📞</span><span>Call</span></a>)}
+                    {custPhone.trim() && (<button onClick={() => setWaOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500 hover:bg-green-600 text-white text-[11px] font-semibold shadow-sm whitespace-nowrap"><span>💬</span><span>WhatsApp</span></button>)}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold">Address</label>
+                  <textarea rows={2} className="w-full mt-0.5 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" value={custAddr} onChange={e => setCustAddr(e.target.value)} />
+                </div>
+              </div>
+              {/* §10(3) Courier Summary 4 tiles from fraud/check */}
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-3 rounded border border-indigo-100 mb-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Courier Summary</h4>
+                  <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-bold">BUNON</span>
+                </div>
+                {fraudLoading ? (
+                  <div className="text-[11px] text-slate-400 animate-pulse text-center py-2">Loading courier history...</div>
+                ) : fraud ? (
+                  <>
+                  {(() => {
+                    const sf = (fraud as any)?.steadfast_score as any;
+                    if (!sf) return null;
+                    const lvl = String(sf.level || 'new').toLowerCase();
+                    const color = lvl === 'trusted' ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                      : lvl === 'good' ? 'text-teal-600 border-teal-200 bg-teal-50'
+                      : lvl === 'caution' ? 'text-amber-600 border-amber-200 bg-amber-50'
+                      : lvl === 'risky' ? 'text-orange-600 border-orange-200 bg-orange-50'
+                      : lvl === 'danger' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                      : 'text-slate-600 border-slate-200 bg-slate-50';
+                    const bn = { trusted: 'Trusted', good: 'Good', caution: 'Caution', risky: 'Risky', danger: 'Dangerous', new: 'New' };
+                    return (
+                      <>
+                      {(Array.isArray((sf as any).reasons) && (sf as any).reasons.length > 0) || (sf as any).doubtful_reports ? (
+                        <div className="text-[9px] text-slate-500 mb-2 px-1">কারণ: {((sf as any).reasons || []).join(', ')}{(sf as any).doubtful_reports ? ' • সন্দেহজনক রিপোর্ট আছে' : ''} • মোট রিপোর্ট: {(sf as any).total_reports ?? 0}</div>
+                      ) : null}
+                      <div className={"flex justify-between items-center rounded-lg border px-2.5 py-1.5 mb-2 " + color}>
+                        <span className="text-[10px] font-bold">Steadfast Score: {sf.score === null || sf.score === undefined ? 'অজানা (নতুন নম্বর)' : sf.score} <span className="opacity-70">({bn[lvl] || lvl})</span>{(sf as any).doubtful_reports ? ' ⚠️' : ''}</span>
+                        <span className="text-[10px] font-black">{sf.score === null || sf.score === undefined ? '' : sf.score + '/100'}</span>
+                      </div>
+                      </>
+                    );
+                  })()}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                    <div className="bg-white rounded p-1.5 border border-indigo-100 text-center shadow-sm"><p className="text-[9px] text-slate-500 mb-0.5">Total</p><p className="text-sm font-bold text-slate-800">{fraudTiles().total}</p></div>
+                    <div className="bg-white rounded p-1.5 border border-indigo-100 text-center shadow-sm"><p className="text-[9px] text-slate-500 mb-0.5">Delivered</p><p className="text-sm font-bold text-emerald-600">{fraudTiles().delivered}</p></div>
+                    <div className="bg-white rounded p-1.5 border border-indigo-100 text-center shadow-sm"><p className="text-[9px] text-slate-500 mb-0.5">Cancelled</p><p className="text-sm font-bold text-rose-600">{fraudTiles().canceled}</p></div>
+                    <div className="bg-white rounded p-1.5 border border-indigo-100 text-center shadow-sm"><p className="text-[9px] text-slate-500 mb-0.5">Success</p><p className="text-sm font-bold text-amber-500">{fraudTiles().pct}%</p></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {fraudTiles().perCourier.map((c: { key: string; delivered: number; total: number }) => (
+                      <div key={c.key} className="bg-white rounded px-2 py-1 border border-indigo-100 shadow-sm flex justify-between items-center">
+                        <p className="text-[10px] font-bold text-slate-600 capitalize">{c.key === 'redx' ? 'RedX' : c.key.charAt(0).toUpperCase() + c.key.slice(1)}</p>
+                        <p className="text-[11px] font-bold text-slate-800">{c.delivered}/{c.total}</p>
+                      </div>
+                    ))}
+                  </div>
+                  </>
+                ) : (
+                  <div className="text-[11px] text-slate-400 text-center py-2">No courier history found</div>
+                )}
+              </div>
+
+              {/* T2: ORDER SUMMARY tiles — items / qty / amount */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center"><div className="text-[9px] font-bold text-slate-400 uppercase">Items</div><div className="text-base font-black text-slate-800">{editItems.length}</div></div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center"><div className="text-[9px] font-bold text-slate-400 uppercase">Total Qty</div><div className="text-base font-black text-slate-800">{editItems.reduce((n, i) => n + (Number(i.qty) || 0), 0)}</div></div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-center"><div className="text-[9px] font-bold text-slate-400 uppercase">Total Amount</div><div className="text-base font-black text-indigo-700">৳{drawerSubtotal.toLocaleString('en-IN')}</div></div>
+              </div>
+              {/* §10(4) Items: thumb + SKU + stepper + line total */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Items</p>
+                  <span className="text-[10px] bg-slate-100 px-1.5 rounded-full text-slate-600">{editItems.length}</span>
+                </div>
+                <div className="bg-white border border-slate-100 rounded p-2 shadow-sm max-h-40 overflow-y-auto mb-2">
+                  {orderDetails.loading ? (
+                    <div className="text-sm text-slate-400 animate-pulse">Loading...</div>
+                  ) : editItems.map((item, idx) => (
+                    <div key={item.id || idx} className="flex justify-between items-start py-2 border-b border-dashed border-slate-200 last:border-0">
+                      <div className="flex items-start gap-2">
+                        <div className="w-10 h-10 rounded border border-slate-100 bg-slate-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          <ProductImage src={itemThumb(item)} alt="thumb" className="w-10 h-10 rounded object-cover" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-700 text-xs leading-snug">{item.product_name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">SKU: {item.sku || item.product_sku || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col items-end gap-1 shrink-0 ml-2">
+                        <div className="flex items-center border border-slate-200 rounded bg-slate-50 overflow-hidden shadow-sm">
+                          <button disabled={drawerBusy === 'items'} onClick={() => stepQty(idx, -1)} className="px-2 py-0.5 hover:bg-slate-200 text-slate-600 transition text-[10px] disabled:opacity-50">-</button>
+                          <span className="px-1.5 text-[10px] font-mono border-x border-slate-200 min-w-[20px] text-center bg-white font-bold">{item.qty}</span>
+                          <button disabled={drawerBusy === 'items'} onClick={() => stepQty(idx, 1)} className="px-2 py-0.5 hover:bg-slate-200 text-slate-600 transition text-[10px] disabled:opacity-50">+</button>
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-mono">x ৳{item.price}</div>
+                        <p className="font-bold text-slate-800 font-mono text-xs">৳{Number(item.qty || 0) * Number(item.price || 0)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {can('edit_orders') && editItems.length > 0 && (
+                <button disabled={drawerBusy === 'items'} onClick={saveItems} className="w-full mb-4 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
+                  {drawerBusy === 'items' ? 'Saving...' : 'Save Items'}
+                </button>
+              )}
+              {/* §10(5) money box: subtotal auto + delivery/discount inputs + Total live + DUE/PAID */}
+              <div className="space-y-1 text-xs border-t border-slate-100 pt-2 bg-slate-50 rounded p-2 mb-2">
+                <div className="flex justify-between text-slate-500 mb-1">
+                  <span>Subtotal</span>
+                  <span className="font-mono">৳{drawerSubtotal.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 gap-2">
+                  <span>Delivery</span>
+                  <input type="number" className="w-24 text-right border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500" value={dFee} onChange={e => setDFee(Number(e.target.value))} />
+                </div>
+                <div className="flex justify-between items-center text-slate-600 gap-2">
+                  <span>Discount</span>
+                  <input type="number" className="w-24 text-right border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-blue-500" value={dDisc} onChange={e => setDDisc(Number(e.target.value))} />
+                </div>
+                <div className="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-200 pt-1 mt-1">
+                  <span>Total Payable</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono">৳{drawerTotal.toLocaleString('en-IN')}</span>
+                    {drawerPaid
+                      ? (<span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">🟢 PAID</span>)
+                      : (<span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">🔴 DUE</span>)}
+                  </span>
+                </div>
+              </div>
+              {can('edit_orders') && (<button disabled={drawerBusy === 'amount'} onClick={saveAmount} className="w-full mb-2 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50">
+                {drawerBusy === 'amount' ? 'Saving...' : 'Save Amount'}
+              </button>)}
+              {/* §10(6) Internal Note -> PUT /customers/:phone/note on Save */}
+              <div className="pt-2 border-t border-slate-100 bg-white rounded p-2 space-y-1 mb-4">
+                <label className="text-[10px] text-slate-500 font-bold uppercase">Internal Note (Team only)</label>
+                <textarea rows={3} className="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder="Write a short note about this order..." value={internalNote} onChange={e => setInternalNote(e.target.value)} />
+                <p className="text-[10px] text-slate-400">Example: "Customer called to change address" / "Call back tomorrow"</p>
+              </div>
+
+              {/* §10(7) Order Logs: Dhaka time + type pill + By actor */}
+              <div className="pt-2 border-t border-slate-100 bg-slate-50 rounded p-2 space-y-2 mb-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Order Logs</p>
+                  <span className="text-[9px] text-slate-400">{orderDetails.logs.length} entry • Dhaka time</span>
+                </div>
+                <div className="bg-white border border-slate-100 rounded max-h-40 overflow-y-auto">
+                  {orderDetails.loading ? (
+                    <div className="text-[11px] text-slate-400 animate-pulse text-center py-3">Loading...</div>
+                  ) : orderDetails.logs.length === 0 ? (
+                    <div className="text-[11px] text-slate-400 text-center py-3">No logs</div>
+                  ) : orderDetails.logs.map((l: any, idx: number) => {
+                    const lt = l.created_at || l.at || l.timestamp || l.updated_at;
+                    const ty = String(l.type || l.action || l.log_type || 'LOG').toUpperCase();
+                    const tx = l.message || l.note || l.text || l.description || '-';
+                    const by = l.actor || l.by || l.created_by || l.admin || l.user || '-';
+                    return (
+                      <div key={l.id || idx} className="flex gap-3 px-3 py-2 border-b border-slate-100 last:border-0">
+                        <div className="w-40 text-[10px] text-slate-500 font-mono shrink-0">{dhakaTime(lt)} • {timeAgoBn(lt)}</div>
+                        <div className="flex-1">
+                          <div className="text-[11px] text-slate-800">{tx}</div>
+                          <div className="mt-0.5 text-[10px] text-slate-500 flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 font-mono">{ty}</span>
+                            <span className="flex items-center gap-1.5"><UserAvatar name={by} size={18} />By <strong>{by}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Customer Info */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0"><FiUser /></div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Customer Name</div>
-                    <div className="text-sm font-bold text-slate-800">{selectedOrder.customer_name}</div>
-                  </div>
+              {/* §10(8) Update Status select + Save/Confirm/Cancel */}
+              <div className="pt-4 space-y-3 pb-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 font-bold uppercase">Update Status</label>
+                  <select
+                    className="w-full mt-1 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none font-bold text-slate-700 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                    value={pendingStatus}
+                    onChange={(e) => setPendingStatus(e.target.value)}
+                  >
+                    {STATUSES.map(s => <option key={s.value} value={s.value}>{s.bn}</option>)}
+                  </select>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><FiPhone /></div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Phone Number</div>
-                    <div className="text-sm font-bold text-slate-800 font-mono">{selectedOrder.phone}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0"><FiMapPin /></div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Delivery Address</div>
-                    <div className="text-sm font-bold text-slate-800">{selectedOrder.address}, {selectedOrder.city}</div>
-                  </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {can('update_order_status', 'edit_orders') && (<><button disabled={drawerBusy === 'save'} onClick={() => saveDrawer()} className="px-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded text-xs font-bold transition flex items-center justify-center disabled:opacity-50">💾 {drawerBusy === 'save' ? '...' : 'Save'}</button>
+                  <button disabled={drawerBusy === 'save'} onClick={() => saveDrawer('confirmed')} className="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition flex items-center justify-center disabled:opacity-50">✅ Confirm</button>
+                  <button disabled={drawerBusy === 'save'} onClick={() => saveDrawer('cancelled')} className="px-2 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold transition flex items-center justify-center disabled:opacity-50">✖ Cancel</button></>)}
                 </div>
               </div>
 
-              {/* Items List */}
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Order Items</h3>
-              <div className="space-y-3 mb-6">
-                {orderDetails.loading ? (
-                  <div className="text-sm text-slate-400 animate-pulse">Loading items...</div>
-                ) : orderDetails.items.map(item => (
-                  <div key={item.id} className="flex gap-3 bg-white border border-slate-100 p-3 rounded-xl shadow-sm">
-                    <img src={item.product_thumb || 'https://via.placeholder.com/60'} alt="thumb" className="w-16 h-16 rounded-lg object-cover bg-slate-100" />
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-1">{item.product_name}</div>
-                      <div className="text-xs text-slate-500 font-medium">Qty: {item.qty} × ৳{item.price}</div>
+              {selectedOrder?.is_incomplete && (
+              can('delete_orders') && (<button disabled={drawerBusy === 'delete'} onClick={() => { setDelForce(false); setConfirmDelete(true); }} className="w-full mb-4 bg-white border border-rose-300 text-rose-600 py-2 rounded-xl text-xs font-bold hover:bg-rose-50 disabled:opacity-50">
+                {drawerBusy === 'delete' ? 'Deleting...' : '🗑 Delete Order'}
+              </button>)
+              )}
+              {/* existing return + rider actions, kept */}
+              <details className="mb-4 border border-slate-200 rounded-xl">
+                <summary className="px-4 py-2.5 text-xs font-bold text-slate-600 cursor-pointer">More Actions (Return / Rider)</summary>
+                <div className="p-4 pt-2 space-y-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Partial Return</h3>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                      {orderDetails.items.map(it => (
+                        <div key={it.id} className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-slate-700 line-clamp-1 flex-1 min-w-0">{it.product_name} (Bought: {it.qty})</span>
+                          <input type="number" min={0} max={it.qty} placeholder="0" className="w-16 border border-slate-200 rounded-lg px-2 py-1 text-center ml-2"
+                            value={retQty[it.id] || ''} onChange={e => setRetQty({ ...retQty, [it.id]: Number(e.target.value) })} />
+                        </div>
+                      ))}
+                      <input type="text" placeholder="Return reason..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs mt-2" value={retReason} onChange={e => setRetReason(e.target.value)} />
+                      {can('edit_orders', 'update_order_status') && (<button disabled={drawerBusy === 'ret'} onClick={submitPartialReturn} className="w-full bg-amber-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50">
+                        {drawerBusy === 'ret' ? 'Processing...' : 'Submit Return'}
+                      </button>)}
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div>
+                    <h3 className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Rider Reply</h3>
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="Message to rider..." className="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-500" value={riderMsg} onChange={e => setRiderMsg(e.target.value)} />
+                      {can('edit_orders') && (<button disabled={drawerBusy === 'rider'} onClick={sendRiderReply} className="bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 disabled:opacity-50"><FiSend /></button>)}
+                    </div>
+                  </div>
+                </div>
+              </details>
 
-              {/* Update Status */}
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Update Status</h3>
-              <div className="flex flex-col gap-2">
-                <select 
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none font-bold text-slate-700 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  value={selectedOrder.status}
-                  onChange={(e) => updateStatus(selectedOrder.id, e.target.value)}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="transit">Transit</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+              {/* §10(9) Journey timeline at bottom (existing code reused) */}
+              <h3 className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Courier Journey</h3>
+              <div className="mb-6">
+                {journeyLoading ? (
+                  <div className="text-sm text-slate-400 animate-pulse">Loading journey...</div>
+                ) : journey.length === 0 ? (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-xs text-slate-500 font-medium">Waiting to be sent to the courier...</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] [&_td]:align-middle [&_th]:align-middle">
+                      <thead><tr><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase border-b">Time</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase border-b">Event</th><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase border-b">Status</th></tr></thead>
+                      <tbody>
+                        {journey.map((j: any, idx: number) => {
+                          const theme = journeyTheme(jMsg(j), j.type || j.raw_status || '');
+                          const latest = idx === journey.length - 1;
+                          return (
+                            <tr key={j.id || idx}>
+                              <td className="px-3 py-2 text-sm border-b border-gray-100 whitespace-nowrap">{dhakaTime(jAt(j))} • {timeAgoBn(jAt(j))}</td>
+                              <td className="px-3 py-2 text-sm border-b border-gray-100">{jMsg(j)}{j.source === 'steadfast' && <span className="text-[9px] font-bold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full uppercase ml-1">Steadfast Live</span>}{latest && <span className="text-[9px] font-bold bg-slate-800 text-white px-1.5 py-0.5 rounded-full uppercase ml-1">Latest</span>}</td>
+                              <td className="px-3 py-2 text-sm border-b border-gray-100"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${JBADGE[theme]}`}>{theme === 'emerald' ? '✓ Done' : theme === 'rose' ? '✖ Issue' : theme}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+            <ConfirmModal open={confirmDelete} title={delForce ? 'Force Delete' : 'Delete Order'}
+        message={delForce ? 'Order already sent to courier — force delete?' : `#${selectedOrder?.invoice || selectedOrder?.id || ''} Delete permanently?`}
+        confirmLabel={delForce ? 'Force Delete' : 'Delete'} busy={drawerBusy === 'delete'}
+        onConfirm={() => deleteOrder(delForce)} onClose={() => { setConfirmDelete(false); setDelForce(false); }} />
+{/* POS side drawer */}
+      <AnimatePresence>
+        {showManual && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowManual(false)}>
+            <motion.div initial={{ x: 400 }} animate={{ x: 0 }} exit={{ x: 400 }} transition={{ type: 'tween', duration: 0.25 }} onClick={e => e.stopPropagation()} className="absolute inset-0 w-full md:inset-auto md:right-0 md:top-0 md:h-full md:w-96 md:max-w-[95vw] bg-white shadow-2xl flex flex-col">
+              {/* (1) blue gradient header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-black">New Order (POS)</h2>
+                  <button onClick={() => setShowManual(false)} className="p-2 bg-white/20 rounded-full hover:bg-white/30"><FiX /></button>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-sm font-bold">
+                  <span className="flex items-center gap-2"><FiPackage /> Cart: {cartQty} items</span>
+                  <span>Total: ৳{grandTotal}</span>
+                </div>
+                <div className="grid grid-cols-3 text-[11px] font-bold mt-2 opacity-80">
+                  <span>Qty</span><span className="text-center">Price</span><span className="text-right">Total</span>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* (2) product search + cart */}
+                <div>
+                  <div className="border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <FiSearch className="text-slate-400" />
+                    <input placeholder="Search products..." className="w-full outline-none text-sm" value={pq} onChange={e => searchProducts(e.target.value)} />
+                  </div>
+                  {presults.length > 0 && (
+                    <div className="border border-slate-100 rounded-xl mt-2 max-h-40 overflow-y-auto divide-y">
+                      {presults.slice(0, 8).map((p: any) => (
+                        <div key={p.id} className="flex items-center justify-between p-2 text-sm">
+                          <ProductImage src={bestProductImage(p)} alt='' className='w-8 h-8 rounded object-cover shrink-0' />
+                          <span className="font-medium flex-1 min-w-0 truncate pr-2">{p.name || p.title} — ৳{p.sale_price ?? p.price}</span>
+                          <button onClick={() => addToCart(p)} className="bg-green-600 text-white w-7 h-7 rounded-full text-lg font-bold leading-none hover:bg-green-700 shrink-0">+</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-2 mt-3">
+                    {cart.map(c => (
+                      <div key={c.product_id} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                        <div className="font-medium truncate">{c.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button onClick={() => setCart(cart.map(x => x.product_id === c.product_id ? { ...x, qty: Math.max(1, Number(x.qty) - 1) } : x))} className="p-1 border rounded"><FiMinus size={12} /></button>
+                          <span className="font-bold w-6 text-center">{c.qty}</span>
+                          <button onClick={() => setCart(cart.map(x => x.product_id === c.product_id ? { ...x, qty: Number(x.qty) + 1 } : x))} className="p-1 border rounded"><FiPlus size={12} /></button>
+                          <span className="text-xs text-slate-500">৳{c.price}</span>
+                          <span className="font-bold ml-auto">৳{Number(c.price) * Number(c.qty)}</span>
+                          <button onClick={() => setCart(cart.filter(x => x.product_id !== c.product_id))} className="text-red-500 p-1"><FiTrash2 size={14} /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {cart.length === 0 && <div className="text-xs text-slate-400 text-center py-2">Cart is empty — search products to add</div>}
+                  </div>
+                </div>
+                {/* (3) customer fields */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2">
+                    <FiUser className="text-slate-400 shrink-0" />
+                    <input placeholder="Customer name *" className="w-full outline-none text-sm" value={mcust.customer_name} onChange={e => setMcust({ ...mcust, customer_name: e.target.value })} />
+                  </div>
+                  <div className={`flex items-center gap-2 border rounded-lg px-3 py-2 ${mcust.phone && !phoneOk ? 'border-red-400' : 'border-slate-200'}`}>
+                    <FiPhone className="text-slate-400 shrink-0" />
+                    <input placeholder="Mobile (01XXXXXXXXX) *" maxLength={11} className="w-full outline-none text-sm font-mono" value={mcust.phone} onChange={e => setMcust({ ...mcust, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })} />
+                    <span className="text-green-600 font-black">{mcust.phone && phoneOk ? '✓' : ''}</span>
+                  </div>
+                  {mcust.phone && !phoneOk && <div className="text-[11px] text-red-500 font-bold">Enter an 11-digit number (starts with 01)</div>}
+                  {phoneOk && posDup && posDup.count > 0 && (<div className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">⚠️ {posDup.count} orders from this number in the last 7 days — check for duplicates</div>)}
+                  <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2">
+                    <FiMapPin className="text-slate-400 shrink-0" />
+                    <input placeholder="Full address *" className="w-full outline-none text-sm" value={mcust.address} onChange={e => setMcust({ ...mcust, address: e.target.value })} />
+                  </div>
+                  <input placeholder="City" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" value={mcust.city} onChange={e => setMcust({ ...mcust, city: e.target.value })} />
+                </div>
+                {/* (4) 4 small boxes + note */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div className="border border-slate-200 rounded-lg p-2"><div className="text-[10px] font-bold text-slate-500">Qty</div><div className="font-black text-sm">{cartQty}</div></div>
+                  <div className="border border-slate-200 rounded-lg p-2"><div className="text-[10px] font-bold text-slate-500">Price</div><div className="font-black text-sm">৳{cartTotal}</div></div>
+                  <div className="border border-slate-200 rounded-lg p-2"><div className="text-[10px] font-bold text-slate-500">Discount</div><input type="number" min={0} className="w-full text-center outline-none font-black text-sm" value={mdisc} onChange={e => setMdisc(Number(e.target.value))} /></div>
+                  <div className="border border-slate-200 rounded-lg p-2"><div className="text-[10px] font-bold text-slate-500">Delivery</div><input type="number" min={0} className="w-full text-center outline-none font-black text-sm" value={mfee} onChange={e => setMfee(Number(e.target.value))} /></div>
+                </div>
+                <textarea placeholder="Note (optional)..." rows={2} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" value={mnote} onChange={e => setMnote(e.target.value)} />
+                {/* (5) summary */}
+                <div className="bg-slate-50 rounded-xl p-3 text-sm font-bold space-y-1">
+                  <div className="flex justify-between"><span className="text-slate-500">Subtotal</span><span>৳{cartTotal}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Delivery</span><span>৳{Number(mfee) || 0}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Discount</span><span>− ৳{Number(mdisc) || 0}</span></div>
+                  <div className="flex justify-between text-base border-t pt-1"><span>Grand Total</span><span className="text-indigo-700">৳{grandTotal}</span></div>
+                </div>
+              </div>
+              {/* (6) 3 buttons */}
+              <div className="p-3 border-t grid grid-cols-3 gap-2">
+                <button onClick={holdDraft} className="bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800">Hold</button>
+                <button disabled={mBusy} onClick={submitManual} className="bg-green-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-700 disabled:opacity-50">{mBusy ? '...' : 'Confirm'}</button>
+                <button onClick={() => { resetPos(); setShowManual(false); }} className="bg-red-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-red-700">Cancel</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {waOpen && selectedOrder && (
+        <WAChatModal phone={String(selectedOrder.phone || '')} name={selectedOrder.customer_name} invoice={selectedOrder.invoice} amount={selectedOrder.total_payable} onClose={() => setWaOpen(false)} />
+      )}
     </div>
   );
 }

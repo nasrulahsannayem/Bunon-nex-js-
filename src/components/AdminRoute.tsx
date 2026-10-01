@@ -10,7 +10,7 @@ export default function AdminRoute() {
 
   try {
     const user = JSON.parse(userStr);
-    if (user.role !== 'admin' && user.role !== 'staff') {
+    if (user.role !== 'admin' && user.role !== 'staff' && user.role !== 'super_admin') {
       return <Navigate to="/admin/login" replace />;
     }
   } catch (e) {

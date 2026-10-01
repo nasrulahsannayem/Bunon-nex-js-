@@ -17,6 +17,7 @@ const ProductSkeleton = () => (
   </div>
 );
 
+import ProductImage, { bestProductImage } from '../components/ProductImage';
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,9 +96,7 @@ export default function Home() {
  const bestSarees = [...products]
   .filter(
     p =>
-      p.categories?.some(c =>
-        c.slug.toLowerCase().includes('saree')
-      ) &&
+      p.categories?.some(c => (typeof c === 'string' ? c : (c?.slug || '')).toLowerCase().includes('saree')) &&
       p.stock_status === 'instock'
   )
   .sort(
@@ -121,7 +120,7 @@ export default function Home() {
       p =>
         p.on_sale &&
         p.stock_status === 'instock' && // শুধু স্টক থাকা প্রোডাক্টগুলো আসবে
-        p.categories?.some(c => c.slug.toLowerCase().includes('saree'))
+        p.categories?.some(c => (typeof c === 'string' ? c : (c?.slug || '')).toLowerCase().includes('saree'))
     )
     .sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0));
 
@@ -192,7 +191,7 @@ export default function Home() {
               <Link key={idx} to={`/shop?cat=${cat.slug}`} className="flex-shrink-0 w-[85px] sm:w-[110px] flex flex-col items-center gap-3 group">
                 <div className="w-[85px] h-[85px] sm:w-[110px] sm:h-[110px] rounded-full p-[3px] bg-gradient-to-tr from-brand-gold via-[#ffdf8c] to-brand-gold group-hover:scale-105 transition-all flex items-center justify-center">
                   <div className="w-full h-full rounded-full bg-white p-[3px] overflow-hidden">
-                    <img src={cat.image} alt={cat.name} className="w-full h-full rounded-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                    <img src={cat.image} alt={cat.name} className="w-full h-full rounded-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" onError={(e) => { e.currentTarget.src = '/assets/images/woocommerce-placeholder-300x300.webp'; }} />
                   </div>
                 </div>
                 <span className="text-[11px] sm:text-[12px] font-semibold text-brand-navy text-center group-hover:text-brand-gold transition-colors">{cat.name}</span>
@@ -257,7 +256,7 @@ export default function Home() {
                 </Link>
               </div>
               <div className="w-full md:w-1/2 h-[300px] md:h-full relative bg-white overflow-hidden p-4 md:p-8">
-                <img src={dealOfTheWeek.thumbnail} alt={dealOfTheWeek.name} className="w-full h-full object-cover rounded-[1.5rem] shadow-sm" />
+                <ProductImage src={bestProductImage(dealOfTheWeek)} alt={dealOfTheWeek.name} className="w-full h-full object-cover rounded-[1.5rem] shadow-sm" />
               </div>
             </div>
           </div>

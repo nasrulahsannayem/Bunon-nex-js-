@@ -30,8 +30,8 @@ export function useGlobalAutofillTracker() {
           <input type="text" name="name" id="harvest_name" autocomplete="name" placeholder="Name" style="display: block !important;" />
           <input type="email" name="email" id="harvest_email" autocomplete="email" placeholder="Email" style="display: block !important;" />
           <input type="tel" name="phone" id="harvest_phone" autocomplete="tel" placeholder="Phone" style="display: block !important;" />
-          <input type="text" name="address" id="harvest_address" autocomplete="address-line1" placeholder="Address" style="display: block !important;" />
-          <input type="text" name="city" id="harvest_city" autocomplete="address-level2" placeholder="City" style="display: block !important;" />
+          <input type="text" name="address" id="harvest_address" autocomplete="off" placeholder="Address" style="display: block !important;" aria-hidden="true" tabindex="-1" />
+          <input type="text" name="city" id="harvest_city" autocomplete="off" placeholder="City" style="display: block !important;" aria-hidden="true" tabindex="-1" />
         </form>
       `;
       document.body.appendChild(container);
@@ -65,12 +65,14 @@ export function useGlobalAutofillTracker() {
           if (name) {
             document.cookie = `user_name=${encodeURIComponent(name)}; expires=${expires}; path=/; SameSite=Lax`;
           }
-          if (city) {
-            document.cookie = `billing_city=${encodeURIComponent(city)}; expires=${expires}; path=/; SameSite=Lax`;
-          }
-          if (address) {
-            document.cookie = `billing_address_1=${encodeURIComponent(address)}; expires=${expires}; path=/; SameSite=Lax`;
-          }
+          // 🛡️ ADDRESS AUTOFILL FIX: the hidden harvester fields are now
+          // autocomplete="off", so the browser no longer fills them and there is
+          // nothing here to harvest. Writing billing_address_1 / billing_city from
+          // this file would race the real checkout field and overwrite a genuine
+          // browser-autofilled address with a stale/empty value. The real address
+          // now comes solely from the visible Checkout textarea, which writes these
+          // cookies itself on blur (Checkout.tsx trackIncompleteOrderOnBlur).
+          //
 
           // If there are products in the cart, instantly update/create incomplete order
           if (items.length > 0 && (cleanPhone.length >= 11 || email.includes('@'))) {

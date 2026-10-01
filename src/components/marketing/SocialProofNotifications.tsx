@@ -25,6 +25,7 @@ interface LiveNotification {
   timeText: string;
 }
 
+import ProductImage from '../ProductImage';
 export default function SocialProofNotifications() {
   const [products, setProducts] = useState<Product[]>([]);
   const [currentNotification, setCurrentNotification] = useState<LiveNotification | null>(null);
@@ -181,8 +182,8 @@ export default function SocialProofNotifications() {
             {/* Product Thumbnail or Icon */}
             {currentNotification.product?.images?.[0]?.src ? (
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border border-gray-100/80 flex-shrink-0">
-                <img
-                  src={currentNotification.product.images[0].src}
+                <ProductImage
+                  src={currentNotification.product.images[0]}
                   alt={currentNotification.product.name}
                   className="w-full h-full object-cover object-center"
                 />

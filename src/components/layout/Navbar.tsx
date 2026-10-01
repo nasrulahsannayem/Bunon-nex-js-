@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart, useWishlist } from '@/src/lib/store';
 import CartDrawer from '../cart/CartDrawer';
 import MobileMenuDrawer from './MobileMenuDrawer';
+import ProductImage, { bestProductImage } from '../ProductImage';
 import { searchProducts } from '../../lib/woocommerce'; // 🚀 FIXED: Correct relative path
 
 export default function Navbar() {
@@ -192,8 +193,8 @@ export default function Navbar() {
                               onClick={(e) => handleProductClick(e, `/product/${product.id}`)}
                               className="flex items-center gap-3 p-3 hover:bg-brand-primary/5 transition-colors border-b border-gray-50 last:border-0"
                             >
-                              <img 
-                                src={product.images?.[0]?.src || '/placeholder.png'} // 🚀 mapped to real image
+                              <ProductImage 
+                                src={bestProductImage(product)} // 🚀 mapped to real image
                                 alt={product.name} 
                                 className="w-12 h-12 object-cover rounded-md bg-gray-100 border border-black/5"
                               />
@@ -353,8 +354,8 @@ export default function Navbar() {
                           onClick={(e) => handleProductClick(e, `/product/${product.id}`)}
                           className="flex items-center gap-3 p-3 hover:bg-brand-primary/5 transition-colors border-t border-gray-50"
                         >
-                          <img 
-                            src={product.images?.[0]?.src || '/placeholder.png'} // 🚀 mapped to real image
+                          <ProductImage 
+                            src={bestProductImage(product)} // 🚀 mapped to real image
                             alt={product.name} 
                             className="w-10 h-10 object-cover rounded-md bg-gray-100 border border-black/5"
                           />

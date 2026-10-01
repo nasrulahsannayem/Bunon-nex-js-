@@ -65,7 +65,7 @@ router.get('/image-proxy', async (req, res) => {
 
     writer.on('finish', () => {
       // Serve the freshly saved file
-      let contentType = response.headers['content-type'] || 'image/jpeg';
+      let contentType: string = String(response.headers['content-type'] || 'image/jpeg');
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=31536000');
       fs.createReadStream(localFilePath).pipe(res);

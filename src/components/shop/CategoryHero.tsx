@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, House } from 'lucide-react';
+import { resolveProductSrc } from '../ProductImage';
 
 export default function CategoryHero({
   title,
@@ -13,9 +14,12 @@ export default function CategoryHero({
 }) {
   const heroImage =
     products.length > 0
-      ? products[0]?.images?.[0]?.src ||
-        '/image/default-banner.jpg'
-      : '/image/default-banner.jpg';
+      ? resolveProductSrc(
+          (Array.isArray(products[0]?.local_images) && products[0].local_images[0]) ||
+            products[0]?.images?.[0] ||
+            products[0]?.thumbnail
+        )
+      : '/assets/images/woocommerce-placeholder-300x300.webp';
 
   return (
     <section className="relative overflow-hidden rounded-[28px] mb-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">

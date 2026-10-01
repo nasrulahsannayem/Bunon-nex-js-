@@ -22,17 +22,18 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     const cleanPhoneForKey = phone ? String(phone).replace(/\D/g, '') : '';
     const cleanEmailForKey = email ? String(email).trim().toLowerCase() : '';
 
-    // 🚀 SERVER-SIDE DEDUPLICATION: Block same phone:email combo for 30 minutes using Redis
+    // 🚀 SERVER-SIDE DEDUPLICATION: 3-min window gates only the dash-forward
+    // (local queue below ALWAYS refreshes so fuller data like address is never dropped).
+    let fwdAllowed = true;
     if (cleanPhoneForKey || cleanEmailForKey) {
       const dedupeKey = `autofill:${cleanPhoneForKey || 'nophone'}:${cleanEmailForKey || 'noemail'}`;
       try {
         const alreadySent = await redisClient.get(dedupeKey);
         if (alreadySent) {
-          // Silently ignore duplicate — don't log, don't process
-          return res.json({ ok: true, msg: 'Already captured.' });
+          fwdAllowed = false;
+        } else {
+          await redisClient.set(dedupeKey, '1', { EX: 180 });
         }
-        // Mark as captured — expires in 30 minutes (1800 seconds)
-        await redisClient.set(dedupeKey, '1', { EX: 1800 });
       } catch (redisErr) {
         // If Redis fails, continue normally (don't block the request)
       }
@@ -54,10 +55,10 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     const cartJson = JSON.stringify(cart_products || []);
     const customerName = customer_name || 'Guest';
 
-    // 🚀 FIX: Forward the exact payload to the original PHP API on dash.bunonfabrics.com 
+    // 🚀 FIX: Forward the exact payload to the original PHP API on dash.bunonfabrics.com
     // so the dashboard calculates amounts and statuses correctly.
     // Dashboard REQUIRES phone to function, so only forward if cleanPhone exists.
-    if (cleanPhone.length >= 11) {
+    if (cleanPhone.length >= 11 && fwdAllowed) {
       try {
         fetch('https://dash.bunonfabrics.com/api/orders/save_to_wp.php', {
           method: 'POST',
@@ -83,15 +84,24 @@ router.post('/orders/save_to_wp.php', async (req, res) => {
     }
 
     // 🚀 FIX #7: Bridge to wc_cart_recovery_queue (productDbPool) so recovery cron can find it.
-    if (isValidMarketingEmail) {
+    // ALWAYS upsert (phone-only rows allowed) — fuller data wins, empty never overwrites filled.
+    // Only queue for email follow-up when we actually have an address.
+    // Phone-only COD checkouts produced rows with an empty email that the
+    // recovery cron could never mail.
+    if (cleanEmail) {
       try {
-        // If cleanPhone is empty, we still save it. We'll set phone to a placeholder or empty string
+        const addr = String((body as any)?.address || '').slice(0, 500);
+        const cityV = String((body as any)?.city || '').slice(0, 100);
         await productDbPool.execute(`
-          INSERT INTO wc_cart_recovery_queue (email, phone, customer_name, cart_data, status, attempts, created_at)
-          VALUES (?, ?, ?, ?, 'pending', 0, NOW())
-          ON DUPLICATE KEY UPDATE cart_data = VALUES(cart_data), customer_name = VALUES(customer_name), 
-            status = 'pending', created_at = NOW()
-        `, [cleanEmail, cleanPhone || '', customerName, cartJson]);
+          INSERT INTO wc_cart_recovery_queue (email, phone, customer_name, address, city, cart_data, status, attempts, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, NOW())
+          ON DUPLICATE KEY UPDATE
+            customer_name = IF(VALUES(customer_name) NOT IN ('','Guest'), VALUES(customer_name), customer_name),
+            address = IF(VALUES(address) <> '', VALUES(address), address),
+            city = IF(VALUES(city) <> '', VALUES(city), city),
+            cart_data = VALUES(cart_data),
+            status = 'pending', updated_at = NOW()
+        `, [cleanEmail, cleanPhone || '', customerName, addr, cityV, cartJson]);
       } catch (bridgeErr: any) {
         console.error('[Recovery Bridge] Failed to sync to recovery queue:', bridgeErr.message);
       }

@@ -1,18 +1,60 @@
 <!doctype html>
-<html lang="en">
+<html lang="bn">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/image/faveicon.png" />
     <title>বুনন ফেব্রিক্স | Bunon Fabrics - পুরোটাই সুতি শাড়ী</title>
     <meta name="facebook-domain-verification" content="%VITE_FB_DOMAIN_VERIFICATION%" />
-    
+
+    <!-- ============ BASE SEO / GEO (homepage fallback) ============ -->
+    <meta name="description" content="বুনন ফেব্রিক্স — বাংলাদেশের অনলাইন সুতি শাড়ী ও ফ্যাব্রিক্স শপ। ৬৪ জেলায় হোম ডেলিভারি, ১০০% কটন, সারা বাংলাদেশে ক্যাশ অন ডেলিভারি। পরিবারের পোশাক এখন আরও সহজে অর্ডার করুন।" />
+    <meta name="keywords" content="সুতি শাড়ী, কটন শাড়ী, বাংলাদেশ শাড়ী অনলাইন, bunon fabrics, জামদানি শাড়ী, শাড়ী বিক্রেতা" />
+    <meta name="author" content="Bunon Fabrics" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <link rel="canonical" href="https://bunonfabrics.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bunon Fabrics" />
+    <meta property="og:locale" content="bn_BD" />
+    <meta property="og:title" content="বুনন ফেব্রিক্স | Bunon Fabrics - পুরোটাই সুতি শাড়ী" />
+    <meta property="og:description" content="বাংলাদেশের অনলাইন সুতি শাড়ী ও ফ্যাব্রিক্স শপ। ৬৪ জেলায় হোম ডেলিভারি, ১০০% কটন, ক্যাশ অন ডেলিভারি।" />
+    <meta property="og:url" content="https://bunonfabrics.com/" />
+    <meta property="og:image" content="https://bunonfabrics.com/image/Bestselling-Saree-banner-1-mobie-768x912.jpg" />
+    <meta property="og:image:secure_url" content="https://bunonfabrics.com/image/Bestselling-Saree-banner-1-mobie-768x912.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="768" />
+    <meta property="og:image:height" content="912" />
+    <meta property="og:image:alt" content="বুনন ফেব্রিক্স — সুতি শাড়ী কালেকশন" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@bunonfabrics" />
+    <meta name="twitter:title" content="বুনন ফেব্রিক্স | Bunon Fabrics - পুরোটাই সুতি শাড়ী" />
+    <meta name="twitter:description" content="বাংলাদেশের অনলাইন সুতি শাড়ী ও ফ্যাব্রিক্স শপ। ৬৪ জেলায় হোম ডেলিভারি, ১০০% কটন।" />
+    <meta name="twitter:image" content="https://bunonfabrics.com/image/Bestselling-Saree-banner-1-mobie-768x912.jpg" />
+
+    <!-- T4: pre-paint theme init — orders.html parity (localStorage 'color-theme') -->
+    <script>
+      try {
+        // OS prefers-color-scheme fallback REMOVED 2026-10-01: customer site is light-only.
+        // Without this, incognito (empty localStorage) inherited the OS theme and rendered dark.
+        if (localStorage.getItem('color-theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } catch (e) {}
+    </script>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tracking Scripts -->
+
+    <!-- Meta Pixel -->
     <script>
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -23,41 +65,53 @@
     s.parentNode.insertBefore(t,s)}(window, document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '%VITE_META_PIXEL_ID%');
-    fbq('track', 'PageView');
+    // PageView fires from src/App.tsx on every route change (SPA-safe).
+    // A static PageView here double-counted the first pageview of each session.
     </script>
 
     <!-- GA4 & Google Ads -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA4_ID%"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '%VITE_GA_ID%');
-      gtag('config', '%VITE_AW_ID%');
+      gtag('config', '%VITE_GA4_ID%');
+      gtag('config', '%VITE_GADS_TAG%');
     </script>
 
-    <!-- Microsoft Clarity -->
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "%VITE_CLARITY_ID%");
+    <!-- Google Ads click IDs: persist on landing so GA4 + CAPI keep attributing
+         to the original ad click even after a SPA route change or a bounce back. -->
+    <script>
+    (function () {
+      try {
+        var KEYS = ['gclid', 'gbraid', 'wbraid', 'msclkid', 'fbclid', '_fbc', '_fbp', 'ttclid', 'ttp', 'epid'];
+        var qs = new URLSearchParams(window.location.search);
+        var found = [];
+        KEYS.forEach(function (k) {
+          var v = qs.get(k);
+          if (!v) return;
+          found.push(k);
+          var days = (k === 'ttclid' || k === 'ttp' || k === 'epid') ? 7 : 90;
+          document.cookie = k + '=' + encodeURIComponent(v) + '; path=/; max-age=' + (days * 86400) + '; SameSite=Lax';
+        });
+        if (found.length) {
+          // Persist through CAPI so the server-side copy shares the same click.
+          try { sessionStorage.setItem('adclicks', found.join(',')); } catch (e) {}
+        }
+      } catch (e) {}
+    })();
     </script>
 
     <!-- TikTok Pixel -->
     <script>
     !function (w, d, t) {
-      w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","trackSelf","untrackSelf"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=d.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
-      ttq.load('%VITE_TTQ_ID%');
+      w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["set","page","track","identify","instances","debug","on","off","once","ready","alias","group","trackSelf","untrackSelf"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.methods[i]&&ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=0;e<ttq.methods.length;e++)ttq.set(e,ttq["_"+e]);return ttq},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[ttq._u]=i,ttq._i[n]=[],ttq._i[n]._u=i,ttq._t=ttq._t||{},ttq._t[n]=+new Date,ttq._o=ttq._o||{},ttq._o[n]=n||{};var o=d.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=d.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
+      ttq.load('%VITE_TIKTOK_PIXEL_ID%');
       ttq.page();
     }(window, document, 'ttq');
     </script>
   </head>
   <body>
-    <!-- GTM (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=%VITE_GTM_ID%"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

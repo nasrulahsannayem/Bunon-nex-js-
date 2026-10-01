@@ -53,7 +53,18 @@ export async function processCartRecoveryCampaign() {
       if (calculatedDiscount < 10) calculatedDiscount = 10;
       const discountAmount = Math.min(calculatedDiscount, 150);
 
-      // Send recovery email
+      // Send recovery email. Rows with no usable email (COD phone-only checkouts)
+      // cannot be mailed at all -- park them as 'no_email' instead of burning an
+      // attempt on a guaranteed nodemailer failure.
+      const hasEmail = String(job.email ?? '').trim().includes('@');
+      if (!hasEmail) {
+        await productDbPool.execute(
+          `UPDATE wc_cart_recovery_queue SET attempts = attempts + 1, last_attempt_at = NOW() WHERE id = ?`,
+          [job.id]
+        );
+        console.log(`[Recovery] job ${job.id} has no email (phone=${job.phone}); attempt counted, no mail sent.`);
+        continue;
+      }
       await sendCartRecoveryEmail(job.email, job.phone, job.customer_name, cartItems, discountAmount);
 
       // Update queue job state

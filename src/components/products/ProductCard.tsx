@@ -7,6 +7,7 @@ interface ProductCardProps {
   product: Product;
 }
 
+import ProductImage from '../ProductImage';
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem, buyNow, setIsOpen } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
@@ -78,8 +79,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           className="absolute inset-0 block z-0"
           onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
         >
-          <img 
-            src={product.images[0]?.src || '/assets/images/woocommerce-placeholder-300x300.webp'} 
+          <ProductImage 
+            src={product.images?.[0] || (product as any).thumbnail || (product as any).local_images?.[0]} 
             alt={product.name} 
             className="absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-[1.03]"
             loading="lazy"
@@ -127,11 +128,21 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
         </Link>
         
-        {/* Price Section */}
-        <div className="flex items-baseline gap-1.5 mt-0.5">
+        {/* Price Section — dual price: sale + strikethrough regular + SAVE */}
+        <div className="flex items-baseline gap-1.5 mt-0.5 flex-wrap">
           <span className="text-[16px] font-bold text-brand-primary">
             {product.displayPrice || `৳${priceNum.toLocaleString()}`}
           </span>
+          {isSale && (
+            <span className="text-xs text-gray-400 line-through">
+              ৳{regularNum.toLocaleString()}
+            </span>
+          )}
+          {isSale && (
+            <span className="inline-flex items-center rounded-full bg-green-50 text-green-700 border border-green-200 px-1.5 py-px text-[10px] font-bold">
+              SAVE ৳{saveAmount.toLocaleString()} ({savePercent}%)
+            </span>
+          )}
         </div>
         
         <div className="grow min-h-[5px]" />

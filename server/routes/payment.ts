@@ -3,6 +3,7 @@ import { dbPool, productDbPool } from "../db";
 import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
+import { getSecret } from "../utils/secrets";
 
 const router = express.Router();
 
@@ -112,6 +113,50 @@ router.post("/checkout/place-order", async (req, res) => {
       );
     }
 
+    // T4: Telegram order alert (parity with tg_bot.php transport; fire-and-forget, never breaks checkout)
+    try {
+      const { sendOrderToTelegram } = await import("../services/orderNotify");
+      sendOrderToTelegram({
+        orderId: generatedOrderId,
+        invoice: invoiceNumber,
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        city: customer.city,
+        subtotal,
+        shippingFee,
+        discount: (Number(discount || 0) + totalCouponDiscount),
+        total: totalAmount,
+        paymentMethod,
+        customerType,
+        items: (cart || []).map((item) => ({
+          name: item.name, sku: item.sku,
+          quantity: item.quantity, price: item.price,
+        })),
+      }).catch((e) => console.error("[OrderNotify] async failed:", (e && e.message) || e));
+    } catch (e) {
+      console.error("[OrderNotify] hook skipped:", (e && e.message) || e);
+    }
+
+    // Coupon usage: increment used_count for applied local coupons (best-effort, never breaks checkout)
+    try {
+      const applied = Array.isArray(coupons) ? coupons : [];
+      for (const cp of applied) {
+        const ccode = cp && (cp.code || cp.coupon) ? String(cp.code || cp.coupon).trim().toUpperCase() : '';
+        if (!ccode) continue;
+        try {
+          await productDbPool.execute(
+            'UPDATE bunon_coupons SET used_count = used_count + 1 WHERE code = ? AND (usage_limit IS NULL OR used_count < usage_limit)',
+            [ccode]
+          );
+        } catch (uErr) {
+          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', uErr && uErr.message ? uErr.message : uErr);
+        }
+      }
+    } catch (cErr) {
+      console.error('[PAYMENT] Coupon usage hook skipped:', cErr && cErr.message ? cErr.message : cErr);
+    }
+
     // 📩 Trigger order confirmation email sending if email exists
     const { fixEmailTypos, isRoleBasedEmail } = await import('../utils/emailValidator');
     let rawEmail = customer.email || '';
@@ -149,7 +194,26 @@ router.post("/checkout/place-order", async (req, res) => {
         }
       }
 
-      // 📩 Trigger order confirmation email sending if email exists
+      // Coupon usage: increment used_count for applied local coupons (best-effort, never breaks checkout)
+    try {
+      const applied = Array.isArray(coupons) ? coupons : [];
+      for (const cp of applied) {
+        const ccode = cp && (cp.code || cp.coupon) ? String(cp.code || cp.coupon).trim().toUpperCase() : '';
+        if (!ccode) continue;
+        try {
+          await productDbPool.execute(
+            'UPDATE bunon_coupons SET used_count = used_count + 1 WHERE code = ? AND (usage_limit IS NULL OR used_count < usage_limit)',
+            [ccode]
+          );
+        } catch (uErr) {
+          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', uErr && uErr.message ? uErr.message : uErr);
+        }
+      }
+    } catch (cErr) {
+      console.error('[PAYMENT] Coupon usage hook skipped:', cErr && cErr.message ? cErr.message : cErr);
+    }
+
+    // 📩 Trigger order confirmation email sending if email exists
       if (cleanEmail) {
         const { sendOrderConfirmationEmail } = await import("../services/email");
         sendOrderConfirmationEmail(cleanEmail, {
@@ -200,10 +264,10 @@ router.post("/checkout/place-order", async (req, res) => {
     if (paymentMethod === "bkash") {
       console.log(`[PAYMENT] Triggering Tokenized bKash Checkout for Order #${generatedOrderId}...`);
       
-      const username   = process.env.BKASH_USERNAME ? process.env.BKASH_USERNAME.replace(/"/g, '') : "";
-      const password   = process.env.BKASH_PASSWORD ? process.env.BKASH_PASSWORD.replace(/"/g, '') : "";
-      const app_key    = process.env.BKASH_APP_KEY ? process.env.BKASH_APP_KEY.replace(/"/g, '') : "";
-      const app_secret = process.env.BKASH_APP_SECRET ? process.env.BKASH_APP_SECRET.replace(/"/g, '') : "";
+      const username   = await getSecret("bkash_username");
+      const password   = await getSecret("bkash_password");
+      const app_key    = await getSecret("bkash_app_key");
+      const app_secret = await getSecret("bkash_app_secret");
 
       const BKASH_BASE_URL = "https://tokenized.pay.bka.sh/v1.2.0-beta";
 
@@ -305,7 +369,7 @@ router.get("/payment/bkash-callback", async (req, res) => {
 
   if (status === "success" && numericOrderId) {
     try {
-      const app_key = process.env.BKASH_APP_KEY ? process.env.BKASH_APP_KEY.replace(/"/g, '') : "";
+      const app_key = await getSecret("bkash_app_key");
       const execRes = await fetch("https://tokenized.pay.bka.sh/v1.2.0-beta/tokenized/checkout/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": String(token), "X-APP-Key": app_key },

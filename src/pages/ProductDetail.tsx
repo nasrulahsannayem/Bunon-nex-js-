@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, ArrowRight, ShieldCheck, Truck, RotateCcw, Phone, Zap } from 'lucide-react'; // Removed Heart
 import ProductCard from '../components/products/ProductCard';
 
+import ProductImage, { bestProductImage } from '../components/ProductImage';
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function ProductDetail() {
       const p = await getProduct(id);
       setProduct(p);
       if (p) {
+        document.title = `${p.name} | Bunon`;
         trackPixel('ViewContent', {
           content_name: p.name,
           content_category: p.categories[0]?.name,
@@ -95,7 +97,7 @@ export default function ProductDetail() {
             name: product.name,
             price: Number(selectedVariation?.price || product.price),
             quantity: 1,
-            thumbnail: product.images?.[0]?.src || product.thumbnail || ''
+            thumbnail: bestProductImage(product)
           }]
         };
         fetch('/api/orders/save_to_wp.php', {
@@ -143,7 +145,7 @@ export default function ProductDetail() {
             name: product.name,
             price: Number(selectedVariation?.price || product.price),
             quantity: 1,
-            thumbnail: product.images?.[0]?.src || product.thumbnail || ''
+            thumbnail: bestProductImage(product)
           }]
         };
         fetch('/api/orders/save_to_wp.php', {
@@ -183,7 +185,7 @@ export default function ProductDetail() {
 
   const priceNum = Number(selectedVariation?.price || product.price);
   const regularNum = Number(selectedVariation?.regular_price || product.regular_price);
-  const isSale = product.on_sale && regularNum > priceNum;
+  const isSale = regularNum > priceNum && priceNum > 0; // dual-price: sale valid whenever regular above effective
   const saveAmount = regularNum - priceNum;
   const savePercent = isSale ? Math.round((saveAmount / regularNum) * 100) : 0;
   
@@ -199,6 +201,39 @@ export default function ProductDetail() {
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* GEO/AEO — Product JSON-LD Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Product',
+              name: product.name,
+              description: (product.short_description || product.description || '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 500),
+              image: (product.images || []).map((img: any) =>
+                typeof img === 'string' ? img : img?.src
+              ).filter(Boolean),
+              sku: String(product.id),
+              brand: { '@type': 'Brand', name: 'Bunon Fabrics' },
+              offers: {
+                '@type': 'Offer',
+                url: `${window.location.origin}/product/${product.slug}`,
+                priceCurrency: 'BDT',
+                price: priceNum,
+                availability: isOutOfStock
+                  ? 'https://schema.org/OutOfStock'
+                  : 'https://schema.org/InStock',
+                itemCondition: 'https://schema.org/NewCondition',
+                seller: { '@type': 'Organization', name: 'Bunon Fabrics' }
+              }
+            })
+          }}
+        />
+
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-500 flex items-center gap-1.5 flex-wrap">
           <Link className="hover:text-gray-900 transition-colors" to="/">Home</Link>
@@ -226,10 +261,10 @@ export default function ProductDetail() {
                     if(newActive !== activeImage) setActiveImage(newActive);
                   }}
                 >
-                  {product.images.map((img, idx) => (
+                  {(product.images && product.images.length > 0 ? product.images : [{ src: '/assets/images/woocommerce-placeholder-300x300.webp' }]).map((img, idx) => (
                     <div key={idx} className="w-full flex-shrink-0 snap-center aspect-square relative">
-                      <img 
-                        src={img.src || '/assets/images/placeholder-300x300.webp'} 
+                      <ProductImage 
+                        src={img} 
                         className="w-full h-full object-cover" 
                         alt={`${product.name} - Image ${idx + 1}`}
                       />
@@ -260,7 +295,7 @@ export default function ProductDetail() {
                         onClick={() => handleThumbnailClick(idx)} 
                         className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 aspect-square rounded-xl overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-brand-primary shadow-sm' : 'border-transparent hover:border-gray-200'} bg-gray-50`}
                       >
-                        <img src={img.src} className="w-full h-full object-cover" alt="" />
+                        <ProductImage src={img} className="w-full h-full object-cover" alt="" />
                       </button>
                     ))}
                   </div>
@@ -288,6 +323,20 @@ export default function ProductDetail() {
                           </span>
                         </>
                       )}
+                   </div>
+
+                   {/* In-Stock Alert */}
+                   {!isOutOfStock && (
+                     <div className="flex items-center gap-2 text-sm text-green-600 font-medium mb-3">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-[pulse_1.5s_ease-in-out_infinite]" />
+                        ইন স্টক — সীমিত স্টক, এখনই অর্ডার করুন
+                     </div>
+                   )}
+
+                   {/* Delivery Info */}
+                   <div className="inline-flex items-center gap-2 text-[13px] text-gray-700 bg-blue-50/50 border border-blue-100 px-3 py-1.5 rounded-lg mb-4">
+                      <Truck className="w-4 h-4 text-blue-600" />
+                      <span>ঢাকার ভিতরে ২৪ ঘণ্টায় ডেলিভারি | সারা দেশে ২-৩ দিন</span>
                    </div>
 
                    {/* Professional Short Description */}
@@ -337,6 +386,17 @@ export default function ProductDetail() {
                        </div>
                        {/* WhatsApp Order Button */}
                        <a 
+                         onClick={() => {
+                           trackPixel('AddToCart', {
+                             content_name: product.name,
+                             content_category: product.categories[0]?.name,
+                             content_ids: [String(product.id)],
+                             content_type: 'product',
+                             contents: [{ id: String(product.id), quantity: 1 }],
+                             value: Number(priceNum),
+                             currency: 'BDT'
+                           });
+                         }}
                          href={`https://api.whatsapp.com/send?phone=8801618775368&text=${encodeURIComponent(`আসসালামু আলাইকুম,\nআমি এই পণ্যটি অর্ডার করতে চাই:\n\nপণ্য: ${product.name}\nমূল্য: ৳${priceNum.toLocaleString()}\nলিংক: ${window.location.origin}/product/${product.slug}`)}`}
                          target="_blank"
                          rel="noopener noreferrer"
@@ -355,23 +415,23 @@ export default function ProductDetail() {
                    )}
                 </div>
 
-                {/* Features */}
+                {/* Features — Bengali trust badges */}
                 <div className="grid grid-cols-2 gap-3 pt-6 mt-auto">
                    <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                       <Truck className="w-4 h-4 text-brand-primary" />
-                      <span className="text-xs font-medium text-gray-700">Fast Delivery</span>
+                      <span className="text-xs font-medium text-gray-700">সারা বাংলাদেশে কুরিয়ার</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                      <Zap className="w-4 h-4 text-brand-primary" />
+                      <span className="text-xs font-medium text-gray-700">২-৪ দিনে ডেলিভারি</span>
                    </div>
                    <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                       <ShieldCheck className="w-4 h-4 text-brand-primary" />
-                      <span className="text-xs font-medium text-gray-700">Secure Checkout</span>
-                   </div>
-                   <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                      <RotateCcw className="w-4 h-4 text-brand-primary" />
-                      <span className="text-xs font-medium text-gray-700">Easy Exchange</span>
+                      <span className="text-xs font-medium text-gray-700">ক্যাশ অন ডেলিভারি (COD)</span>
                    </div>
                    <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                       <Phone className="w-4 h-4 text-brand-primary" />
-                      <span className="text-xs font-medium text-gray-700">24/7 Support</span>
+                      <span className="text-xs font-medium text-gray-700">24/7 সাপোর্ট</span>
                    </div>
                 </div>
              </div>

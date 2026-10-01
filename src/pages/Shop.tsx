@@ -19,7 +19,10 @@ import { useSearchParams, Link } from 'react-router-dom';
 
 const PRODUCTS_PER_PAGE = 12;
 
-export default function Shop() {
+// fixedCategory: used by the /product-category/:slug SEO route. When set the
+// page is scoped to that category and the sidebar/mobile filter is suppressed so
+// the landing URL never drifts into a ?cat= query string.
+export default function Shop({ fixedCategory }: { fixedCategory?: string } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -34,7 +37,7 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState<'recommended' | 'price-low' | 'price-high' | 'rating'>('recommended');
   const [gridLayout, setGridLayout] = useState<'grid-3' | 'grid-2'>('grid-3');
 
-  const activeCategory = searchParams.get('cat') || 'All';
+  const activeCategory = fixedCategory || searchParams.get('cat') || 'All';
   const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {

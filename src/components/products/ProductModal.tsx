@@ -9,6 +9,7 @@ interface ProductModalProps {
   onClose: () => void;
 }
 
+import ProductImage from '../ProductImage';
 export default function ProductModal({ product, onClose }: ProductModalProps) {
   const { addItem, buyNow } = useCart();
   const navigate = useNavigate();
@@ -84,8 +85,8 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
           {/* Image */}
           <div className="w-full md:w-1/2 h-[40vh] md:h-full bg-stone-100">
-            <img 
-              src={product.images[0]?.src} 
+            <ProductImage 
+              src={product.images?.[0] || (product as any).thumbnail} 
               alt={product.name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

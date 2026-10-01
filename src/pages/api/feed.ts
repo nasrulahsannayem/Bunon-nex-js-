@@ -1,4 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+type NextApiRequest = { query: Record<string, string | string[] | undefined> } & Record<string, unknown>;
+interface NextApiResponse { setHeader(n: string, v: string | string[]): void; status(c: number): { send(b: string): void; json(b: unknown): void }; }
 
 // XML স্পেশাল ক্যারেক্টার এস্কেপ করার ফাংশন
 const escapeXML = (str: string) => {

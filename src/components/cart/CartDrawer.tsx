@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import ProductImage from '../ProductImage';
 export default function CartDrawer() {
   const { items, isOpen, setIsOpen, updateQuantity, removeItem, total } = useCart();
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ export default function CartDrawer() {
                       className="flex gap-6 group"
                     >
                       <div className="w-24 h-32 bg-white rounded-2xl overflow-hidden shrink-0 shadow-sm border border-black/5 group-hover:border-brand-ruby transition-colors">
-                        <img src={item.images[0]?.src} alt={item.name} className="w-full h-full object-cover" />
+                        <ProductImage src={item.images?.[0] || (item as any).thumbnail} alt={item.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 flex flex-col justify-between py-1">
                         <div>

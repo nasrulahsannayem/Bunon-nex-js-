@@ -3,22 +3,48 @@ import { useCart } from '../lib/store';
 import { trackPixel } from '../lib/woocommerce';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ShieldCheck, 
-  Truck, 
-  ArrowRight,
-  ShoppingBag,
-  ChevronDown,
-  Trash2,
-  Plus,
-  Minus,
-  Tag,
-  X
-} from 'lucide-react';
+import {ShieldCheck, Truck, ArrowRight, ShoppingBag, ChevronDown, Trash2, Plus, Minus, Tag, X, AlertCircle} from 'lucide-react';
 
+import ProductImage, { bestProductImage } from '../components/ProductImage';
 export default function Checkout() {
   const { items, clearCart, updateQuantity, removeItem } = useCart();
   const navigate = useNavigate();
+  // 🚦 INLINE VALIDATION (replaces the blocking alert() popups).
+  // A native alert() froze the page, threw the customer back to the top of their
+  // scroll position, and made them hunt for the offending field. Now the submit
+  // attempt marks the bad field, scrolls it into view, and focuses it — the
+  // customer is taken to the problem instead of being told about it.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const markError = (field: string, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+    // rAF so the class + error text are painted before we scroll to it.
+    window.requestAnimationFrame(() => {
+      const el = document.getElementById(`checkout-${field}-anchor`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = el.querySelector<HTMLInputElement>('input, textarea, select');
+        // Don't steal focus from a field the customer is already correcting.
+        if (input && document.activeElement !== input) {
+          window.setTimeout(() => input.focus({ preventScroll: true }), 320);
+        }
+      }
+    });
+  };
+
+  const clearError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  // 🟥 Submit-level failure banner (replaces alert() on a failed place-order).
+  const [submitError, setSubmitError] = useState('');
+  const popupEmailErrorRef = useRef(false);
+
   const [loading, setLoading] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('dhaka');
   
@@ -128,16 +154,39 @@ export default function Checkout() {
     const savedDistrict = decodeURIComponent(getCookie('billing_city') || '');
     const savedAddress = decodeURIComponent(getCookie('billing_address_1') || '');
 
-    if (savedPhone || savedName || savedEmail) {
+    if (!savedPhone && !savedName && !savedEmail && !savedAddress) return;
+
+    // 🛡️ AUTOFILL GUARD: browser autofill fires on the same tick as mount, often
+    // AFTER this effect runs. Restoring cookies synchronously would therefore wipe
+    // the values the browser just injected. Defer the restore, then only fill
+    // fields that are still empty in the DOM — the browser always wins.
+    const timer = window.setTimeout(() => {
+      const domValue = (id: string) => {
+        const el = document.getElementById(id) as HTMLInputElement | null;
+        return el && el.value ? el.value.trim() : '';
+      };
+      const browserFilledPhone = domValue('checkout-phone');
+      const browserFilledName = domValue('checkout-name');
+      const browserFilledAddress = domValue('checkout-address');
+      const browserFilledEmail = domValue('checkout-cancel-email');
+
       setFormData(prev => ({
         ...prev,
-        phone: savedPhone || prev.phone,
-        firstName: savedName || prev.firstName,
-        email: savedEmail || prev.email,
+        phone: browserFilledPhone || savedPhone || prev.phone,
+        firstName: browserFilledName || savedName || prev.firstName,
+        email: browserFilledEmail || savedEmail || prev.email,
         district: savedDistrict || prev.district,
-        address1: savedAddress || prev.address1
+        address1: browserFilledAddress || savedAddress || prev.address1
       }));
-    }
+
+      // Auto-map saved district cookie to delivery zone.
+      // Cookie contains 'Dhaka' -> inside Dhaka (80tk). Any other district -> Outside (150tk).
+      if (savedDistrict) {
+        setShippingMethod(savedDistrict.trim().toLowerCase() === 'dhaka' ? 'dhaka' : 'outside');
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   // 🕵️ Intercept back button to show Cancel Offer Popup
@@ -241,8 +290,10 @@ export default function Checkout() {
   };
 
   const handleCancelClick = () => {
-    // Sync incomplete order details on cancel click if a phone is entered
-    trackIncompleteOrderOnBlur();
+    // Customer opened the cancel-offer popup: schedule a capture so the popup's
+    // own discount flow has real data behind it. Gated + debounced like every
+    // other path.
+    scheduleIncompleteCapture();
 
     // Dynamic flat discount between ৳20 and ৳100 based on subtotal
     let flatAmt = 20;
@@ -281,143 +332,242 @@ export default function Checkout() {
   // 🚀 FIX #5: Sync payloadRef immediately on every state change
   payloadRef.current = { formData, items, finalTotal };
 
-  useEffect(() => {
-    sessionStorage.removeItem('order_placed');
-
-    const trackAbandonment = () => {
-      const { formData, items } = payloadRef.current;
-      const isOrderPlaced = sessionStorage.getItem('order_placed') === 'true';
-      const cleanPhone = formData.phone.replace(/\D/g, '');
-      const userEmail = formData.email || getCookie('user_email');
-
-      if (!isOrderPlaced && (cleanPhone.length >= 11 || userEmail) && items.length > 0) {
-        const fullAddress = formData.district ? `${formData.address1}, ${formData.district}` : formData.address1;
-        
-        const payload = {
-          customer_name: formData.firstName || 'Guest',
-          phone: cleanPhone,
-          address: fullAddress,
-          city: formData.district || '',
-          email: userEmail ? decodeURIComponent(userEmail) : '',
-          cart_products: items.map(item => ({
-            product_id: item.id,
-            name: item.name,
-            price: Number(item.price),
-            quantity: Math.max(1, Number(item.quantity) || 1),
-            thumbnail: item.images?.[0]?.src || item.thumbnail || ''
-          }))
-        };
-
-        // 🚀 FIX #1: Use plain text string for sendBeacon (Blob with application/json 
-        // is unreliable on mobile — browsers may downgrade to text/plain).
-        // Server-side text/plain parser will handle this correctly.
-        navigator.sendBeacon('/api/orders/save_to_wp.php', JSON.stringify(payload));
-      }
-    };
-
-    // 🚀 FIX #3: Desktop — beforeunload
-    window.addEventListener('beforeunload', trackAbandonment);
-    // 🚀 FIX #3: Mobile — visibilitychange (most reliable for mobile browsers)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') trackAbandonment();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    // 🚀 FIX #3: iOS Safari — pagehide (Safari doesn't always fire beforeunload)
-    window.addEventListener('pagehide', trackAbandonment);
-
-    return () => {
-      window.removeEventListener('beforeunload', trackAbandonment);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', trackAbandonment);
-    };
-  }, []);
+  // ⚠️ The legacy exit-intent tracker (beforeunload + visibilitychange + pagehide,
+  // ungated) lived here. It is replaced by the gated `bestEffortExit` handler
+  // below, which fires only when the payload actually passes the phone + field
+  // gate and differs from the last captured signature. visibilitychange was the
+  // worst offender: on mobile it fires on every app switch, transmitting customer
+  // PII without consent. sessionStorage 'order_placed' is now handled by the
+  // submit guard instead.
 
   const lastSentData = useRef({ phone: '', email: '' });
 
-  const trackIncompleteOrderOnBlur = async (phoneOverride?: string) => {
+  // 🛡️ INCOMPLETE-CAPTURE CONTROL — pattern ported from Order Guard 1.51.1
+  // (assets/js/incomplete-orders.js). Previously this fired on blur x3, on the
+  // 11th digit, and on beforeunload/visibilitychange/pagehide — up to 7 times per
+  // checkout for identical data. Now: one debounced capture, one signature, one
+  // in-flight request, and a hard stop the moment a real order is submitted.
+  const CAPTURE_DEBOUNCE_MS = 2500;
+  const BD_PHONE_RE = /^01[3-9]\d{8}$/;
+  const captureTimer = useRef<number | null>(null);
+  const lastCaptureSignature = useRef('');
+  const captureInFlight = useRef(false);
+  const isSubmitting = useRef(false);
+
+  // Deterministic signature over the fields that actually matter. Key order is
+  // fixed by the literal below, so it never depends on JSON iteration order.
+  const buildCaptureSignature = (d: typeof formData) =>
+    [
+      d.phone.replace(/\D/g, ''),
+      (d.firstName || '').trim().toLowerCase(),
+      (d.address1 || '').trim().toLowerCase(),
+      (d.district || '').trim().toLowerCase(),
+      (d.email || '').trim().toLowerCase(),
+      items.map((it) => `${it.id}:${it.quantity}`).sort().join(','),
+    ].join('|');
+
+  // Gate: valid BD phone AND at least two other meaningful customer fields.
+  // Order Guard counts >=3 raw fields; here the phone is mandatory, so the extra
+  // requirement is 2 of {name, address, district, email} — an address-less row
+  // cannot produce a useful recovery email.
+  const isCaptureable = (d: typeof formData) => {
+    if (!BD_PHONE_RE.test(d.phone.replace(/\D/g, ''))) return false;
+    if (items.length === 0) return false;
+    const others = [d.firstName, d.address1, d.district, d.email].filter(
+      (v) => String(v || '').trim() !== ''
+    ).length;
+    return others >= 2;
+  };
+
+  const trackIncompleteOrder = async () => {
     const currentData = payloadRef.current;
-    const cleanPhone = (phoneOverride || currentData.formData.phone).replace(/\D/g, '');
-    const userEmail = currentData.formData.email || getCookie('user_email');
-    
+    const { formData: fd, items: its } = currentData;
+
+    if (isSubmitting.current || captureInFlight.current) return;
+    if (!isCaptureable(fd)) return;
+    if (buildCaptureSignature(fd) === lastCaptureSignature.current) return;
+
+    const cleanPhone = fd.phone.replace(/\D/g, '');
+    const userEmail = fd.email || getCookie('user_email');
+
     // Save to cookies for persistent recovery across sessions
-    if (cleanPhone.length >= 11) {
-      const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
-      document.cookie = `user_phone=${cleanPhone}; expires=${expires}; path=/; SameSite=Lax`;
-      if (currentData.formData.firstName) {
-        document.cookie = `user_name=${encodeURIComponent(currentData.formData.firstName)}; expires=${expires}; path=/; SameSite=Lax`;
-      }
-      if (currentData.formData.email) {
-        document.cookie = `user_email=${encodeURIComponent(currentData.formData.email)}; expires=${expires}; path=/; SameSite=Lax`;
-      }
-      if (currentData.formData.district) {
-        document.cookie = `billing_city=${encodeURIComponent(currentData.formData.district)}; expires=${expires}; path=/; SameSite=Lax`;
-      }
-      if (currentData.formData.address1) {
-        document.cookie = `billing_address_1=${encodeURIComponent(currentData.formData.address1)}; expires=${expires}; path=/; SameSite=Lax`;
-      }
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `user_phone=${cleanPhone}; expires=${expires}; path=/; SameSite=Lax`;
+    if (fd.firstName) {
+      document.cookie = `user_name=${encodeURIComponent(fd.firstName)}; expires=${expires}; path=/; SameSite=Lax`;
+    }
+    if (fd.email) {
+      document.cookie = `user_email=${encodeURIComponent(fd.email)}; expires=${expires}; path=/; SameSite=Lax`;
+    }
+    if (fd.district) {
+      document.cookie = `billing_city=${encodeURIComponent(fd.district)}; expires=${expires}; path=/; SameSite=Lax`;
+    }
+    if (fd.address1) {
+      document.cookie = `billing_address_1=${encodeURIComponent(fd.address1)}; expires=${expires}; path=/; SameSite=Lax`;
     }
 
-    if ((cleanPhone.length < 11 && !userEmail) || currentData.items.length === 0) return;
-    
-    // Deduplicate calls
-    if (lastSentData.current.phone === cleanPhone && lastSentData.current.email === userEmail) {
-      return;
-    }
-    lastSentData.current = { phone: cleanPhone, email: userEmail || '' };
-
+    captureInFlight.current = true;
     try {
-      const fullAddress = currentData.formData.district ? `${currentData.formData.address1}, ${currentData.formData.district}` : currentData.formData.address1;
-      
+      const fullAddress = fd.district ? `${fd.address1}, ${fd.district}` : fd.address1;
       const payload = {
-        customer_name: currentData.formData.firstName || 'Guest',
+        customer_name: fd.firstName || 'Guest',
         phone: cleanPhone,
         address: fullAddress,
-        city: currentData.formData.district || '',
+        city: fd.district || '',
         email: userEmail ? decodeURIComponent(userEmail) : '',
-        cart_products: currentData.items.map(item => ({
+        cart_products: its.map((item) => ({
           product_id: item.id,
           name: item.name,
           price: Number(item.price),
           quantity: Math.max(1, Number(item.quantity) || 1),
-          thumbnail: item.images?.[0]?.src || item.thumbnail || ''
+          thumbnail: bestProductImage(item)
         }))
       };
-
-      await fetch('/api/orders/save_to_wp.php', {
+      const res = await fetch('/api/orders/save_to_wp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-    } catch (error) {
-      console.log('Incomplete sync skipped.');
+      if (res.ok) lastCaptureSignature.current = buildCaptureSignature(fd);
+    } catch (err) {
+      // signature unchanged -> the next debounce will retry
+    } finally {
+      captureInFlight.current = false;
     }
   };
-  useEffect(() => {
-    if (items.length > 0 && !pixelFired.current) {
-      trackPixel('InitiateCheckout', {
-        content_type: 'product',
-        content_ids: items.map(i => String(i.id)),
-        contents: items.map(i => ({ id: String(i.id), quantity: Math.max(1, Number(i.quantity) || 1), price: Number(i.price) })),
-        num_items: items.reduce((acc, item) => acc + Math.max(1, Number(item.quantity) || 1), 0),
-        value: Number(finalTotal),
-        currency: 'BDT'
-      });
-      pixelFired.current = true;
-    }
-    window.scrollTo(0, 0);
-  }, [items.length]); 
 
+  const scheduleIncompleteCapture = () => {
+    if (captureTimer.current) window.clearTimeout(captureTimer.current);
+    captureTimer.current = window.setTimeout(() => {
+      captureTimer.current = null;
+      trackIncompleteOrder();
+    }, CAPTURE_DEBOUNCE_MS);
+  };
+
+  // Single debounced trigger. Replaces onBlur x3 + the 11-digit capture.
+  useEffect(() => {
+    const handler = () => {
+      if (isSubmitting.current) return;
+      scheduleIncompleteCapture();
+    };
+    document.addEventListener('change', handler);
+    document.addEventListener('input', handler);
+    return () => {
+      document.removeEventListener('change', handler);
+      document.removeEventListener('input', handler);
+      if (captureTimer.current) window.clearTimeout(captureTimer.current);
+    };
+  }, []);
+
+  // Emergency exit: best-effort beacon ONLY if the payload already passed the
+  // gate and differs from what was last sent. The old code also fired on
+  // visibilitychange (which fires on every app switch on mobile, silently
+  // transmitting PII) and on pagehide (duplicating beforeunload). Both removed.
+  useEffect(() => {
+    const bestEffortExit = () => {
+      if (isSubmitting.current) return;
+      const { formData: fd } = payloadRef.current;
+      if (!isCaptureable(fd)) return;
+      if (buildCaptureSignature(fd) === lastCaptureSignature.current) return;
+
+      const cleanPhone = fd.phone.replace(/\D/g, '');
+      const userEmail = fd.email || getCookie('user_email');
+      const fullAddress = fd.district ? `${fd.address1}, ${fd.district}` : fd.address1;
+      navigator.sendBeacon(
+        '/api/orders/save_to_wp.php',
+        JSON.stringify({
+          customer_name: fd.firstName || 'Guest',
+          phone: cleanPhone,
+          address: fullAddress,
+          city: fd.district || '',
+          email: userEmail ? decodeURIComponent(userEmail) : '',
+          cart_products: items.map((item) => ({
+            product_id: item.id,
+            name: item.name,
+            price: Number(item.price),
+            quantity: Math.max(1, Number(item.quantity) || 1),
+            thumbnail: bestProductImage(item)
+          }))
+        })
+      );
+    };
+    window.addEventListener('beforeunload', bestEffortExit);
+    return () => window.removeEventListener('beforeunload', bestEffortExit);
+  }, [items]);
+
+  // Submit guard: the moment an order is genuinely being placed, incomplete
+  // capture must stop so we never record a customer as "abandoned" while they
+  // are actually checking out.
+  useEffect(() => {
+    const stop = () => { isSubmitting.current = true; };
+    document.addEventListener('submit', stop, true);
+    return () => document.removeEventListener('submit', stop, true);
+  }, []);
+
+  // ⏱️ IDLE WIN-BACK OFFER — this replaces the visible CANCEL button that used to
+  // occupy a full row above the form on mobile. A customer who pauses on checkout
+  // without acting is the highest-intent abandoner there is, so they get the same
+  // 20-100 BDT offer, just triggered by hesitation instead of by a button they
+  // had to find. Fires at most once per session, never while an order is being
+  // placed, and never before the customer has entered enough to be worth a nudge.
+  useEffect(() => {
+    const IDLE_MS = 45000;
+    let fired = false;
+    let timer: number | undefined;
+
+    const arm = () => {
+      if (fired || isSubmitting.current) return;
+      if (showCancelPopup) return;
+      const { formData: fd, items: its } = payloadRef.current;
+      // Nudge only a real lead: a valid phone and at least one more field filled.
+      if (!BD_PHONE_RE.test(fd.phone.replace(/\D/g, ''))) return;
+      if (![fd.firstName, fd.address1, fd.district].some((v) => String(v || '').trim())) return;
+      if (its.length === 0) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (isSubmitting.current || fired) return;
+        fired = true;
+        handleCancelClick();
+      }, IDLE_MS);
+    };
+
+    const events: Array<keyof DocumentEventMap> = ['input', 'change', 'pointerdown', 'keydown'];
+    events.forEach((e) => document.addEventListener(e, arm, { passive: true }));
+    arm();
+
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((e) => document.removeEventListener(e, arm));
+    };
+  }, [showCancelPopup]);
+
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Hard stop for incomplete capture the moment a genuine order starts, so an
+    // actively-converting customer is never re-flagged as "abandoned". A pending
+    // debounce is cancelled outright.
+    isSubmitting.current = true;
+    setSubmitError('');
+    if (captureTimer.current) { window.clearTimeout(captureTimer.current); captureTimer.current = null; }
     if (items.length === 0) return;
-    
-    if (formData.phone.length !== 11 || !formData.phone.startsWith('01')) {
-      alert('Please enter a valid 11-digit phone number starting with 01.');
+
+    // Validate in DOM order and stop at the first problem, so the customer is
+    // scrolled to the topmost thing that still needs attention.
+    if (!formData.firstName.trim()) {
+      markError('name', 'আপনার নাম লিখুন।');
       return;
     }
-    
+    if (formData.phone.length !== 11 || !formData.phone.startsWith('01')) {
+      markError('phone', 'সঠিক ১১ ডিজিট মোবাইল নম্বর লিখুন (যেমন 01712345678)।');
+      return;
+    }
     if (!formData.district) {
-      alert('Please select a district.');
+      markError('area', 'ডেলিভারি এরিয়া নির্বাচন করুন।');
+      return;
+    }
+    if (!formData.address1.trim()) {
+      markError('address', 'সম্পূর্ণ ঠিকানা লিখুন।');
       return;
     }
 
@@ -452,7 +602,7 @@ export default function Checkout() {
           name: item.name,
           quantity: Math.max(1, Number(item.quantity) || 1),
           price: Number(item.price),
-          thumbnail: item.images?.[0]?.src || item.thumbnail || '/placeholder.png'
+          thumbnail: bestProductImage(item)
         })),
         paymentMethod: formData.paymentMethod,
         totalAmount: finalTotal,
@@ -526,7 +676,7 @@ export default function Checkout() {
 
     } catch (error) {
       console.error('Checkout failed:', error);
-      alert(error.message || 'Order Placement Failed! Please try again.');
+      setSubmitError(error.message || 'অর্ডার দেওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।');
     } finally {
       setLoading(false);
     }
@@ -558,32 +708,38 @@ export default function Checkout() {
   }
 
     return (
-      <div className="min-h-screen bg-gray-50 pt-6 md:pt-10 pb-28 md:pb-32 flex justify-center">
+      <div className="min-h-screen bg-gray-50 pt-3 md:pt-10 pb-28 md:pb-32 flex justify-center">
         <div className="max-w-[1600px] w-full px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Secure Checkout</h1>
-              <p className="mt-1 text-sm text-gray-500">Complete your order — it only takes a minute.</p>
+          {/* Header row removed. The former "CANCEL / win-back" button was hidden
+              because it consumed a full row above the form on every mobile screen,
+              and nothing else lived beside it. The win-back offer itself is untouched
+              and still fires from handleCancelClick via the idle timer below, so the
+              discount is not lost — it is just no longer paid for with 40px of every
+              customer's viewport. */}
+
+          {submitError && (
+            <div role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-[13px] font-semibold text-red-700">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="flex-1">{submitError}</span>
+              <button type="button" onClick={() => setSubmitError('')} aria-label="বন্ধ করুন" className="shrink-0 opacity-60 hover:opacity-100">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button 
-              type="button" 
-              onClick={handleCancelClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#e2136e] bg-[#e2136e]/5 hover:bg-[#e2136e]/10 border border-[#e2136e]/20 rounded-lg transition-all hover:scale-105 active:scale-95 shrink-0"
-            >
-              <X className="w-3.5 h-3.5" /> CANCEL
-            </button>
-          </div>
+          )}
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-6 xl:gap-8 w-full">
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 md:p-6 space-y-5">
             
             {/* Top Product Overview Summary (matches user screenshot) */}
             <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3">
-              {items.map((item, index) => (
-                <div key={index} className="flex items-center gap-3.5 justify-between">
+              {items.map((item, index) => {
+                const safeQuantity = Math.max(1, Number(item.quantity) || 1);
+                const topCartItemId = item.selectedVariation ? `${item.id}-${item.selectedVariation.databaseId}` : item.id;
+                return (
+                <div key={`${item.id}-${index}`} className="flex items-center gap-3.5 justify-between">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src={item.images?.[0]?.src || item.thumbnail} 
+                    <ProductImage 
+                      src={bestProductImage(item)} 
                       className="w-12 h-12 object-cover rounded-xl border border-gray-200 shrink-0 pointer-events-none" 
                       alt="" 
                     />
@@ -592,15 +748,65 @@ export default function Checkout() {
                         Product
                       </span>
                       <h4 className="text-[12px] font-bold text-gray-900 truncate leading-tight">{item.name}</h4>
-                      <span className="text-[10px] text-gray-500 block mt-0.5">Quantity: {item.quantity}</span>
+                      {/* 📦 Qty stepper + remove — mobile needs these here because the
+                          sidebar copy is desktop-only. Same updateQuantity/removeItem
+                          handlers as the sidebar, so behaviour is identical. */}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex items-center bg-white border border-gray-200 rounded-md">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (updateQuantity && safeQuantity > 1) {
+                                updateQuantity(topCartItemId, -1);
+                              }
+                            }}
+                            className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-40"
+                            disabled={safeQuantity <= 1}
+                            aria-label={`${item.name} quantity decrease`}
+                          >
+                            <Minus className="w-3 h-3 pointer-events-none" />
+                          </button>
+                          <span className="w-6 text-center text-[11px] font-bold text-gray-900 tabular-nums">
+                            {safeQuantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (updateQuantity) {
+                                updateQuantity(topCartItemId, 1);
+                              }
+                            }}
+                            className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            aria-label={`${item.name} quantity increase`}
+                          >
+                            <Plus className="w-3 h-3 pointer-events-none" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (removeItem) removeItem(topCartItemId);
+                          }}
+                          className="inline-flex items-center gap-1 px-1.5 py-1 text-gray-400 hover:text-red-500 active:bg-red-50 transition-colors rounded"
+                          aria-label={`${item.name} remove from cart`}
+                          title="Remove item"
+                        >
+                          <Trash2 className="w-3 h-3 pointer-events-none" />
+                          <span className="text-[9px] font-bold uppercase tracking-wide">সরান</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="block text-[8px] text-gray-400 font-extrabold uppercase tracking-wide">Total Price</span>
-                    <span className="text-[13px] font-extrabold text-gray-900">৳{(Number(item.price) * item.quantity).toLocaleString()}</span>
+                    <span className="text-[13px] font-extrabold text-gray-900">৳{(Number(item.price) * safeQuantity).toLocaleString()}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               
               {/* Detailed Breakdown */}
               <div className="border-t border-gray-200/60 pt-2.5 mt-1 space-y-1.5 text-[11px] text-gray-600">
@@ -633,89 +839,143 @@ export default function Checkout() {
               </div>
             </div>
 
-            <section className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="sm:col-span-2">
+            <section className="space-y-3 sm:space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
+                <div className="sm:col-span-2" id="checkout-name-anchor">
                   <label className="block">
                     <span className="block text-xs font-semibold text-gray-600 mb-1">আপনার নাম <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="text" 
+                      id="checkout-name"
+                      name="name"
+                      autoComplete="name"
+                      enterKeyHint="next"
                       placeholder="এখানে আপনার সম্পূর্ণ নাম লিখুন" 
-                      className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
+                      className={"w-full h-11 sm:h-10 px-3 rounded-xl border bg-white text-[15px] sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 transition-all shadow-sm " + (fieldErrors.name ? "border-red-400 focus:border-red-500 focus:ring-red-400" : "border-gray-200 focus:border-brand-primary focus:ring-brand-primary")}
+                      aria-invalid={!!fieldErrors.name}
                       value={formData.firstName}
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                      onBlur={() => trackIncompleteOrderOnBlur()}
+                      onChange={(e) => { setFormData({...formData, firstName: e.target.value}); clearError('name'); }}
                     />
                   </label>
+                  {fieldErrors.name && (
+                    <p role="alert" className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
                 
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2" id="checkout-phone-anchor">
                   <label className="block">
                     <span className="block text-xs font-semibold text-gray-600 mb-1 font-sans">মোবাইল নম্বর <span className="text-red-500">*</span></span>
                     <input 
                       required
                       type="tel" 
+                      id="checkout-phone"
+                      name="tel"
+                      autoComplete="tel"
                       inputMode="numeric"
+                      enterKeyHint="next"
                       placeholder="01XXXXXXXXX" 
                       maxLength={11}
-                      className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
+                      className={"w-full h-11 sm:h-10 px-3 rounded-xl border bg-white text-[15px] sm:text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 transition-all shadow-sm " + (fieldErrors.phone ? "border-red-400 focus:border-red-500 focus:ring-red-400" : "border-gray-200 focus:border-brand-primary focus:ring-brand-primary")}
+                      aria-invalid={!!fieldErrors.phone}
                       value={formData.phone}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         setFormData({...formData, phone: val});
-                        if (val.length === 11) {
-                          trackIncompleteOrderOnBlur(val);
-                        }
+                        if (val.length === 11 && val.startsWith('01')) clearError('phone');
+                        else if (fieldErrors.phone) clearError('phone');
                       }}
-                      onBlur={() => trackIncompleteOrderOnBlur()}
                     />
                   </label>
+                  {fieldErrors.phone && (
+                    <p role="alert" className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {fieldErrors.phone}
+                    </p>
+                  )}
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block">
-                    <span className="block text-xs font-semibold text-gray-600 mb-1">জেলা নির্বাচন করুন <span className="text-red-500">*</span></span>
-                    <div className="relative">
-                      <select
-                        required
-                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none shadow-sm"
-                        value={formData.district}
-                        onChange={(e) => {
-                           setFormData({...formData, district: e.target.value});
-                           setShippingMethod(e.target.value.toLowerCase() === 'dhaka' ? 'dhaka' : 'outside');
-                        }}
-                        onBlur={() => trackIncompleteOrderOnBlur()}
-                      >
-                        <option value="" disabled>জেলা সিলেক্ট করুন</option>
-                        <option value="Dhaka">Dhaka</option>
-                        <option value="Chittagong">Chittagong</option>
-                        <option value="Sylhet">Sylhet</option>
-                        <option value="Rajshahi">Rajshahi</option>
-                        <option value="Khulna">Khulna</option>
-                        <option value="Barisal">Barisal</option>
-                        <option value="Rangpur">Rangpur</option>
-                        <option value="Mymensingh">Mymensingh</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                  </label>
-                </div>
-                
-                <div className="sm:col-span-2">
+                {/* সম্পূর্ণ ঠিকানা */}
+                <div className="sm:col-span-2" id="checkout-address-anchor">
                   <label className="block">
                     <span className="block text-xs font-semibold text-gray-600 mb-1">সম্পূর্ণ ঠিকানা <span className="text-red-500">*</span></span>
-                    <textarea 
+                    <input
                       required
-                      rows={2}
-                      placeholder="বাসা নম্বর, রোড নম্বর, এলাকা অথবা গ্রামের নাম লিখুন" 
-                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none shadow-sm"
+                      id="checkout-address"
+                      name="street-address"
+                      autoComplete="address-line1"
+                      type="text"
+                      enterKeyHint="done"
+                      placeholder={formData.district === 'Outside' ? "জেলা, থানা, গ্রাম ও বাসা নম্বর লিখুন" : "বাসা নম্বর, রোড নম্বর, এলাকা লিখুন"}
+                      className={"w-full h-11 sm:h-10 px-3 rounded-xl border bg-white text-[15px] sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 transition-all " + (fieldErrors.address ? "border-red-400 focus:border-red-500 focus:ring-red-400" : "border-gray-200 focus:border-brand-primary focus:ring-brand-primary")}
+                      aria-invalid={!!fieldErrors.address}
                       value={formData.address1}
-                      onChange={(e) => setFormData({...formData, address1: e.target.value})}
-                      onBlur={() => trackIncompleteOrderOnBlur()}
+                      onChange={(e) => { setFormData({...formData, address1: e.target.value}); clearError('address'); }}
                     />
                   </label>
+                  {fieldErrors.address && (
+                    <p role="alert" className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {fieldErrors.address}
+                    </p>
+                  )}
+                </div>
+
+                {/* ডেলিভারি এরিয়া — placed AFTER the address so the customer fills
+                    each field once, top to bottom, with no scrolling back up. The
+                    shipping cost only changes at submit time, so nothing on screen
+                    jumps when this is picked. */}
+                <div className="sm:col-span-2" id="checkout-area-anchor">
+                  <h3 className="flex items-center gap-3 mb-2 sm:mb-3 text-sm md:text-base font-bold text-gray-900">
+                    ডেলিভারি এরিয়া নির্বাচন করুন <span className="text-red-500">*</span>
+                  </h3>
+                  <div className="grid grid-cols-2 gap-1.5 md:gap-3 w-full">
+                    {[
+                      { id: 'Dhaka', title: 'ঢাকার ভেতরে' },
+                      { id: 'Outside', title: 'ঢাকার বাইরে' },
+                    ].map((da) => {
+                      const isSelected = formData.district === da.id;
+                      return (
+                        <label
+                          key={da.id}
+                          className="relative flex items-center justify-center gap-1 md:gap-2 h-8 md:h-10 px-1 md:px-3.5 rounded-full border cursor-pointer transition-all duration-200 select-none"
+                          style={{
+                            borderColor: isSelected ? '#e2136e' : '#e5e7eb',
+                            backgroundColor: isSelected ? 'rgba(226, 19, 110, 0.05)' : '#ffffff',
+                            boxShadow: isSelected ? '0 0 0 1px #e2136e' : 'none',
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="delivery_area"
+                            value={da.id}
+                            checked={isSelected}
+                            onChange={() => {
+                              setFormData({...formData, district: da.id});
+                              setShippingMethod(da.id === 'Dhaka' ? 'dhaka' : 'outside');
+                              clearError('area');
+                            }}
+                            className="sr-only"
+                          />
+                          <span className="w-3 h-3 md:w-4 md:h-4 rounded-full border flex items-center justify-center shrink-0"
+                            style={{ borderColor: isSelected ? '#e2136e' : '#d1d5db' }}
+                          >
+                            {isSelected && <span className="w-1.5 h-1.5 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: '#e2136e' }} />}
+                          </span>
+                          <span className="font-bold text-[10px] min-[360px]:text-[11px] min-[390px]:text-[12px] md:text-sm whitespace-nowrap text-center truncate"
+                            style={{ color: isSelected ? '#e2136e' : '#6b7280' }}
+                          >
+                            {da.title}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {fieldErrors.area && (
+                    <p role="alert" className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {fieldErrors.area}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -801,7 +1061,12 @@ export default function Checkout() {
             </section>
           </div>
 
-          <div className="relative">
+          {/* 🛒 ORDER SUMMARY SIDEBAR — desktop only.
+              On mobile this was stacking underneath the form as a SECOND copy of
+              the summary, pushing the real submit button far down the page. The
+              mobile layout gets the same information (and the same qty/remove
+              controls) from the top summary inside the form instead. */}
+          <div className="relative hidden lg:block">
             <div className="sticky top-24">
               <div className="rounded-2xl border border-black/5 bg-white shadow-sm p-5 md:p-6 space-y-5">
                 <div>
@@ -815,7 +1080,7 @@ export default function Checkout() {
                       return (
                       <div key={`${item.id}-${index}`} className="flex gap-3 group items-center py-1">
                         <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
-                          <img src={item.images?.[0]?.src || item.thumbnail} className="w-full h-full object-cover pointer-events-none" alt="" />
+                          <ProductImage src={bestProductImage(item)} className="w-full h-full object-cover pointer-events-none" alt="" />
                         </div>
                         
                         <div className="flex flex-col justify-center flex-1 min-w-0">
@@ -940,6 +1205,8 @@ export default function Checkout() {
                          <div className="flex gap-2">
                             <input 
                                type="text" 
+                               name="coupon"
+                               autoComplete="off"
                                placeholder="Enter code here" 
                                className="flex-1 h-11 px-3.5 rounded-lg border border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary text-sm uppercase"
                                value={couponCode}
@@ -1028,20 +1295,17 @@ export default function Checkout() {
               <X className="w-4 h-4" />
             </button>
 
-            <div className="p-5 md:p-8 text-center overflow-y-auto scrollbar-hide flex-1">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-red-50 to-red-100 text-brand-primary rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-inner">
-                <Tag className="w-6 h-6 md:w-7 md:h-7" />
+            <div className="p-4 md:p-6 text-center overflow-y-auto scrollbar-hide flex-1">
+              <div className="w-9 h-9 md:w-11 md:h-11 bg-gradient-to-br from-red-50 to-red-100 text-brand-primary rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4 shadow-inner">
+                <Tag className="w-4.5 h-4.5 md:w-6 md:h-6" />
               </div>
 
-              <h3 className="text-lg md:text-2xl font-black text-gray-900 mb-1 md:mb-1.5 leading-tight font-display">
-                অর্ডারটি সম্পন্ন করুন! 🌸
-              </h3>
-              <p className="text-[11px] md:text-xs text-gray-500 mb-4 md:mb-5 leading-relaxed px-2">
-                আপনার জন্য রয়েছে একটি বিশেষ ধামাকা কুপন অফার। কুপনটি নিয়ে এখনই সহজে অর্ডার সম্পন্ন করুন।
-              </p>
+              {/* Heading and the paragraph beneath it were removed. The voucher
+                  amount already says everything the copy said, and on a phone this
+                  block pushed the email field and the CTA below the fold. */}
 
               {/* Premium Ticket Style Voucher */}
-              <div className="relative bg-gradient-to-br from-[#fff5f8] to-[#fff0f5] border border-[#e2136e]/20 rounded-2xl p-5 mb-5 shadow-sm overflow-hidden">
+              <div className="relative bg-gradient-to-br from-[#fff5f8] to-[#fff0f5] border border-[#e2136e]/20 rounded-2xl p-3.5 mb-3.5 shadow-sm overflow-hidden">
                 {/* Left Ticket Notch */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-white border-r border-[#e2136e]/20 rounded-r-full -translate-x-2" />
                 {/* Right Ticket Notch */}
@@ -1049,12 +1313,12 @@ export default function Checkout() {
                 
                 <span className="block text-[10px] uppercase tracking-wider font-extrabold text-[#e2136e] opacity-80">Special Savings Voucher</span>
                 
-                <div className="my-3 flex items-baseline justify-center gap-1">
-                  <span className="text-4xl md:text-5xl font-black text-brand-primary tracking-tight">৳{randomDiscount + 50}</span>
+                <div className="my-1.5 flex items-baseline justify-center gap-1">
+                  <span className="text-3xl md:text-4xl font-black text-brand-primary tracking-tight">৳{randomDiscount + 50}</span>
                   <span className="text-sm font-bold text-gray-700">ফ্ল্যাট ছাড়</span>
                 </div>
                 
-                <div className="border-t border-dashed border-[#e2136e]/30 pt-3 mt-3 text-left space-y-1 text-[11px] text-gray-600">
+                <div className="border-t border-dashed border-[#e2136e]/30 pt-2 mt-2 text-left space-y-0.5 text-[11px] text-gray-600">
                   <div className="flex justify-between">
                     <span>বিশেষ কুপন ছাড়:</span>
                     <span className="font-bold text-gray-900">৳{randomDiscount}</span>
@@ -1065,13 +1329,13 @@ export default function Checkout() {
                   </div>
                 </div>
                 
-                <div className="mt-3.5 inline-flex items-center gap-1.5 bg-white/80 border border-[#e2136e]/20 px-3 py-1 rounded-full text-xs font-mono font-bold text-brand-primary">
+                <div className="mt-2.5 inline-flex items-center gap-1.5 bg-white/80 border border-[#e2136e]/20 px-3 py-1 rounded-full text-xs font-mono font-bold text-brand-primary">
                   CODE: {generatedCouponCode}
                 </div>
               </div>
 
               {/* Order Summary box */}
-              <div className="bg-gray-50 rounded-2xl p-4 text-left border border-gray-200/60 text-xs space-y-1.5 mb-5">
+              <div className="bg-gray-50 rounded-2xl p-3 text-left border border-gray-200/60 text-[11px] space-y-1 mb-3.5">
                 <div className="flex justify-between text-gray-500">
                   <span>Subtotal:</span>
                   <span className="font-semibold text-gray-800">৳{calculatedSubtotal.toLocaleString()}</span>
@@ -1090,15 +1354,18 @@ export default function Checkout() {
                 </div>
               </div>
               
-              <div className="mb-4">
+              <div className="mb-3">
                 <input 
                   type="email" 
                   required
+                  id="checkout-cancel-email"
+                  name="email"
+                  autoComplete="email"
+                  enterKeyHint="send"
                   placeholder="ডিসকাউন্ট পেতে আপনার ইমেইল দিন (বাধ্যতামূলক)" 
-                  className="w-full h-12 px-4 rounded-xl border border-[#e2136e]/30 bg-white text-base md:text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#e2136e] focus:ring-1 focus:ring-[#e2136e] transition-all shadow-sm text-center"
+                  className="w-full h-11 px-4 rounded-xl border border-[#e2136e]/30 bg-white text-[15px] md:text-sm font-sans text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#e2136e] focus:ring-1 focus:ring-[#e2136e] transition-all shadow-sm text-center"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  onBlur={() => trackIncompleteOrderOnBlur()}
                 />
               </div>
 
@@ -1107,7 +1374,13 @@ export default function Checkout() {
                   type="button"
                   onClick={() => {
                     if (!formData.email || !formData.email.includes('@')) {
-                      alert('অফারটি পেতে অনুগ্রহ করে সঠিক ইমেইল দিন।');
+                      popupEmailErrorRef.current = true;
+                      const el = document.getElementById('checkout-cancel-email');
+                      if (el) {
+                        el.classList.add('border-red-400');
+                        el.focus({ preventScroll: true });
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
                       return;
                     }
                     const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();

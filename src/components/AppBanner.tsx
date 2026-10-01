@@ -60,7 +60,7 @@ return (
         />
         
         {/* Text Content & Ratings - Slimmer Layout */}
-        <div className="flex flex-col justify-center flex-1">
+        <div className="flex flex-col justify-center flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
              <span className="text-[12px] sm:text-[14px] font-extrabold text-gray-900 leading-none">
                Try the App

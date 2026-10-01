@@ -25,6 +25,39 @@ export default function Login() {
   
   const navigate = useNavigate();
 
+  // 🔐 GOOGLE SIGN-IN HANDLER
+  // The backend redirects back to /login#token=... after Google consent, so the
+  // JWT arrives in the fragment (never sent to the server or a referrer) and we
+  // store it exactly like the password flow does. Google accounts with no bunon
+  // profile are auto-created by the callback, so there is nothing to submit here.
+  useEffect(() => {
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token = params.get('token');
+    const err = new URLSearchParams(window.location.search).get('error');
+    if (err) {
+      setError(decodeURIComponent(err));
+      window.history.replaceState({}, '', '/login');
+      return;
+    }
+    if (token) {
+      localStorage.setItem('bunon_token', token);
+      localStorage.setItem(
+        'bunon_user',
+        JSON.stringify({
+          name: params.get('name') || '',
+          email: params.get('email') || '',
+          phone: null,
+          picture: params.get('picture') || null,
+        })
+      );
+      window.history.replaceState({}, '', '/login');
+      navigate('/profile');
+      window.location.reload();
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -209,6 +242,37 @@ export default function Login() {
                 {loading ? 'দয়া করে অপেক্ষা করুন...' : (isForgotPassword ? 'পাসওয়ার্ড রিসেট করুন' : (isLogin ? 'লগইন করুন' : 'অ্যাকাউন্ট তৈরি করুন'))}
               </motion.button>
             </div>
+
+            {/* 🔐 Google sign-in — a second way to reach the same account, not a
+                replacement. Customers who already order as guests are unaffected;
+                this just lets someone claim a profile in one tap so /profile,
+                order history and wishlist work for them. Hidden on the
+                forgot-password screen, where it makes no sense. */}
+            {!isForgotPassword && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs font-medium text-gray-400">অথবা</span>
+                  <span className="h-px flex-1 bg-gray-200" />
+                </div>
+                <a
+                  href="/api/auth/google"
+                  className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-xl shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                >
+                  {/* Google's brand mark, inline so no external request is made. */}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  Google দিয়ে চালিয়া যান
+                </a>
+                <p className="text-[11px] text-center text-gray-400 leading-relaxed">
+                  Google অ্যাকাউন্ট না থাকলে একটি নতুন প্রোফাইল নিজে থেকেই তৈরি হবে।
+                </p>
+              </div>
+            )}
             
             {isForgotPassword && (
               <div className="text-center mt-4">

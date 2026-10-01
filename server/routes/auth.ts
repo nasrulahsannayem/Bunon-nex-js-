@@ -1,40 +1,100 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { productDbPool } from '../db';
 
 const router = express.Router();
+
+// ===== Google OAuth (customer sign-in) =====
+const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
+const REDIRECT_URI =
+  process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+  'https://bunonfabrics.com/api/auth/google/callback';
+const AUTH_URI = 'https://accounts.google.com/o/oauth2/v2/auth';
+const TOKEN_URI = 'https://oauth2.googleapis.com/token';
+const USERINFO_URI = 'https://openidconnect.googleapis.com/v1/userinfo';
+const STATE_COOKIE = 'google_oauth_state';
+const STATE_TTL_MS = 10 * 60 * 1000;
+
+const configured = () => Boolean(CLIENT_ID && CLIENT_SECRET);
+
+// No cookie-parser dependency: read/write the single cookie by hand.
+const setStateCookie = (res: express.Response, state: string) => {
+  res.append(
+    'Set-Cookie',
+    `${STATE_COOKIE}=${state}; Max-Age=${Math.floor(STATE_TTL_MS / 1000)}; Path=/; HttpOnly; Secure; SameSite=Lax`
+  );
+};
+
+const readCookie = (req: express.Request, name: string): string | null => {
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  for (const part of raw.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === name) return decodeURIComponent(part.slice(eq + 1).trim());
+  }
+  return null;
+};
+
+const clearStateCookie = (res: express.Response) => {
+  res.append('Set-Cookie', `${STATE_COOKIE}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`);
+};
+
+
 const JWT_SECRET = process.env.JWT_SECRET || 'bunon_super_secret_key_2026';
 
 // Register or Auto-register handled in payment.ts, but here is manual login
 router.post('/login', async (req, res) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, username, password } = req.body;
+    const identifier = phone ?? username;
     
-    if (!phone || !password) {
-      return res.status(400).json({ ok: false, msg: 'Phone and password required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ ok: false, msg: 'Phone/username and password required' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
+    const rawId = String(identifier).trim();
+    const cleanPhone = rawId.replace(/\D/g, '');
 
-    const [users]: any = await productDbPool.execute(
-      `SELECT * FROM bunon_users WHERE phone = ? LIMIT 1`,
-      [cleanPhone]
-    );
+    const isPhoneLogin = /^\d{11}$/.test(cleanPhone);
+    let users: any;
+    if (isPhoneLogin) {
+      [users] = await productDbPool.execute(
+        `SELECT * FROM bunon_users WHERE phone = ? LIMIT 1`,
+        [cleanPhone]
+      );
+    } else {
+      [users] = await productDbPool.execute(
+        `SELECT * FROM bunon_users WHERE username = ? LIMIT 1`,
+        [rawId.toLowerCase()]
+      );
+    }
 
     if (!users || users.length === 0) {
       return res.status(401).json({ ok: false, msg: 'Invalid credentials' });
     }
 
     const user = users[0];
+    if (user.status && user.status !== 'active')
+      return res.status(403).json({ ok: false, msg: 'Account disabled' });
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
       return res.status(401).json({ ok: false, msg: 'Invalid credentials' });
     }
 
+    productDbPool.execute('UPDATE bunon_users SET last_login = NOW() WHERE id = ?', [user.id]).catch(() => {});
+    let loginPerms: string[] = [];
+    try {
+      const rawPerms: unknown = (user as { permissions?: unknown }).permissions;
+      loginPerms = Array.isArray(rawPerms) ? rawPerms as string[] : JSON.parse((rawPerms as string) || '[]');
+      if (!Array.isArray(loginPerms)) loginPerms = [];
+    } catch { loginPerms = []; }
     const token = jwt.sign(
-      { id: user.id, phone: user.phone, role: user.role },
+      { id: user.id, phone: user.phone, role: user.role, permissions: loginPerms },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -49,7 +109,11 @@ router.post('/login', async (req, res) => {
         email: user.email,
         default_address: user.default_address,
         default_city: user.default_city,
-        role: user.role
+        role: user.role,
+        permissions: loginPerms,
+        username: user.username ?? null,
+        status: user.status ?? 'active',
+        photo: user.photo ?? null
       }
     });
 
@@ -241,7 +305,7 @@ router.get('/orders', verifyToken, async (req: any, res) => {
     
     import('../db').then(async ({ dbPool }) => {
       try {
-        const [orders]: any = await dbPool.execute(
+        const [orders]: any = await productDbPool.execute(
           `SELECT id, invoice, created_at, status, total_payable as amount 
            FROM bf_orders WHERE phone = ? ORDER BY created_at DESC LIMIT 50`,
           [phone]
@@ -266,7 +330,7 @@ router.get('/track-order', async (req: any, res) => {
     
     import('../db').then(async ({ dbPool }) => {
       try {
-        const [orders]: any = await dbPool.execute(
+        const [orders]: any = await productDbPool.execute(
           `SELECT id, invoice, created_at, status, total_payable as amount, 
                   customer_name, phone, address, city, state, 
                   subtotal, delivery_fee, discount_amount, payment_method, is_paid, cod_amount 
@@ -275,7 +339,7 @@ router.get('/track-order', async (req: any, res) => {
         );
         
         if (orders.length > 0) {
-          const [items]: any = await dbPool.execute(
+          const [items]: any = await productDbPool.execute(
             `SELECT product_name as name, qty as quantity, price, thumb as thumbnail 
              FROM bf_order_items WHERE order_id = ?`,
             [orders[0].id]
@@ -300,7 +364,7 @@ router.post('/device-token', async (req: any, res) => {
     if (!token) return res.status(400).json({ ok: false, msg: 'Token is required' });
 
     const { dbPool } = await import('../db');
-    await dbPool.execute(
+    await productDbPool.execute(
       'INSERT INTO bf_device_tokens (token, platform) VALUES (?, ?) ON DUPLICATE KEY UPDATE platform = VALUES(platform)',
       [token, platform || 'web']
     );
@@ -310,6 +374,152 @@ router.post('/device-token', async (req: any, res) => {
     res.status(500).json({ ok: false, msg: err.message });
   }
 });
+
+// ===== Google OAuth routes =====
+// Step 1 — bounce the browser to Google's consent screen.
+router.get('/google', (req, res) => {
+  if (!configured()) {
+    return res
+      .status(503)
+      .json({ ok: false, msg: 'Google sign-in is not configured on this server.' });
+  }
+  const state = crypto.randomBytes(24).toString('hex');
+  setStateCookie(res, state);
+
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    // openid+email+profile are the minimum for identity. No sensitive scopes —
+    // which also keeps the app out of Google's "sensitive scope" verification
+    // queue and under the 100-user cap while testing is unverified.
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+    access_type: 'online',
+  });
+  res.redirect(`${AUTH_URI}?${params.toString()}`);
+});
+
+// Step 2 — Google redirects back with ?code=...&state=...
+router.get('/google/callback', async (req, res) => {
+  const fail = (msg: string, code = 400) =>
+    res.redirect(`/login?error=${encodeURIComponent(msg)}`);
+
+  if (!configured()) return fail('Google sign-in is not configured.', 503);
+
+  const { code, state, error } = req.query as Record<string, string | undefined>;
+  if (error) return fail(error);
+  if (!code) return fail('Missing authorization code.');
+  if (!state) return fail('Missing state parameter.');
+
+  const savedState = readCookie(req, STATE_COOKIE);
+  if (!savedState || savedState !== state) {
+    return fail('State mismatch. Please try signing in again.');
+  }
+  clearStateCookie(res);
+
+  try {
+    // Exchange the code for an access token.
+    const tokenRes = await fetch(TOKEN_URI, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        grant_type: 'authorization_code',
+      }),
+    });
+    const tokenJson: any = await tokenRes.json();
+    if (!tokenRes.ok || !tokenJson.access_token) {
+      console.error('[GoogleAuth] token exchange failed:', tokenJson);
+      return fail('Could not complete sign-in with Google.');
+    }
+
+    // Read the identity.
+    const infoRes = await fetch(USERINFO_URI, {
+      headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+    });
+    const info: any = await infoRes.json();
+    if (!infoRes.ok || !info.sub) {
+      console.error('[GoogleAuth] userinfo failed:', info);
+      return fail('Could not read your Google account.');
+    }
+
+    const googleId = String(info.sub);
+    const email = info.email ? String(info.email).toLowerCase() : null;
+    const name = info.name || (email ? email.split('@')[0] : null);
+    const picture = info.picture || null;
+    if (!email) return fail('Your Google account did not share an email address.');
+
+    // Already linked to a Google account?
+    const [byGoogle]: any = await productDbPool.execute(
+      `SELECT id, phone, email, name, role, photo FROM bunon_users WHERE google_id = ? LIMIT 1`,
+      [googleId]
+    );
+    let userId: number;
+
+    if (byGoogle && byGoogle.length > 0) {
+      userId = byGoogle[0].id;
+      // Refresh the avatar/name if Google gave us a fresher one.
+      await productDbPool.execute(
+        `UPDATE bunon_users SET name = COALESCE(?, name), google_picture = COALESCE(?, google_picture),
+                                photo = COALESCE(?, photo), last_login = NOW() WHERE id = ?`,
+        [name, picture, picture, userId]
+      );
+    } else {
+      // An older password account with the same email? Link it, don't duplicate.
+      const [byEmail]: any = await productDbPool.execute(
+        `SELECT id FROM bunon_users WHERE email = ? LIMIT 1`,
+        [email]
+      );
+      if (byEmail && byEmail.length > 0) {
+        userId = byEmail[0].id;
+        await productDbPool.execute(
+          `UPDATE bunon_users SET google_id = ?, name = COALESCE(name, ?),
+                                  google_picture = COALESCE(?, google_picture),
+                                  photo = COALESCE(photo, ?), last_login = NOW() WHERE id = ?`,
+          [googleId, name, picture, picture, userId]
+        );
+      } else {
+        // No account yet — create one, exactly like the register form does
+        // except with no phone/password (both stay NULL).
+        const [ins]: any = await productDbPool.execute(
+          `INSERT INTO bunon_users (email, name, google_id, google_picture, photo, role, status, last_login)
+           VALUES (?, ?, ?, ?, ?, 'customer', 'active', NOW())`,
+          [email, name, googleId, picture, picture]
+        );
+        userId = ins.insertId;
+        console.log('[GoogleAuth] auto-created account', userId, 'for', email);
+      }
+    }
+
+    const [rows]: any = await productDbPool.execute(
+      `SELECT id, phone, email, name, role, photo, google_picture FROM bunon_users WHERE id = ? LIMIT 1`,
+      [userId]
+    );
+    const u = rows[0];
+
+    // Same JWT shape as /login and /register, so Profile.tsx needs no change.
+    const token = jwt.sign({ id: u.id, phone: u.phone, role: u.role }, JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
+    // Hand the token to the SPA without putting it in a URL that could leak
+    // into history, referrers or logs.
+    res.redirect(
+      `/login#token=${encodeURIComponent(token)}&name=${encodeURIComponent(u.name || '')}` +
+        `&email=${encodeURIComponent(u.email || '')}` +
+        `&picture=${encodeURIComponent(picture || '')}`
+    );
+  } catch (err: any) {
+    console.error('[GoogleAuth] error:', err.message);
+    res.redirect(`/login?error=${encodeURIComponent('Google sign-in failed. Please try again.')}`);
+  }
+});
+
 
 export default router;
 

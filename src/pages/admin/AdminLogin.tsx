@@ -4,16 +4,17 @@ import { motion } from 'framer-motion';
 import { Lock, Phone, ShieldCheck } from 'lucide-react';
 
 export default function AdminLogin() {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Redirect if already logged in as admin
+  // Redirect if already logged in as admin (token + role both required)
   useEffect(() => {
     const userStr = localStorage.getItem('bunon_user');
-    if (userStr) {
+    const token = localStorage.getItem('bunon_token');
+    if (userStr && token) {
       try {
         const user = JSON.parse(userStr);
         if (user.role === 'admin' || user.role === 'staff' || user.role === 'super_admin') {
@@ -32,7 +33,7 @@ export default function AdminLogin() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password })
+        body: JSON.stringify({ identifier, phone: identifier, username: identifier, password })
       });
       const data = await res.json();
 
@@ -98,18 +99,18 @@ export default function AdminLogin() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300">Admin Phone</label>
+              <label className="block text-sm font-medium text-gray-300">Username / Phone</label>
               <div className="mt-2 relative rounded-xl shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Phone className="h-5 w-5 text-gray-500" />
                 </div>
                 <input
-                  type="tel"
+                  type="text"
                   required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="focus:ring-2 focus:ring-brand-primary focus:border-brand-primary block w-full pl-11 sm:text-sm border-gray-600 rounded-xl h-12 bg-gray-900/50 text-white placeholder-gray-500 transition-all outline-none"
-                  placeholder="017XXXXXXXX"
+                  placeholder="Username or 017XXXXXXXX"
                 />
               </div>
             </div>

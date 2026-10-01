@@ -202,16 +202,29 @@ export async function sendOrderConfirmationEmail(toEmail: string, orderData: any
 /**
  * Sends recovery email with dynamic discount coupons (5% to 20%)
  */
+// nodemailer throws 'No recipients defined' for empty / placeholder addresses.
+// Most recovery-queue rows come from COD checkouts where the customer supplied
+// only a phone number, so skip them here instead of failing on every hourly run.
+const EMAIL_PLACEHOLDERS = new Set([
+  '', 'n/a', 'na', 'null', 'undefined', 'none', 'test', 'test@test', 'naim', 'naim@gmail.com'
+]);
+
 export async function sendCartRecoveryEmail(email: string, phone: string, name: string, cartItems: any[], discountAmount: number) {
-  if (email && email.endsWith('@bunon.shop')) {
-    console.log(`[Email] Skip recovery mail for ${email} because it is a placeholder.`);
+  const rawEmail = String(email ?? '').trim().toLowerCase();
+  if (!rawEmail || EMAIL_PLACEHOLDERS.has(rawEmail) || !rawEmail.includes('@') || !rawEmail.includes('.')) {
+    console.log(`[Email] Skip recovery mail: no usable email (value=${JSON.stringify(String(email ?? ''))}, phone=${phone}). SMS channel not wired yet.`);
+    return;
+  }
+  const cleanEmail = rawEmail;
+  if (cleanEmail.endsWith('@bunon.shop')) {
+    console.log(`[Email] Skip recovery mail for ${cleanEmail} because it is a placeholder.`);
     return;
   }
   try {
     // Check if user is unsubscribed
-    const [subscriber]: any = await productDbPool.execute('SELECT status FROM wc_marketing_emails WHERE email = ?', [email]);
+    const [subscriber]: any = await productDbPool.execute('SELECT status FROM wc_marketing_emails WHERE email = ?', [cleanEmail]);
     if (subscriber && subscriber[0]?.status === 'unsubscribed') {
-      console.log(`[Email] Skip recovery mail for ${email} because they are unsubscribed.`);
+      console.log(`[Email] Skip recovery mail for ${cleanEmail} because they are unsubscribed.`);
       return;
     }
 
@@ -270,16 +283,16 @@ export async function sendCartRecoveryEmail(email: string, phone: string, name: 
 
     await mailTransporter.sendMail({
       from: '"Bunon Fabrics" <admin@bunonfabrics.com>',
-      to: email,
+      to: cleanEmail,
       subject: `বুনন ফেব্রিক্স: আপনার জন্য বিশেষ ৳${discountAmount} ডিসকাউন্ট উপহার! 🎁`,
       html: html,
       text: `আসসালামু আলাইকুম ${name}, আপনার শপিং কার্টের আইটেমগুলো নিয়ে অফারে সহজে অর্ডার সম্পন্ন করুন। কুপন কোড: ${generatedCoupon}`,
       headers: {
-        'List-Unsubscribe': `<https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(email)}>`
+        'List-Unsubscribe': `<https://bunon.shop/api/unsubscribe?email=${encodeURIComponent(cleanEmail)}>`
       }
     });
 
-    console.log(`[Email] Recovery email sent successfully to ${email} with ৳${discountAmount} discount`);
+    console.log(`[Email] Recovery email sent successfully to ${cleanEmail} with ৳${discountAmount} discount`);
   } catch (err: any) {
     console.error('[Email] Failed to send cart recovery email:', err.message);
   }
