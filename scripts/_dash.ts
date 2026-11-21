@@ -1,0 +1,21 @@
+import puppeteer from 'puppeteer-core';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import { productDbPool } from '../server/db';
+dotenv.config({ override: true, quiet: true as true as any });
+const [u]: any = await productDbPool.query("SELECT id,phone,role,permissions,username,name FROM bunon_users WHERE role='super_admin' LIMIT 1");
+let p:any=u[0].permissions; if(typeof p==='string'){try{p=JSON.parse(p)}catch{p=[]}}
+const t=jwt.sign({id:u[0].id,phone:u[0].phone,role:u[0].role,permissions:p},String(process.env.JWT_SECRET),{expiresIn:'2h'});
+const b=await puppeteer.launch({headless:true,executablePath:'/snap/bin/chromium',args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--ignore-certificate-errors']});
+const pg=await b.newPage(); await pg.setViewport({width:1600,height:1000});
+const calls:any[]=[];
+pg.on('response', async (r:any)=>{ const u=r.url(); if(u.includes('/api/admin/')&&!u.includes('omnichannel')){ let bd=''; try{bd=(await r.text()).slice(0,120)}catch{} calls.push({s:r.status(),u:u.replace(/^https?:\/\/[^/]+/,''),b:bd}); } });
+await pg.goto('https://bunonfabrics.com/admin/login',{waitUntil:'networkidle2'});
+await pg.evaluate((tk:string,usr:any)=>{localStorage.setItem('bunon_token',tk);localStorage.setItem('bunon_user',JSON.stringify(usr))},t,{id:u[0].id,name:u[0].name||u[0].username,role:u[0].role});
+await pg.goto('https://bunonfabrics.com/admin/dashboard',{waitUntil:'networkidle2',timeout:60000});
+await new Promise(x=>setTimeout(x,7000));
+console.log('failed calls:');
+calls.filter(c=>c.s>=400).forEach(c=>console.log('  ',c.s,c.u,'->',c.b));
+console.log('ok calls:'); calls.filter(c=>c.s<400).slice(0,8).forEach(c=>console.log('  ',c.s,c.u));
+console.log('page:', await pg.evaluate(()=>{const t=document.body.innerText; return /Failed to load data/.test(t)?'FAILED: '+t.match(/Failed to load data[^\n]*/)[0] : (t.match(/Failed[^\n]*/)?'other: '+t.match(/Failed[^\n]*/)[0]:'renders OK');}));
+await b.close(); process.exit(0);

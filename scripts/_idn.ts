@@ -1,0 +1,12 @@
+import dotenv from 'dotenv';
+import { dbPool } from '../server/db';
+dotenv.config({ override: true, quiet: true as true as any });
+const [a]: any = await dbPool.query("SELECT COUNT(*) n FROM omnichannel_customers WHERE display_name REGEXP '^[0-9]{9,}$'");
+console.log('customers whose name IS a numeric id:', a[0].n);
+const [b]: any = await dbPool.query('SELECT COUNT(*) n FROM omnichannel_customers');
+console.log('total customers:', b[0].n);
+const [c]: any = await dbPool.query("SELECT COUNT(*) n FROM omnichannel_customer_identities WHERE (display_name IS NULL OR display_name='') AND (external_username IS NULL OR external_username='')");
+console.log('identities with NO name at all:', c[0].n);
+const [d]: any = await dbPool.query('SELECT COUNT(*) n FROM omnichannel_customer_identities');
+console.log('total identities:', d[0].n);
+process.exit(0);

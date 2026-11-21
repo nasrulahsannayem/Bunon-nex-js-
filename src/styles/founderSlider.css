@@ -1,0 +1,10 @@
+/* Founder photo auto-loop slider — 20s cycle, 4 images */
+@keyframes founderFade {
+  0%, 100% { opacity: 0; }
+  3%      { opacity: 1; }
+  22%     { opacity: 1; }
+  25%     { opacity: 0; }
+}
+.founder-fade {
+  animation: founderFade 20s infinite linear;
+}

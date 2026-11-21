@@ -1,0 +1,1126 @@
+/**
+ * /admin/inbox — 3-panel Omnichannel workspace.
+ *
+ *   Panel 1  Conversation list   (search, filters, channel strip)
+ *   Panel 2  Chat thread         (header, timeline, composer)
+ *   Panel 3  Customer 360        (identity, CRM, orders, journey)
+ *
+ * Desktop shows all three. Mobile/tablet collapses to
+ * list -> chat -> customer360 with a Back affordance at each level.
+ *
+ * Deliberate constraints (spec §2, §24):
+ *  - no new CRM, no new order system, no second RBAC — this is a view over
+ *    the existing omnichannel tables plus bf_orders;
+ *  - Instagram outbound stays capability-gated; the composer refuses to
+ *    pretend a send worked;
+ *  - every request goes through adminFetch so one dead token produces one
+ *    clean redirect instead of a screen full of silent 401s.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import {
+  AlertTriangle, ArrowLeft, Check, ChevronDown, Clock, FileText, Image as ImageIcon,
+  Info, Mic, Package, Paperclip, Phone, RefreshCw, Search, Send, StickyNote,
+  Tag as TagIcon, User, Users, Video, X, Zap,
+} from 'lucide-react';
+import { adminFetch } from '../../utils/session';
+import '../../styles/inbox.css';
+import {
+  ChannelIcon, FacebookIcon, InstagramIcon, WhatsAppIcon, TikTokIcon,
+  OnlineDot, PriceTagIcon, TruckIcon, InboxIcon, NoteIcon, ClockIcon, PackageIcon,
+} from '../../components/admin/InboxIcons';
+import {
+  SlaPill, ConversationMenu, TimelineDrawer, HistoryButton, QuickReplies,
+} from '../../components/admin/InboxHeaderBits';
+import { MessageMedia } from '../../components/admin/MessageMedia';
+import { SenderAvatar } from '../../components/admin/SenderAvatar';
+import { displayNameFor, avatarSeedFor, hasRealName as hasRealName360 } from '../../utils/displayName';
+import { useSavedViews, SavedViewsBar } from '../../components/admin/InboxSavedViews';
+
+/* ── channel capability: what we have actually verified ─────────────── */
+type Cap = {
+  label: string;
+  /** Inline SVG component — emoji were replaced because they render
+   *  inconsistently per platform and clash with the outline icon set. */
+  Icon: (p: { size?: number; className?: string }) => ReactNode;
+  tint: string;
+  /** true when we have verified outbound send for this channel */
+  text: boolean;
+  note?: string;
+};
+const CHANNEL_CAPS: Record<string, Cap> = {
+  facebook:  { label: 'Facebook',  Icon: FacebookIcon, tint: 'bg-blue-50 text-blue-700',  text: true },
+  instagram: { label: 'Instagram', Icon: InstagramIcon, tint: 'bg-pink-50 text-pink-700',  text: false,
+               note: 'Instagram-এ এই মুহূর্তে outbound মেসেজ পাঠানো যাচ্ছে না।' },
+  whatsapp:  { label: 'WhatsApp',  Icon: WhatsAppIcon, tint: 'bg-emerald-50 text-emerald-700', text: true },
+  tiktok:    { label: 'TikTok',    Icon: TikTokIcon, tint: 'bg-slate-100 text-slate-600',  text: false,
+               note: 'TikTok official messaging capability এখনো যাচাই হয়নি।' },
+};
+
+const STATUSES = ['open', 'pending', 'closed'] as const;
+const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
+const STATUS_BN: Record<string, string> = { open: 'চলছে', pending: 'অপেক্ষমাণ', closed: 'বন্ধ' };
+const PRIO_BN: Record<string, string> = { low: 'কম', normal: 'সাধারণ', high: 'বেশি', urgent: 'জরুরি' };
+const PRIO_DOT: Record<string, string> = {
+  low: 'bg-slate-300', normal: 'bg-slate-400', high: 'bg-amber-500', urgent: 'bg-red-500',
+};
+const ORDER_STATUS_BN: Record<string, string> = {
+  pending: 'অপেক্ষমাণ', confirmed: 'নিশ্চিত', processing: 'প্রসেসিং', packed: 'প্যাকড',
+  shipped: 'পাঠানো', in_transit: 'ট্রানজিটে', out_for_delivery: 'ডেলিভারিতে',
+  delivered: 'ডেলিভার হয়েছে', cancelled: 'বাতিল', partial_return: 'আংশিক রিটার্ন',
+  returned: 'রিটার্ন',
+};
+
+/** raw type -> Bengali label, for the kinds with no visual rendering */
+const BN_TYPE: Record<string, string> = {
+  unknown: 'অজানা', system: 'সিস্টেম',
+};
+
+const MTYPE_ICON: Record<string, any> = {
+  image: ImageIcon, video: Video, audio: Mic, document: FileText, reel: Video,
+};
+
+/** Spec §6 — all filters must render. (The old code sliced to 5 and the
+ *  "closed" pill was unreachable.) */
+const STATUS_FILTERS = [
+  { key: 'all', label: 'সব' },
+  { key: 'unread', label: 'অপঠিত' },
+  { key: 'mine', label: 'আমার' },
+  { key: 'unassigned', label: 'অনিয়োজিত' },
+  { key: 'pending', label: 'অপেক্ষমাণ' },
+  { key: 'closed', label: 'বন্ধ' },
+];
+
+const t = (v: any) => {
+  if (!v) return '';
+  const ms = Date.parse(String(v).replace(' ', 'T'));
+  if (!ms) return '';
+  const diff = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (diff < 60) return 'এইমাত্র';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+  return new Date(ms).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short' });
+};
+const clock = (v: any) => {
+  const ms = Date.parse(String(v || '').replace(' ', 'T'));
+  return ms ? new Date(ms).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }) : '';
+};
+const money = (v: any) => `৳${Number(v || 0).toLocaleString('en-BD')}`;
+type Conv = any;
+
+export default function InboxPage() {
+  const [params, setParams] = useSearchParams();
+
+  /* ── state ─────────────────────────────────────────────────────── */
+  const selectedId = params.get('conversation');
+  const platform = params.get('platform') || 'all';
+  const filter = params.get('filter') || 'all';
+  const tag = params.get('tag') || '';
+  const assigned = params.get('assigned') || '';
+  const priority = params.get('priority') || '';
+  const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
+  const [convs, setConvs] = useState<Conv[]>([]);
+  const [counts, setCounts] = useState<any>({});
+  const [channels, setChannels] = useState<any[]>([]);
+  const views = useSavedViews({
+    platform: platform,
+    filter: filter,
+    priority: priority,
+  });
+  const [detail, setDetail] = useState<any>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
+  // which conversation the timeline drawer is showing
+  const [timelineFor, setTimelineFor] = useState<number | null>(null);
+  const [c360, setC360] = useState<any>(null);
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [loading360, setLoading360] = useState(false);
+  const [error, setError] = useState('');
+  const [draft, setDraft] = useState('');
+  const [noteMode, setNoteMode] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [sendState, setSendState] = useState<'' | 'sending' | 'sent' | 'failed'>('');
+  const [showInfo, setShowInfo] = useState(false);
+  const [tagDraft, setTagDraft] = useState('');
+  const [live, setLive] = useState(true);
+
+  const threadRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  /* ── URL is the single source of truth for filters (was local state,
+   *    so a refresh or the bubble's deep link lost the view). ────── */
+  const setParam = useCallback((k: string, v: string) => {
+    const next = new URLSearchParams(params);
+    if (!v || v === 'all') next.delete(k);
+    else next.set(k, v);
+    setParams(next, { replace: true });
+  }, [params, setParams]);
+
+  /* ── debounce: ONE effect, not two (the old code fired the request on
+   *    every keystroke AND again 350ms later). ─────────────────────── */
+  useEffect(() => {
+    const h = window.setTimeout(() => setDebouncedQ(q), 350);
+    return () => window.clearTimeout(h);
+  }, [q]);
+
+  /* ── data ──────────────────────────────────────────────────────── */
+  const loadCounts = useCallback(async () => {
+    const d = await adminFetch('/api/admin/omnichannel/stats');
+    if (!d) return;
+    if (d.success) {
+      setCounts(d.data?.counts || {});
+      setChannels(d.data?.channels || []);
+    }
+  }, []);
+
+  const loadList = useCallback(async () => {
+    const qs = new URLSearchParams();
+    if (platform !== 'all') qs.set('platform', platform);
+    if (filter === 'mine') qs.set('mine', '1');
+    else if (filter === 'unassigned') qs.set('unassigned', '1');
+    else if (filter !== 'all') qs.set('status', filter);
+    if (tag) qs.set('tag', tag);
+    if (assigned) qs.set('assigned', assigned);
+    if (priority && priority !== 'all') qs.set('priority', priority);
+    if (debouncedQ.trim()) qs.set('search', debouncedQ.trim());
+    qs.set('limit', '60');
+
+    const d = await adminFetch('/api/admin/omnichannel?' + qs.toString());
+    if (!d) return;
+    if (d.success) {
+      const rows: Conv[] = d.data?.conversations || [];
+      // "Unread" is a real server predicate, not a client-side slice. The old
+      // code mapped unread -> status=open then filtered unread_count>0, which
+      // silently hid unread conversations that were pending/closed.
+      setConvs(filter === 'unread' ? rows.filter((c) => Number(c.unread_count) > 0) : rows);
+      setError('');
+    } else {
+      setError(d?.error?.message || 'ইনবক্স লোড করা যায়নি');
+    }
+    setLoadingList(false);
+  }, [platform, filter, tag, assigned, priority, debouncedQ]);
+
+  const loadThread = useCallback(async (id: string) => {
+    setLoadingThread(true);
+    const d = await adminFetch(`/api/admin/omnichannel/${id}`);
+    if (!d) return;
+    if (d.success) {
+      setDetail(d.data);
+      setError('');
+    } else {
+      setError(d?.error?.message || 'কথোপকথন লোড করা যায়নি');
+    }
+    setLoadingThread(false);
+  }, []);
+
+  const load360 = useCallback(async (customerId: number) => {
+    setLoading360(true);
+    const d = await adminFetch(`/api/admin/omnichannel/customer/${customerId}`);
+    if (d?.success) setC360(d.data);
+    setLoading360(false);
+  }, []);
+
+  useEffect(() => { loadCounts(); }, [loadCounts]);
+  useEffect(() => { loadList(); }, [loadList]);
+
+  useEffect(() => {
+    if (!selectedId) { setDetail(null); setC360(null); return; }
+    loadThread(selectedId);
+    setShowInfo(false);
+  }, [selectedId, loadThread]);
+
+  /* Panel 3 loads only when it is actually visible — a drawer that is
+   * closed must not cost a request. */
+  useEffect(() => {
+    const cid = detail?.conversation?.customer_id;
+    if (!cid) { setC360(null); return; }
+    if (window.matchMedia('(min-width: 1024px)').matches || showInfo) load360(Number(cid));
+    else setC360(null);
+  }, [detail?.conversation?.customer_id, showInfo, load360]);
+
+  /* mark read when a thread is opened */
+  useEffect(() => {
+    if (!detail?.conversation?.id) return;
+    const msgs = detail?.messages || [];
+    const lastId = msgs.length ? msgs[msgs.length - 1].id : null;
+    adminFetch(`/api/admin/omnichannel/${detail.conversation.id}/read`, {
+      method: 'POST', body: JSON.stringify({ lastReadMessageId: lastId }),
+    }).catch(() => {});
+    setTimeout(() => {
+      setConvs((prev) => prev.map((c) =>
+        c.id === detail.conversation.id ? { ...c, unread_count: 0 } : c));
+    }, 900);
+  }, [detail?.conversation?.id, detail?.messages?.length]);
+
+  /* scroll to newest on open / new message */
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [detail?.messages?.length, loadingThread]);
+
+  /* realtime-ish refresh */
+  useEffect(() => {
+    if (!live) return;
+    const h = window.setInterval(() => { loadList(); loadCounts(); }, 25000);
+    return () => window.clearInterval(h);
+  }, [live, loadList, loadCounts]);
+
+  /* ── actions ───────────────────────────────────────────────────── */
+  const conv = detail?.conversation;
+  const platformCap = conv ? (CHANNEL_CAPS[conv.platform] || CHANNEL_CAPS.tiktok) : null;
+
+  const mutate = async (path: string, payload: any) => {
+    if (!conv) return;
+    // The old mutate() ignored the response, so a rejected change looked
+    // identical to a successful one (the select snapped back, no error).
+    const d = await adminFetch(`/api/admin/omnichannel/${conv.id}/${path}`, {
+      method: 'POST', body: JSON.stringify(payload),
+    });
+    if (!d) return;
+    if (d.success) {
+      setError('');
+      await loadThread(String(conv.id));
+      loadList();
+      loadCounts();
+    } else {
+      setError(d?.error?.message || 'পরিবর্তনটি সংরক্ষণ হয়নি');
+    }
+  };
+
+  const send = async () => {
+    const body = draft.trim();
+    if (!body || !conv) return;
+    if (platformCap && !platformCap.text) {
+      setError(platformCap.note || 'এই চ্যানেলে মেসেজ পাঠানো যাচ্ছে না');
+      return;
+    }
+    setSendState('sending');
+    const d = await adminFetch(`/api/admin/omnichannel/${conv.id}/send`, {
+      method: 'POST', body: JSON.stringify({ body }),
+    });
+    if (!d) return; // session died; adminFetch is already redirecting
+    if (d.success) {
+      setDraft('');
+      setSendState('sent');
+      setError('');
+      setTimeout(() => setSendState(''), 2500);
+      await loadThread(String(conv.id));
+      loadList();
+    } else {
+      setSendState('failed');
+      setError(d?.error?.message || 'বার্তা পাঠানো যায়নি। আবার চেষ্টা করুন।');
+    }
+  };
+
+  const addNote = async () => {
+    const body = noteDraft.trim();
+    if (!body || !conv) return;
+    const d = await adminFetch(`/api/admin/omnichannel/${conv.id}/note`, {
+      method: 'POST', body: JSON.stringify({ body }),
+    });
+    if (d?.success) {
+      setNoteDraft(''); setNoteMode(false);
+      await loadThread(String(conv.id));
+      if (c360) load360(Number(conv.customer_id));
+    } else if (d) setError(d?.error?.message || 'নোট যোগ করা যায়নি');
+  };
+
+  const toggleTag = async (name: string) => {
+    if (!conv) return;
+    // The API returns tags either as a comma-joined string (list query) or
+    // as an array of rows (detail query). Normalise both.
+    const raw: any = detail?.conversation?.tags;
+    const existing: string[] = Array.isArray(raw)
+      ? raw.map((x: any) => (typeof x === 'string' ? x : String(x.tag)))
+      : String(raw || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const remove = existing.includes(name);
+    await mutate('tags', { tag: name, add: !remove });
+  };
+
+  const assignToMe = async () => {
+    const me = JSON.parse(localStorage.getItem('bunon_user') || '{}');
+    if (me?.id) await mutate('assign', { assigneeId: me.id });
+  };
+
+  /* ── keyboard (spec §7) ────────────────────────────────────────── */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      // A focused <select> or contenteditable is still "typing" — the old
+      // guard only checked INPUT|TEXTAREA, so "n" opened notes mid-select.
+      const typing = !!el && (
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ||
+        el.isContentEditable
+      );
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 'Escape') {
+        if (showInfo) setShowInfo(false);
+        else if (selectedId) back();
+        return;
+      }
+      if (e.key === '/') { e.preventDefault(); (document.getElementById('inbox-search') as HTMLInputElement)?.focus(); return; }
+
+      // j/k walk the VISIBLE list, not a separate query, so navigation can
+      // never land on a row the user cannot see.
+      if (e.key === 'j' || e.key === 'k') {
+        if (!convs.length) return;
+        e.preventDefault();
+        const at = convs.findIndex((r: any) => String(r.id) === String(selectedId));
+        const next = e.key === 'j'
+          ? Math.min(convs.length - 1, at + 1)
+          : Math.max(0, (at === -1 ? convs.length : at) - 1);
+        const target = convs[next];
+        if (target) {
+          open(target.id);
+          // keep the moved-to row in view
+          requestAnimationFrame(() => {
+            document.querySelector(`[data-conv-id="${target.id}"]`)
+              ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          });
+        }
+        return;
+      }
+
+      if (!selectedId) return;
+      if (e.key === 'n') { e.preventDefault(); setNoteMode(true); return; }
+      if (e.key === 'i') { e.preventDefault(); setShowInfo(true); return; }
+      if (e.key === 'r') { e.preventDefault(); inputRef.current?.focus(); return; }
+      if (e.key === 'a') { e.preventDefault(); assignToMe(); return; }
+      if (e.key === 'e') { e.preventDefault(); mutate('status', { status: 'closed' }); }
+      // NOTE: arrow keys are deliberately NOT captured — the old code
+      // preventDefault'd them globally and killed page scroll outside the list.
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, showInfo, convs]);
+
+  /* ── nav ───────────────────────────────────────────────────────── */
+  /**
+   * Insert a canned reply at the caret rather than appending it, so the
+   * agent keeps their place if they were mid-sentence. The selection has to
+   * be restored in a rAF because React re-renders the textarea value first.
+   */
+  const insertAtCaret = (text: string) => {
+    const el = inputRef.current;
+    if (!el) { setDraft((d) => (d ? d + text : text)); return; }
+    const start = el.selectionStart ?? draft.length;
+    const end = el.selectionEnd ?? draft.length;
+    setDraft(draft.slice(0, start) + text + draft.slice(end));
+    requestAnimationFrame(() => {
+      const pos = start + text.length;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  const open = (id: number) => { setParam('conversation', String(id)); setSendState(''); };
+  const back = () => {
+    if (showInfo) { setShowInfo(false); return; }
+    if (selectedId) { setParam('conversation', ''); setDetail(null); }
+  };
+  const onKeyThread = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); noteMode ? addNote() : send(); }
+  };
+
+  const convsByChannel = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const c of channels) m[c.platform] = Number(c.unread || 0);
+    return m;
+  }, [channels]);
+
+  const unread = (k: string) => Number(counts[k] ?? 0);
+  const hasFilters = !!(tag || assigned || (priority && priority !== 'all'));
+
+  /* ═══════════════════════════════════════════════════════════════
+     RENDER — 3 panels. lg+ = all three side by side. Below that the
+     active one fills the screen, with Back at the top.
+     ═══════════════════════════════════════════════════════════════ */
+  // Open the first conversation automatically so the workspace is never a
+  // blank shell. Skipped on mobile: there the list and the thread share one
+  // column, and auto-opening would hide the list behind a thread the user
+  // did not ask for.
+  const autoPicked = useRef(false);
+  useEffect(() => {
+    if (autoPicked.current) return;
+    // A real click or a deep link wins; never fight the user.
+    if (detail || selectedId) { autoPicked.current = true; return; }
+    // On mobile the list and the thread share one column, so auto-opening
+    // would replace the list the user came to read.
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return;
+    const first = convs[0];
+    if (!first) return;
+    autoPicked.current = true;
+    open(first.id);
+  }, [convs, detail, selectedId]);
+
+  return (
+    <div className="inbox-shell flex h-[calc(100dvh-64px)] overflow-hidden bg-slate-50">
+
+      {/* ── PANEL 1 — conversation list ───────────────────────── */}
+      <aside
+        aria-label="কথোপকথন তালিকা"
+        className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 w-full shrink-0 flex-col border-r border-slate-200 bg-white lg:w-[330px]`}
+      >
+        {/* header */}
+        <div className="border-b border-slate-100 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h1 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+              <Zap size={15} className="text-blue-600" /> Omnichannel Inbox
+            </h1>
+            <button
+              onClick={() => { setLive(v => !v); }}
+              data-live={live ? 'on' : 'off'}
+              aria-pressed={live}
+              aria-label={live ? 'লাইভ আপডেট চালু' : 'লাইভ আপডেট বন্ধ'}
+              title={live ? 'লাইভ আপডেট চালু আছে' : 'লাইভ আপডেট বন্ধ'}
+              className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                live ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+            >
+              <span data-live-dot={live ? 'on' : 'off'} className={`h-1.5 w-1.5 rounded-full ${live ? 'animate-pulse bg-emerald-500' : 'bg-slate-400'}`} />
+              {live ? 'লাইভ' : 'বন্ধ'}
+            </button>
+          </div>
+
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              id="inbox-search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="নাম, ফোন, অর্ডার, ট্যাগ, এজেন্ট…"
+              aria-label="কথোপকথন খুঁজুন"
+              className="w-full rounded-lg border border-slate-200 py-1.5 pl-8 pr-7 text-sm outline-none focus:border-slate-400"
+            />
+            {q && (
+              <button onClick={() => setQ('')} aria-label="খুঁজবা মুছুন"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <SavedViewsBar
+              views={views.views}
+              open={views.open}
+              setOpen={views.setOpen}
+              naming={views.naming}
+              setNaming={views.setNaming}
+              name={views.name}
+              setName={views.setName}
+              onSave={views.save}
+              onDelete={views.remove}
+              onApply={(v) => {
+                // push the stored query into the URL so the one existing
+                // filter path renders it — no duplicate filter logic
+                const q = v.query || {};
+                setParam('platform', q.platform || 'all');
+                setParam('filter', q.filter || 'all');
+                setParam('priority', q.priority || 'all');
+                if (q.q) setQ(q.q);
+              }}
+              busy={views.busy}
+              error={views.error}
+            />
+            <button
+              onClick={() => { setParam('platform', 'all'); setParam('filter', 'all'); setParam('priority', 'all'); setQ(''); }}
+              className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:bg-slate-50"
+            >
+              ফিল্টার মুছুন
+            </button>
+          </div>
+
+          {/* counters */}
+          <div className="mt-2 grid grid-cols-3 gap-1 text-center">
+            {([['unread', 'অপঠিত'], ['unassigned', 'অনিয়োজিত'], ['total', 'মোট']] as const).map(([k, lbl]) => (
+              <div key={k} className="rounded-md bg-slate-50 py-1">
+                <div className="text-sm font-bold text-slate-800">{unread(k)}</div>
+                <div className="text-[10px] text-slate-500">{lbl}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* status filters — every entry renders (no slice) */}
+          <div className="mt-2 flex flex-wrap gap-1">
+            {STATUS_FILTERS.map((f) => (
+              <button key={f.key} onClick={() => setParam('filter', f.key)}
+                aria-pressed={filter === f.key}
+                className={`inline-flex min-h-7 items-center rounded-full px-2 py-1 text-[11px] font-medium ${
+                  filter === f.key ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* channel strip */}
+          <div className="mt-2 flex gap-1 overflow-x-auto">
+            {[{ key: 'all', label: 'সব', Icon: InboxIcon, tint: 'bg-slate-100 text-slate-600' },
+              ...Object.entries(CHANNEL_CAPS).map(([k, v]) => ({ key: k, ...v }))]
+              .map((c) => (
+                <button key={c.key} onClick={() => setParam('platform', c.key)}
+                  aria-pressed={platform === c.key}
+                  className={`flex min-h-7 shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium ${
+                    platform === c.key ? 'bg-slate-800 text-white' : `${c.tint} hover:opacity-80`}`}>
+                  <c.Icon size={14} />{c.label}
+                  {c.key !== 'all' && convsByChannel[c.key] > 0 && (
+                    <span className={`rounded-full px-1 text-[10px] font-bold ${
+                      platform === c.key ? 'bg-white/25' : 'bg-white'}`}>
+                      {convsByChannel[c.key]}
+                    </span>
+                  )}
+                </button>
+              ))}
+          </div>
+
+          {hasFilters && (
+            <div className="mt-2 flex flex-wrap items-center gap-1 text-[10px]">
+              <span className="text-slate-400">ফিল্টার:</span>
+              {tag && <Chip onClear={() => setParam('tag', '')}>#{tag}</Chip>}
+              {assigned && <Chip onClear={() => setParam('assigned', '')}>এজেন্ট: {assigned}</Chip>}
+              {priority && priority !== 'all' && (
+                <Chip onClear={() => setParam('priority', '')}>অগ্রাধিকার: {PRIO_BN[priority]}</Chip>
+              )}
+              <button onClick={() => { setParam('tag', ''); setParam('assigned', ''); setParam('priority', ''); }}
+                className="text-red-600 underline">সব মুছুন</button>
+            </div>
+          )}
+        </div>
+
+        {/* list */}
+        <div role="list" className="min-h-0 flex-1 overflow-y-auto">
+          {loadingList ? (
+            <div className="space-y-2 p-3" aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+              ))}
+            </div>
+          ) : !convs.length ? (
+            <div className="p-8 text-center text-sm text-slate-400">
+              {error || 'এই ফিল্টারে কোনো কথোপকথন নেই'}
+            </div>
+          ) : (
+            <>
+              {convs.map((c) => {
+                const cap = CHANNEL_CAPS[c.platform] || CHANNEL_CAPS.tiktok;
+                const isSel = String(c.id) === selectedId;
+                return (
+                  <button key={c.id} role="listitem"
+                    // lets j/k scroll the newly selected row into view, and
+                    // gives the e2e suite a stable handle to count rows
+                    data-conv-id={c.id}
+                    data-unread={Number(c.unread_count) > 0 ? 'true' : 'false'}
+                    data-ch={c.platform}
+                    aria-current={isSel ? 'true' : undefined}
+                    onClick={() => open(c.id)}
+                    className={`flex w-full gap-2 border-b border-slate-100 px-3 py-2.5 text-left transition ${
+                      isSel ? 'bg-blue-50/70' : 'hover:bg-slate-50'}`}>
+                    <span data-ch-tint="true" className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${cap.tint}`}>
+                      <SenderAvatar
+                        name={avatarSeedFor(c)}
+                        avatarUrl={c.avatar_url}
+                        platform={c.platform}
+                        size={36}
+                      />
+                      {/* spec §10 order indicator */}
+                      {Number(c.order_count) > 0 && (
+                        <span title={`${c.order_count}টি অর্ডার`}
+                          className="absolute -bottom-0.5 -right-0.5 rounded-full bg-orange-500 p-[3px] text-white">
+                          <Package size={8} />
+                        </span>
+                      )}
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className={`truncate text-sm ${Number(c.unread_count) > 0 ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                          {displayNameFor(c)}
+                        </span>
+                        {c.priority && c.priority !== 'normal' && (
+                          <span title={PRIO_BN[c.priority]}
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${PRIO_DOT[c.priority] || PRIO_DOT.normal}`} />
+                        )}
+                        <span className="ml-auto shrink-0 text-[10px] text-slate-400">{t(c.last_message_at)}</span>
+                      </span>
+
+                      <span className="mt-0.5 flex items-center gap-1.5">
+                        <span className="inline-flex shrink-0 items-center gap-1 text-[10px]">
+                          <cap.Icon size={11} />{cap.label}
+                        </span>
+                        <span className="truncate text-xs text-slate-500">{c.last_message_preview || '—'}</span>
+                        <span className="ml-auto flex shrink-0 items-center gap-1">
+                          {/* spec §10 attachment indicator */}
+                          {Number(c.attachment_count) > 0 && (
+                            <Paperclip size={10} className="text-slate-400" aria-label="সংযুক্তি আছে" />
+                          )}
+                          {/* spec §10 conversation status */}
+                          {c.status === 'pending' && (
+                            <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-800">অপেক্ষা</span>
+                          )}
+                          {c.status === 'closed' && (
+                            <span className="rounded bg-slate-100 px-1 text-[10px] font-semibold text-slate-500">বন্ধ</span>
+                          )}
+                          {Number(c.unread_count) > 0 && (
+                            <span className="rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
+                              {c.unread_count > 99 ? '99+' : c.unread_count}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+
+                      {/* spec §10: assigned agent + tags */}
+                      {(c.assigned_agent_name || c.tags) && (
+                        <span className="mt-1 flex flex-wrap items-center gap-1">
+                          {c.assigned_agent_name && (
+                            <span className="flex items-center gap-0.5 rounded bg-slate-100 px-1 py-[1px] text-[10px] text-slate-600">
+                              <User size={8} /> {c.assigned_agent_name}
+                            </span>
+                          )}
+                          {(c.tags || '').split(',').filter(Boolean).slice(0, 2).map((tg: string) => (
+                            <span key={tg} className="rounded bg-blue-50 px-1 py-[1px] text-[10px] text-blue-700">{tg}</span>
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+              {convs.length >= 60 && (
+                <p className="p-3 text-center text-[11px] text-slate-400">
+                  প্রথম ৬০টি দেখানো হয়েছে — আরও খুঁজে নিন বা ফিল্টার ব্যবহার করুন
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </aside>
+
+      {/* ── PANEL 2 — chat thread ─────────────────────────────── */}
+      <section
+        aria-label="কথোপকথন"
+        className={`${selectedId ? 'flex' : 'hidden lg:flex'} min-h-0 min-w-0 flex-1 flex-col bg-white`}
+      >
+        {!conv ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-slate-300">
+            <Zap size={40} />
+            <p className="text-sm">একটি কথোপকথন বেছে নিন</p>
+            <p className="text-xs text-slate-400">অথবা /admin/inbox এ সার্চ করুন</p>
+          </div>
+        ) : (
+          <>
+            {/* chat header — spec §7/§14 */}
+            <header className="border-b border-slate-100 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <button onClick={back} aria-label="ফিরে যান" className="rounded-lg p-1 hover:bg-slate-100 lg:hidden">
+                  <ArrowLeft size={16} />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-bold text-slate-900">{displayNameFor(conv)}</span>
+                    {conv.priority !== 'normal' && (
+                      <span className={`h-1.5 w-1.5 rounded-full ${PRIO_DOT[conv.priority]}`} />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      {platformCap ? <platformCap.Icon size={13} /> : <ChannelIcon platform={conv?.platform} size={13} />}
+                      {platformCap?.label || conv?.platform}
+                    </span>
+                    {conv.primary_phone && <span>· {conv.primary_phone}</span>}
+                    {conv.assigned_agent_name && <span>· {conv.assigned_agent_name}</span>}
+                  </div>
+                </div>
+
+                <select value={conv.priority} onChange={(e) => mutate('priority', { priority: e.target.value })}
+                  aria-label="অগ্রাধিকার"
+                  className="rounded-lg border border-slate-200 px-1.5 py-1 text-xs">
+                  {PRIORITIES.map((p) => <option key={p} value={p}>{PRIO_BN[p]}</option>)}
+                </select>
+                <select value={conv.status} onChange={(e) => mutate('status', { status: e.target.value })}
+                  aria-label="কথোপকথনের অবস্থা"
+                  className="rounded-lg border border-slate-200 px-1.5 py-1 text-xs">
+                  {STATUSES.map((s) => <option key={s} value={s}>{STATUS_BN[s]}</option>)}
+                </select>
+                {!conv.assigned_user_id && (
+                  <button onClick={assignToMe} title="আমাকে assign করুন"
+                    className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50">
+                    <Users size={12} />
+                  </button>
+                )}
+                <SlaPill conversationId={conv.id} />
+                <HistoryButton onClick={() => setShowTimeline(true)} />
+                <button onClick={() => setShowInfo(true)} aria-label="কাস্টমার তথ্য"
+                  className={`inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg border border-slate-200 p-1.5 hover:bg-slate-50 ${showInfo ? 'bg-slate-100' : ''}`}>
+                  <Info size={14} />
+                </button>
+                <ConversationMenu
+                  conversationId={conv.id}
+                  onChanged={() => { loadList(); loadCounts(); }}
+                  onMarkUnread={() => { loadList(); loadCounts(); }}
+                />
+              </div>
+
+              {/* tags — spec §7 header shows tags */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                {(conv.tags || []).map((x: any) => {
+                  const name = typeof x === 'string' ? x : x.tag;
+                  return (
+                    <button key={name} onClick={() => toggleTag(name)}
+                      title="ট্যাগ সরান" className="flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">
+                      #{name} <X size={9} />
+                    </button>
+                  );
+                })}
+                <span className="flex items-center gap-1">
+                  <input value={tagDraft} onChange={(e) => setTagDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && tagDraft.trim()) { toggleTag(tagDraft.trim()); setTagDraft(''); } }}
+                    placeholder="ট্যাগ যোগ" aria-label="ট্যাগ যোগ করুন"
+                    className="w-20 rounded border border-dashed border-slate-300 px-1 py-0.5 text-[10px] outline-none focus:border-slate-500" />
+                  <button onClick={() => { if (tagDraft.trim()) { toggleTag(tagDraft.trim()); setTagDraft(''); } }}
+                    aria-label="ট্যাগ যোগ করুন" className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                    <TagIcon size={11} />
+                  </button>
+                </span>
+              </div>
+            </header>
+
+            {/* capability notice — spec §7/§17: never fake IG send */}
+            {platformCap && !platformCap.text && (
+              <div className="flex items-start gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900">
+                <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                <span>{platformCap.note}</span>
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-3 py-1.5 text-[11px] text-red-800">
+                <AlertTriangle size={12} className="shrink-0" />
+                <span className="flex-1">{error}</span>
+                <button onClick={() => setError('')} aria-label="বন্ধ করুন"><X size={11} /></button>
+              </div>
+            )}
+
+            {/* timeline */}
+            <div ref={threadRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+              {loadingThread ? (
+                <div className="space-y-2" aria-busy="true">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-10 w-2/3 animate-pulse rounded-lg bg-slate-100" />
+                  ))}
+                </div>
+              ) : !(detail?.messages || []).length ? (
+                <div className="py-12 text-center text-sm text-slate-400">কোনো বার্তা নেই</div>
+              ) : (
+                (detail.messages || []).map((m: any) => {
+                  const internal = m.direction === 'internal';
+                  // spec §15: system/ai are centered and subtle — the old code
+                  // branched only on direction, so they rendered as customer.
+                  const system = m.sender_type === 'system' || m.sender_type === 'ai';
+                  if (system) {
+                    return (
+                      <div key={m.id} className="flex justify-center">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] text-slate-500">
+                          {m.body || m.message_type}
+                        </span>
+                      </div>
+                    );
+                  }
+                  const mine = m.direction === 'outbound';
+                  const Icon = MTYPE_ICON[m.message_type];
+                  return (
+                    <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        data-msg={internal ? 'note' : mine ? 'out' : 'in'}
+                        className={`max-w-[78%] rounded-2xl px-3 py-1.5 text-sm shadow-sm sm:max-w-[65%] ${
+                        internal ? 'border border-dashed border-amber-400 bg-amber-50 text-amber-900'
+                        : mine ? 'bg-slate-800 text-white' : 'border border-slate-200 bg-white text-slate-800'
+                      }`}>
+                        {internal && (
+                          <div className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase">
+                            <StickyNote size={9} /> Internal note
+                          </div>
+                        )}
+                        {/* media first: an image/audio/video message has an
+                            empty body, so before this the bubble showed the
+                            literal type name and nothing else */}
+                        <MessageMedia msg={m} inbound={m.sender_type === 'customer'} />
+                        {Icon && m.message_type !== 'text'
+                          && !['image','video','reel','audio','voice','document','sticker'].includes(m.message_type) && (
+                          <div className="mb-1 flex items-center gap-1 text-[11px] opacity-80">
+                            <Icon size={11} /> {BN_TYPE[m.message_type] || m.message_type}
+                          </div>
+                        )}
+                        {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-60">
+                          {m.sender_type === 'agent' && <span>{m.sender_user_id ? `#${m.sender_user_id}` : 'এজেন্ট'}</span>}
+                          <span>{clock(m.sent_at)}</span>
+                          {mine && <Check size={9} aria-label="পাঠানো হয়েছে" />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* timeline drawer — floats over the thread, above the composer,
+                so the message list stays readable underneath */}
+            {showTimeline && conv && (
+              <TimelineDrawer conversationId={conv.id} onClose={() => setShowTimeline(false)} />
+            )}
+
+            {/* composer — sticky, keyboard-safe */}
+            <div className="sticky bottom-0 border-t border-slate-100 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              {noteMode ? (
+                <div className="space-y-1.5">
+                  <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)}
+                    onKeyDown={onKeyThread} rows={2} autoFocus
+                    placeholder="শুধু এজেন্টদের জন্য নোট — ক্রেতা কখনো দেখবেন না"
+                    aria-label="Internal note"
+                    className="w-full resize-none rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm outline-none focus:border-amber-500" />
+                  <div className="flex gap-1.5">
+                    <button onClick={addNote} className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">
+                      নোট সংরক্ষণ
+                    </button>
+                    <button onClick={() => { setNoteMode(false); setNoteDraft(''); }}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">বাতিল</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-end gap-1.5">
+                  <QuickReplies
+                    channel={conv?.platform}
+                    onPick={insertAtCaret}
+                  />
+                  <button onClick={() => setNoteMode(true)} title="Internal note (n)"
+                    aria-label="Internal note লিখুন"
+                    className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg border border-slate-200 p-2 text-amber-600 hover:bg-amber-50">
+                    <StickyNote size={15} />
+                  </button>
+                  <textarea data-composer="true" ref={inputRef} value={draft} onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={onKeyThread} rows={1}
+                    placeholder={platformCap?.text === false ? `${platformCap?.label}-এ লিখা যাবে না` : 'বার্তা লিখুন…'}
+                    disabled={platformCap?.text === false}
+                    aria-label="বার্তা লিখুন"
+                    className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400 disabled:bg-slate-100 disabled:text-slate-400" />
+                  <button data-send="true"
+                    onClick={send} disabled={!draft.trim() || platformCap?.text === false || sendState === 'sending'}
+                    aria-label="পাঠান"
+                    className="rounded-lg bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:bg-slate-300">
+                    {sendState === 'sending' ? <RefreshCw size={15} className="animate-spin" /> : <Send size={15} />}
+                  </button>
+                </div>
+              )}
+              {sendState === 'sent' && <p className="mt-1 text-[11px] text-emerald-600">পাঠানো হয়েছে</p>}
+              {sendState === 'failed' && <p className="mt-1 text-[11px] text-red-600">পাঠানো যায়নি</p>}
+              <p className="mt-1 hidden text-[10px] text-slate-300 sm:block">
+                Enter পাঠাতে · Shift+Enter নতুন লাইন · n নোট · i কাস্টমার তথ্য · / সার্চ
+              </p>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ── PANEL 3 — Customer 360 ────────────────────────────── */}
+      <aside
+        aria-label="কাস্টমার তথ্য"
+        className={`${showInfo ? 'fixed inset-0 z-40 overflow-y-auto bg-white p-3' : 'hidden'} lg:static lg:z-auto lg:block lg:w-[340px] lg:shrink-0 lg:overflow-y-auto lg:border-l lg:border-slate-200 lg:bg-white lg:p-3`}
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-800">Customer 360</h2>
+          <button onClick={back} aria-label="কাস্টমার তথ্য বন্ধ করুন"
+            className="rounded-lg p-1 hover:bg-slate-100 lg:hidden">
+            <X size={15} />
+          </button>
+        </div>
+
+        {showInfo && (
+          <button onClick={back} className="mb-2 flex items-center gap-1 text-xs text-slate-500 lg:hidden">
+            <ArrowLeft size={13} /> ইনবক্সে ফিরুন
+          </button>
+        )}
+
+        {loading360 ? (
+          <div className="space-y-2" aria-busy="true">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+            ))}
+          </div>
+        ) : !c360 ? (
+          <p className="p-6 text-center text-xs text-slate-400">
+            কথোপকথন নির্বাচন করলে কাস্টমারের তথ্য দেখা যাবে
+          </p>
+        ) : (
+          <div className="space-y-3 text-xs">
+            {/* customer */}
+            <Panel title="কাস্টমার">
+              <div className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-base font-bold">
+                  <SenderAvatar
+                    name={avatarSeedFor(c360.customer)}
+                    avatarUrl={c360.avatar_url}
+                    platform={c360.identity_platform}
+                    size={44}
+                  />
+                </span>
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-slate-800">
+                    {hasRealName360(c360) ? displayNameFor(c360.customer) : 'নাম নেই'}
+                  </div>
+                  {c360.customer?.primary_phone && (
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                      <Phone size={9} /> {c360.customer.primary_phone}
+                    </div>
+                  )}
+                  {c360.customer?.primary_email && (
+                    <div className="truncate text-[11px] text-slate-500">{c360.customer.primary_email}</div>
+                  )}
+                </div>
+              </div>
+              {c360.channelCount > 0 && (
+                <p className="mt-1.5 text-[10px] text-slate-500">
+                  {c360.channelCount}টি চ্যানেলে পাওয়া যাচ্ছে · মোট {c360.totalMessages}টি বার্তা
+                </p>
+              )}
+              {/* identities per platform */}
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {Object.entries(c360.identitiesByPlatform || {}).map(([p, idv]: any) =>
+                  idv ? (
+                    <span key={p} className="flex items-center gap-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
+                      title={idv.external_id}>
+                      <ChannelIcon platform={p} size={12} /> {CHANNEL_CAPS[p]?.label || p}
+                    </span>
+                  ) : null
+                )}
+              </div>
+            </Panel>
+
+            {/* orders — from the EXISTING bf_orders */}
+            <Panel title={`অর্ডার (${(c360.orders || []).length})`}>
+              {c360.orderSummary && Number(c360.orderSummary.total_orders) > 0 && (
+                <div className="mb-1.5 grid grid-cols-3 gap-1 text-center">
+                  <Mini label="মোট" value={Number(c360.orderSummary.total_orders)} />
+                  <Mini label="চলমান" value={Number(c360.orderSummary.open_orders)} tone="amber" />
+                  <Mini label="বাকি" value={money(c360.orderSummary.total_due)} tone="red" />
+                </div>
+              )}
+              {!(c360.orders || []).length ? (
+                <p className="py-2 text-center text-[11px] text-slate-400">কোনো অর্ডার নেই</p>
+              ) : (
+                <ul className="space-y-1">
+                  {c360.orders.slice(0, 6).map((o: any) => (
+                    <li key={o.id} className="rounded-lg border border-slate-200 p-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate font-medium text-slate-800">#{o.invoice || o.id}</span>
+                        <span className="shrink-0 font-semibold">{money(o.total_payable)}</span>
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-slate-500">
+                        <span className="rounded bg-slate-100 px-1">{ORDER_STATUS_BN[o.status] || o.status}</span>
+                        {o.courier_name && (
+                          <span className="inline-flex items-center gap-1">
+                            <TruckIcon size={12} /> {o.courier_name}
+                          </span>
+                        )}
+                        {o.tracking_code || o.courier_tracking ? (
+                          <span className="truncate">{o.tracking_code || o.courier_tracking}</span>
+                        ) : null}
+                        {o.city && <span>· {o.city}</span>}
+                        <span className="ml-auto">{t(o.created_at)}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            {/* CRM */}
+            <Panel title="ট্যাগ ও নোট">
+              <div className="mb-1.5 flex flex-wrap gap-1">
+                {(c360.tags || []).length === 0 && <span className="text-[11px] text-slate-400">কোনো ট্যাগ নেই</span>}
+                {(c360.tags || []).slice(0, 8).map((x: any) => (
+                  <button key={x.tag} onClick={() => { setParam('tag', x.tag); setShowInfo(false); }}
+                    className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700 hover:bg-blue-100">
+                    #{x.tag} <span className="opacity-60">({x.uses})</span>
+                  </button>
+                ))}
+              </div>
+              {!(c360.notes || []).length ? (
+                <p className="text-[11px] text-slate-400">কোনো নোট নেই</p>
+              ) : (
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {c360.notes.slice(0, 6).map((n: any) => (
+                    <li key={n.id} className="rounded border border-amber-200 bg-amber-50 p-1.5">
+                      <p className="line-clamp-3 text-[11px] text-amber-900">{n.body}</p>
+                      <span className="text-[10px] text-amber-600">{t(n.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            {/* journey */}
+            <Panel title="কথোপকথনের ইতিহাস">
+              <ul className="space-y-1">
+                {(c360.conversations || []).slice(0, 8).map((c: any) => {
+                  const cap = CHANNEL_CAPS[c.platform] || CHANNEL_CAPS.tiktok;
+                  return (
+                    <li key={c.id}>
+                      <button onClick={() => { setParam('conversation', String(c.id)); setShowInfo(false); }}
+                        className={`w-full rounded-lg border p-1.5 text-left ${
+                          String(c.id) === selectedId ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 text-[10px]">
+                            <cap.Icon size={11} />{cap.label}
+                          </span>
+                          <span className="ml-auto text-[10px] text-slate-400">{t(c.last_message_at)}</span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-600">{c.last_message_preview || '—'}</p>
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
+                          <span className="rounded bg-slate-100 px-1">{STATUS_BN[c.status] || c.status}</span>
+                          <span>{c.message_count} মেসেজ</span>
+                          {Number(c.unread_count) > 0 && (
+                            <span className="rounded-full bg-blue-600 px-1 font-bold text-white">{c.unread_count}</span>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+/* ── tiny local primitives (no new UI library — spec §12) ─────────── */
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-slate-200">
+      <h3 className="border-b border-slate-100 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">{title}</h3>
+      <div className="p-2">{children}</div>
+    </section>
+  );
+}
+function Mini({ label, value, tone }: { label: string; value: any; tone?: 'amber' | 'red' }) {
+  return (
+    <div className="rounded bg-slate-50 py-1">
+      <div className={`text-xs font-bold ${tone === 'red' ? 'text-red-600' : tone === 'amber' ? 'text-amber-600' : 'text-slate-800'}`}>
+        {value}
+      </div>
+      <div className="text-[10px] text-slate-500">{label}</div>
+    </div>
+  );
+}
+function Chip({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
+  return (
+    <span className="flex items-center gap-0.5 rounded bg-slate-200 px-1.5 py-0.5 text-slate-700">
+      {children}
+      <button onClick={onClear} aria-label="ফিল্টার সরান"><X size={9} /></button>
+    </span>
+  );
+}

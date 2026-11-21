@@ -1,0 +1,255 @@
+/* ==========================================================================
+   inbox.css — Omnichannel Inbox visual system (2026-10-04)
+
+   Scoped to the admin inbox. InboxPage.tsx already has every feature
+   (saved views, timeline, customer 360, assignment, notes, status/priority);
+   none of that was rewritten. What was missing was a visual language, so this
+   file supplies one as pure CSS driven by custom properties and attribute
+   selectors — no JSX edits, so a regression cannot break behaviour.
+
+   Reference: Intercom's inbox language, per the popular-web-designs template.
+     warm cream canvas #faf9f6 · oat borders #dedbd6 · off-black #111111
+     sharp 4px/8px radius · warm neutrals instead of cool gray
+
+   The Bunon brand red #e60023 is kept for primary actions — it is the shop's
+   identity, not a design-system artefact.
+   ========================================================================== */
+
+/* Inter is already loaded in index.html; @import url() breaks the vite
+   lightningcss pass, so it is intentionally not repeated here. */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+.inbox-shell {
+  /* warm neutrals — never #e2e8f0/#f1f5f9 style cool grays */
+  --ib-canvas: #faf9f6;
+  --ib-surface: #ffffff;
+  --ib-sunken: #f5f3ee;
+  --ib-border: #dedbd6;
+  --ib-border-soft: #ebe8e2;
+  --ib-ink: #111111;
+  --ib-ink-80: #313130;
+  --ib-ink-60: #626260;
+  --ib-ink-50: #7b7b78;
+  --ib-brand: #e60023;
+
+  /* channel accents, muted to sit beside the warm neutrals */
+  --ib-fb: #1877f2;
+  --ib-ig: #d62976;
+  --ib-wa: #128c7e;
+
+  --ib-unread: #f0f7ff;
+  --ib-live: #0bdf50;
+
+  /* Intercom spacing scale */
+  --ib-r-sm: 4px;   /* buttons, chips — sharp geometry is the identity */
+  --ib-r-md: 6px;
+  --ib-r-lg: 8px;
+  --ib-r-pill: 999px;
+
+  color: var(--ib-ink);
+  background: var(--ib-canvas);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Hind Siliguri',
+    'Noto Sans Bengali', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   2. Surfaces
+   -------------------------------------------------------------------------- */
+.inbox-shell { border-color: var(--ib-border) !important; }
+.inbox-shell [class*='bg-slate-50'],
+.inbox-shell [class*='bg-slate-100'] { background-color: var(--ib-sunken) !important; }
+.inbox-shell [class*='bg-white'] { background-color: var(--ib-surface) !important; }
+.inbox-shell [class*='border-slate'] { border-color: var(--ib-border) !important; }
+
+/* --------------------------------------------------------------------------
+   3. Type
+   Intercom runs aggressive negative tracking and 1.00 line-height on headings.
+   Bangla glyphs need a touch more leading than Latin or the matras collide.
+   -------------------------------------------------------------------------- */
+.inbox-shell h1,
+.inbox-shell h2,
+.inbox-shell h3 {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ib-ink);
+}
+
+.inbox-shell :is(p, span, div) { color: var(--ib-ink-80); }
+
+/* Unread rows are the whole point of an inbox: make them impossible to miss. */
+.inbox-shell [data-unread='true'] { background: var(--ib-unread) !important; }
+.inbox-shell [data-unread='true'] :is(span, div, p) { color: var(--ib-ink) !important; }
+.inbox-shell [data-unread='true'] [class*='font-medium'] { font-weight: 600 !important; }
+
+/* --------------------------------------------------------------------------
+   4. Buttons & chips
+   -------------------------------------------------------------------------- */
+.inbox-shell button {
+  transition: background-color 120ms ease, color 120ms ease,
+    transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 120ms ease;
+}
+.inbox-shell button:active:not(:disabled) { transform: scale(0.96); }
+.inbox-shell button:focus-visible {
+  outline: 2px solid var(--ib-ink);
+  outline-offset: 2px;
+}
+
+/* Anything that was a rounded-full pill becomes a sharp 4px chip. */
+.inbox-shell [class*='rounded-full']:is(button, [role='tab']) {
+  border-radius: var(--ib-r-sm) !important;
+}
+
+/* Selected filter chip: solid ink, like Intercom's dark primary button. */
+.inbox-shell button[aria-pressed='true'] {
+  background: var(--ib-ink) !important;
+  color: #fff !important;
+  border-color: var(--ib-ink) !important;
+}
+.inbox-shell button[aria-pressed='true'] * { color: #fff !important; }
+
+/* -------------------------------------------------------------------------- */
+.inbox-shell button[aria-pressed='true']:hover { background: #000 !important; }
+
+/* Send button carries the brand red — the one destructive-feeling action. */
+.inbox-shell [data-send='true'] {
+  background: var(--ib-brand) !important;
+  color: #fff !important;
+  border-radius: var(--ib-r-sm) !important;
+}
+.inbox-shell [data-send='true']:hover { filter: brightness(1.08); }
+
+/* --------------------------------------------------------------------------
+   5. Inputs
+   -------------------------------------------------------------------------- */
+.inbox-shell input,
+.inbox-shell textarea,
+.inbox-shell select {
+  border-color: var(--ib-border) !important;
+  background: var(--ib-surface) !important;
+  border-radius: var(--ib-r-sm) !important;
+  font-family: inherit;
+}
+.inbox-shell input::placeholder,
+.inbox-shell textarea::placeholder { color: var(--ib-ink-50) !important; }
+.inbox-shell input:focus,
+.inbox-shell textarea:focus {
+  border-color: var(--ib-ink) !important;
+  box-shadow: 0 0 0 3px rgb(17 17 17 / 0.08);
+  outline: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. Message bubbles
+   Customer messages sit on warm cream; agent messages are solid ink. Flat,
+   8px, and asymmetric only on the last corner so a thread reads directionally.
+   -------------------------------------------------------------------------- */
+.inbox-shell [data-msg='in'] {
+  background: var(--ib-canvas) !important;
+  color: var(--ib-ink) !important;
+  border: 1px solid var(--ib-border-soft);
+  border-radius: var(--ib-r-lg) var(--ib-r-lg) var(--ib-r-lg) 2px !important;
+}
+
+.inbox-shell [data-msg='out'] {
+  background: var(--ib-ink) !important;
+  color: #fff !important;
+  border-radius: var(--ib-r-lg) var(--ib-r-lg) 2px var(--ib-r-lg) !important;
+}
+.inbox-shell [data-msg='out'] * { color: #fff !important; }
+
+/* A message arriving live should read as a change, not as page load. */
+.inbox-shell [data-fresh='true'] {
+  animation: ib-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ib-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+
+.inbox-shell [data-msg='note'] {
+  background: #fff8e6 !important;
+  border-left: 3px solid #c5a059 !important;
+  border-radius: var(--ib-r-sm) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. Channel identity
+   -------------------------------------------------------------------------- */
+.inbox-shell [data-ch='facebook']  { --ib-ch: var(--ib-fb); }
+.inbox-shell [data-ch='instagram'] { --ib-ch: var(--ib-ig); }
+.inbox-shell [data-ch='whatsapp']  { --ib-ch: var(--ib-wa); }
+
+.inbox-shell [data-ch-dot='true'] {
+  background: var(--ib-ch, var(--ib-ink-50)) !important;
+}
+
+.inbox-shell [data-ch-tint='true'] {
+  background: color-mix(in srgb, var(--ib-ch, #626260) 10%, white) !important;
+  color: color-mix(in srgb, var(--ib-ch, #626260) 88%, black) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Live indicator
+   -------------------------------------------------------------------------- */
+.inbox-shell [data-live='on'] {
+  background: rgb(11 223 80 / 0.12) !important;
+  color: #0a7a34 !important;
+  border-radius: var(--ib-r-sm) !important;
+}
+.inbox-shell [data-live-dot='on'] {
+  background: var(--ib-live) !important;
+  box-shadow: 0 0 0 0 rgb(11 223 80 / 0.6);
+  animation: ib-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ib-ping {
+  70%  { box-shadow: 0 0 0 6px rgb(11 223 80 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(11 223 80 / 0); }
+}
+
+/* --------------------------------------------------------------------------
+   9. Scrolling
+   Thin oat scrollbars, so the thread column does not get a grey gutter.
+   -------------------------------------------------------------------------- */
+.inbox-shell ::-webkit-scrollbar { width: 9px; height: 9px; }
+.inbox-shell ::-webkit-scrollbar-track { background: transparent; }
+.inbox-shell ::-webkit-scrollbar-thumb {
+  background: #d3cec6;
+  border-radius: var(--ib-r-pill);
+  border: 2px solid var(--ib-canvas);
+}
+.inbox-shell ::-webkit-scrollbar-thumb:hover { background: var(--ib-ink-50); }
+
+/* --------------------------------------------------------------------------
+   10. Motion & contrast
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .inbox-shell *,
+  .inbox-shell *::before,
+  .inbox-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .inbox-shell [data-unread='true'] { background: #e8f1ff !important; }
+  .inbox-shell [class*='border-slate'] { border-color: #9c9fa5 !important; }
+}
+
+/* --------------------------------------------------------------------------
+   11. Mobile — one column, no horizontal squeeze
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .inbox-shell { font-size: 15px; }
+  .inbox-shell :is(h1, h2) { font-size: 1rem; }
+  /* Keep the compose box above the iOS keyboard inset. */
+  .inbox-shell [data-composer='true'] {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}

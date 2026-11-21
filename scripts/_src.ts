@@ -1,0 +1,10 @@
+import dotenv from 'dotenv';
+import { dbPool } from '../server/db';
+dotenv.config({ override: true, quiet: true as true as any });
+const q = async (l: string, sql: string) => { const [r]: any = await dbPool.query(sql); console.log('== '+l); console.log(JSON.stringify(r).slice(0,700)); };
+await q('message counts by type', "SELECT message_type, COUNT(*) n FROM omnichannel_messages GROUP BY message_type ORDER BY n DESC");
+await q('attachments?', 'SHOW COLUMNS FROM omnichannel_messages LIKE "%attach%"');
+await q('attachment rows', 'SELECT COUNT(*) n FROM omnichannel_attachments');
+await q('latest msg per type', "SELECT platform, message_type, LEFT(body,40) body FROM omnichannel_messages ORDER BY sent_at DESC LIMIT 5");
+await q('source of conv', "SELECT source, COUNT(*) n FROM omnichannel_conversations GROUP BY source LIMIT 5");
+process.exit(0);

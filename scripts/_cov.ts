@@ -1,0 +1,10 @@
+import dotenv from 'dotenv';
+import { dbPool } from '../server/db';
+dotenv.config({ override: true, quiet: true as true as any });
+const [a]: any = await dbPool.query("SELECT platform, message_type, COUNT(*) n, SUM(media_url IS NOT NULL AND media_url<>'') u FROM omnichannel_messages WHERE message_type<>'text' GROUP BY platform, message_type");
+console.log('media rows by platform/type:');
+a.forEach((r:any)=>console.log('  '+r.platform.padEnd(10)+r.message_type.padEnd(9)+r.n+' total, '+r.u+' with url'));
+const [b]: any = await dbPool.query("SELECT COUNT(*) n FROM omnichannel_messages WHERE message_type IN ('image','video','audio','reel')");
+const [c]: any = await dbPool.query("SELECT COUNT(*) n FROM omnichannel_messages WHERE message_type IN ('image','video','audio','reel') AND media_url IS NOT NULL AND media_url<>''");
+console.log('\nTOTAL media messages: '+b[0].n+' | with url: '+c[0].n+' ('+Math.round(c[0].n/b[0].n*100)+'%)');
+process.exit(0);
