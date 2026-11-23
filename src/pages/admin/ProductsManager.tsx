@@ -252,7 +252,7 @@ export default function ProductsManager() {
                     <td className="p-3">
                       <input type="number" className="w-16 border rounded-lg px-1 py-0.5 text-center" defaultValue={p.stock_quantity ?? 0} key={`${p.id}-${p.stock_quantity}`} onBlur={e => { const v = Number(e.target.value); if (v !== p.stock_quantity) inlineStock(p.id, v); }} />
                       <div className="mt-1">{can('edit_products') && (<button onClick={() => toggleTrack(p)} title="Toggle stock tracking" className={`text-[11px] px-2 py-0.5 rounded-full border ${Number(p.track_stock) === 0 ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{Number(p.track_stock) === 0 ? 'Untracked' : 'Tracked'}</button>)}</div>
-                      <input type="number" title="Delivery fee (blank=default)" placeholder="Delivery (blank=default)" className="w-24 border rounded-lg px-1 py-0.5 text-center text-[11px] mt-1" defaultValue={p.delivery_fee ?? ''} key={`${p.id}-fee-${p.delivery_fee ?? 'd'}`} onBlur={e => { const cur = p.delivery_fee ?? ''; if (e.target.value !== String(cur)) updateFee(p.id, e.target.value); }} />
+                      <input type="number" title="Custom delivery fee (blank = default 80 Dhaka, 150 Outside)" placeholder="Default" className="w-24 border rounded-lg px-1 py-0.5 text-center text-[11px] mt-1" defaultValue={p.delivery_fee ?? ''} key={`${p.id}-fee-${p.delivery_fee ?? 'd'}`} onBlur={e => { const cur = p.delivery_fee ?? ''; if (e.target.value !== String(cur)) updateFee(p.id, e.target.value); }} />
                     </td>
                     <td className="p-3"><StatusPill status={p.status} /></td>
                     <td className="p-3">{p.featured ? '★' : '—'}</td>
@@ -308,7 +308,10 @@ export default function ProductsManager() {
               <select className="border rounded-lg p-2" value={String(form.track_stock ?? 1)} onChange={e => setForm({ ...form, track_stock: Number(e.target.value) })}>
                 <option value="1">Track (count stock)</option><option value="0">Untracked (unlimited)</option>
               </select>
-              <input type="number" className="border rounded-lg p-2" placeholder="Delivery fee (blank=default)" value={form.delivery_fee} onChange={e => setForm({ ...form, delivery_fee: e.target.value })} />
+              <div>
+                <input type="number" className="border rounded-lg p-2 w-full" placeholder="Default rate" value={form.delivery_fee} onChange={e => setForm({ ...form, delivery_fee: e.target.value })} />
+                <span className="text-xs text-gray-500 mt-1 block">Leave empty for default (Dhaka ৳80, Outside ৳150)</span>
+              </div>
               <select className="border rounded-lg p-2" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 <option value="publish">Published</option><option value="draft">Draft</option><option value="private">Private</option>
               </select>
