@@ -200,7 +200,7 @@ router.post('/:id/read', async (req: Request, res: Response) => {
       return ok(res, { unread: nowUnread });
     }
 
-    await oc.markRead(id, agentId(req), num(req.body?.lastReadMessageId));
+    await oc.markRead(id, agentId(req), num(req.body?.lastReadMessageId) ?? undefined);
     return ok(res, { unread: 0 });
   } catch (e: any) {
     return fail(res, 500, 'MARK_READ_FAILED', e?.message || 'পঠিত চিহ্নিত করা যায়নি');
@@ -209,8 +209,8 @@ router.post('/:id/read', async (req: Request, res: Response) => {
 
 router.post('/:id/assign', async (req: Request, res: Response) => {
   const id = num(req.params.id);
-  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   if (!id) return fail(res, 400, 'BAD_ID', 'অবৈধ conversation');
+  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   try {
     const rawAssignee = req.body?.userId ?? req.body?.assigneeId;
     const target = rawAssignee === null || rawAssignee === '' ? null : num(rawAssignee);
@@ -223,8 +223,8 @@ router.post('/:id/assign', async (req: Request, res: Response) => {
 
 router.post('/:id/status', async (req: Request, res: Response) => {
   const id = num(req.params.id);
-  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   if (!id) return fail(res, 400, 'BAD_ID', 'অবৈধ conversation');
+  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   const status = String(req.body?.status ?? '');
   if (!['open', 'pending', 'closed'].includes(status))
     return fail(res, 400, 'BAD_STATUS', 'স্ট্যাটাস অবৈধ');
@@ -238,8 +238,8 @@ router.post('/:id/status', async (req: Request, res: Response) => {
 
 router.post('/:id/priority', async (req: Request, res: Response) => {
   const id = num(req.params.id);
-  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   if (!id) return fail(res, 400, 'BAD_ID', 'অবৈধ conversation');
+  if (!(await requireConv(id))) return fail(res, 404, 'NOT_FOUND', 'কথোপকথনটি পাওয়া যায়নি');
   const priority = String(req.body?.priority ?? '');
   if (!['low', 'normal', 'high', 'urgent'].includes(priority))
     return fail(res, 400, 'BAD_PRIORITY', 'প্রায়োরিটি অবৈধ');

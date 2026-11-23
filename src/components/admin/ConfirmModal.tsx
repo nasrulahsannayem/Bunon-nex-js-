@@ -15,8 +15,8 @@ type Props = {
 export default function ConfirmModal({ open, title, message, confirmLabel = 'ডিলিট করুন', cancelLabel = 'বাতিল', busy = false, onConfirm, onClose }: Props) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-2 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-[90%] max-w-sm p-5 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 text-rose-600">
             <AlertTriangle size={20} />

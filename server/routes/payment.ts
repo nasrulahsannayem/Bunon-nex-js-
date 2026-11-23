@@ -129,13 +129,13 @@ router.post("/checkout/place-order", async (req, res) => {
         total: totalAmount,
         paymentMethod,
         customerType,
-        items: (cart || []).map((item) => ({
+        items: (cart || []).map((item: any) => ({
           name: item.name, sku: item.sku,
           quantity: item.quantity, price: item.price,
         })),
-      }).catch((e) => console.error("[OrderNotify] async failed:", (e && e.message) || e));
-    } catch (e) {
-      console.error("[OrderNotify] hook skipped:", (e && e.message) || e);
+      }).catch((e: unknown) => console.error("[OrderNotify] async failed:", (e && (e as any).message) || e));
+    } catch (e: unknown) {
+      console.error("[OrderNotify] hook skipped:", (e && (e as any).message) || e);
     }
 
     // Coupon usage: increment used_count for applied local coupons (best-effort, never breaks checkout)
@@ -149,12 +149,12 @@ router.post("/checkout/place-order", async (req, res) => {
             'UPDATE bunon_coupons SET used_count = used_count + 1 WHERE code = ? AND (usage_limit IS NULL OR used_count < usage_limit)',
             [ccode]
           );
-        } catch (uErr) {
-          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', uErr && uErr.message ? uErr.message : uErr);
+        } catch (uErr: unknown) {
+          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', (uErr && (uErr as any).message) || uErr);
         }
       }
-    } catch (cErr) {
-      console.error('[PAYMENT] Coupon usage hook skipped:', cErr && cErr.message ? cErr.message : cErr);
+    } catch (cErr: unknown) {
+      console.error('[PAYMENT] Coupon usage hook skipped:', (cErr && (cErr as any).message) || cErr);
     }
 
     // 📩 Trigger order confirmation email sending if email exists
@@ -205,12 +205,12 @@ router.post("/checkout/place-order", async (req, res) => {
             'UPDATE bunon_coupons SET used_count = used_count + 1 WHERE code = ? AND (usage_limit IS NULL OR used_count < usage_limit)',
             [ccode]
           );
-        } catch (uErr) {
-          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', uErr && uErr.message ? uErr.message : uErr);
+        } catch (uErr: unknown) {
+          console.error('[PAYMENT] Coupon used_count increment skipped for ' + ccode + ':', (uErr && (uErr as any).message) || uErr);
         }
       }
-    } catch (cErr) {
-      console.error('[PAYMENT] Coupon usage hook skipped:', cErr && cErr.message ? cErr.message : cErr);
+    } catch (cErr: unknown) {
+      console.error('[PAYMENT] Coupon usage hook skipped:', (cErr && (cErr as any).message) || cErr);
     }
 
     // 📩 Trigger order confirmation email sending if email exists

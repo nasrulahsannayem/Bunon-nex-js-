@@ -32,6 +32,7 @@ export type NormalisedMessage = {
   senderUsername?: string | null;
   senderDisplayName?: string | null;
   senderUserId?: number | null;
+  avatarUrl?: string | null;
   body?: string | null;
   customerPhone?: string | null;
   rawPayload?: unknown;
@@ -291,7 +292,7 @@ export async function ingestMessage(msg: NormalisedMessage): Promise<IngestResul
     );
 
     await conn.commit();
-    return { duplicate: false, created: true, messageId, conversationId, customerId };
+    return { duplicate: false, created: true, messageId, conversationId, customerId: customerId ?? undefined };
   } catch (e: any) {
     try {
       await conn.rollback();
@@ -734,10 +735,10 @@ export async function customer360(customerId: number) {
         ORDER BY ci.is_primary DESC, ci.id`,
       [customerId]);
     const primary = (av as Row[]).find((r) => r.avatar_url) || (av as Row[])[0] || null;
-    (c as any).avatar_url = primary?.avatar_url ?? null;
-    (c as any).external_username =
+    (customer as any).avatar_url = primary?.avatar_url ?? null;
+    (customer as any).external_username =
       (av as Row[]).find((r) => r.external_username)?.external_username ?? null;
-    (c as any).identity_platform = primary?.platform ?? null;
+    (customer as any).identity_platform = primary?.platform ?? null;
   } catch { /* avatars are cosmetic — never fail the panel over one */ }
 
   /* ── channel identities ──────────────────────────────────────────

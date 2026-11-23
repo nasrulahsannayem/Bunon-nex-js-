@@ -89,6 +89,7 @@ export default function ProductsManager() {
         images: (Array.isArray(full.images) && full.images.length) ? full.images : (full.image ? [full.image] : (full.thumbnail ? [full.thumbnail] : (Array.isArray(full.local_images) ? full.local_images : []))),
         description: full.description || '', short_description: full.short_description || '',
         status: full.status || 'publish', featured: !!full.featured,
+        isPromoted: !!full.isPromoted, promoPrice: String(full.promoPrice ?? ''), promoBadge: full.promoBadge || '', promoStart: full.promoStart || '', promoEnd: full.promoEnd || '',
       });
     } catch { setForm({ ...EMPTY, name: p.name || '' }); }
     setModalOpen(true);
@@ -291,66 +292,111 @@ export default function ProductsManager() {
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-3xl p-6 my-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">{editing ? 'Edit' : 'New'} Product</h2>
-              <button onClick={() => setModalOpen(false)}><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-3xl p-3 md:p-4 m-2 md:m-0 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-base font-bold">{editing ? 'Edit' : 'New'} Product</h2>
+              <button onClick={() => setModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
             </div>
-            <div className="grid md:grid-cols-2 gap-3 items-start">
-              <input className="border rounded-lg p-2" placeholder="Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-              <input className="border rounded-lg p-2" placeholder="Slug (blank = auto)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} />
-              <input className="border rounded-lg p-2" placeholder="SKU" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} />
-              <input className="border rounded-lg p-2" placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} />
-              <input type="number" className="border rounded-lg p-2" placeholder="Price *" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
-              <input type="number" className="border rounded-lg p-2" placeholder="Regular price" value={form.regular_price} onChange={e => setForm({ ...form, regular_price: e.target.value })} />
-              <input type="number" className="border rounded-lg p-2" placeholder="Sale price" value={form.sale_price} onChange={e => setForm({ ...form, sale_price: e.target.value })} />
-              <input type="number" className="border rounded-lg p-2" placeholder="Stock quantity" value={form.stock_quantity} onChange={e => setForm({ ...form, stock_quantity: e.target.value })} />
-              <select className="border rounded-lg p-2" value={form.stock_status} onChange={e => setForm({ ...form, stock_status: e.target.value })}>
-                <option value="instock">In stock</option><option value="outofstock">Out of stock</option><option value="onbackorder">Backorder</option>
-              </select>
-              <select className="border rounded-lg p-2" value={String(form.track_stock ?? 1)} onChange={e => setForm({ ...form, track_stock: Number(e.target.value) })}>
-                <option value="1">Track (count stock)</option><option value="0">Untracked (unlimited)</option>
-              </select>
+            <form onSubmit={e => e.preventDefault()} className="space-y-3">
+              <div className="grid md:grid-cols-2 gap-2.5 items-start">
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Name *</label>
+                  <input className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Slug (blank = auto)</label>
+                  <input className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Slug (blank = auto)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">SKU</label>
+                  <input className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="SKU" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Tags (comma separated)</label>
+                  <input className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Price *</label>
+                  <input type="number" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Price *" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Regular price</label>
+                  <input type="number" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Regular price" value={form.regular_price} onChange={e => setForm({ ...form, regular_price: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Sale price</label>
+                  <input type="number" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Sale price" value={form.sale_price} onChange={e => setForm({ ...form, sale_price: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Stock quantity</label>
+                  <input type="number" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Stock quantity" value={form.stock_quantity} onChange={e => setForm({ ...form, stock_quantity: e.target.value })} />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Stock status</label>
+                  <select className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={form.stock_status} onChange={e => setForm({ ...form, stock_status: e.target.value })}>
+                    <option value="instock">In stock</option>
+                    <option value="outofstock">Out of stock</option>
+                    <option value="onbackorder">Backorder</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-[11px] font-medium mb-0.5 text-slate-600">Track stock</label>
+                  <select className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={String(form.track_stock ?? 1)} onChange={e => setForm({ ...form, track_stock: Number(e.target.value) })}>
+                    <option value="1">Track (count stock)</option>
+                    <option value="0">Untracked (unlimited)</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="md:col-span-2">
-                <div className="bg-gradient-to-r from-emerald-50 to-sky-50 rounded-xl p-4 border border-emerald-200">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">🚚 Delivery Charge (optional — blank uses default Dhaka ৳80 / Outside ৳150)</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 border border-green-200">
-                      <label className="block text-xs font-bold text-green-700 mb-1">Inside Dhaka</label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-500 font-semibold">৳</span>
-                        <input type="number" className="border border-green-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-green-400 outline-none" placeholder="80" value={form.inside_delivery_fee} onChange={e => setForm({ ...form, inside_delivery_fee: e.target.value })} />
+                <div className="bg-gradient-to-r from-emerald-50 to-sky-50 rounded-lg p-3 border border-emerald-200">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">🚚 Delivery Charge (optional — blank uses default Dhaka ৳80 / Outside ৳150)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white rounded-md p-2 border border-green-200">
+                      <label className="block text-[10px] font-bold text-green-700 mb-0.5">Inside Dhaka</label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-green-500 font-semibold text-sm">৳</span>
+                        <input type="number" className="border border-green-300 rounded-md px-2 py-1.5 text-sm w-full focus:ring-2 focus:ring-green-400/30 focus:border-green-400 outline-none" placeholder="80" value={form.inside_delivery_fee} onChange={e => setForm({ ...form, inside_delivery_fee: e.target.value })} />
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 border border-sky-200">
-                      <label className="block text-xs font-bold text-sky-700 mb-1">Outside Dhaka</label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sky-500 font-semibold">৳</span>
-                        <input type="number" className="border border-sky-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-sky-400 outline-none" placeholder="150" value={form.outside_delivery_fee} onChange={e => setForm({ ...form, outside_delivery_fee: e.target.value })} />
+                    <div className="bg-white rounded-md p-2 border border-sky-200">
+                      <label className="block text-[10px] font-bold text-sky-700 mb-0.5">Outside Dhaka</label>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sky-500 font-semibold text-sm">৳</span>
+                        <input type="number" className="border border-sky-300 rounded-md px-2 py-1.5 text-sm w-full focus:ring-2 focus:ring-sky-400/30 focus:border-sky-400 outline-none" placeholder="150" value={form.outside_delivery_fee} onChange={e => setForm({ ...form, outside_delivery_fee: e.target.value })} />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-gray-200 pt-4 md:col-span-2">
-                <h2 className="text-lg font-semibold mb-3">Promotion (Campaign)</h2>
+              <div className="mt-3 border-t border-slate-200 pt-3 md:col-span-2">
+                <h2 className="text-sm font-semibold mb-2">Promotion (Campaign)</h2>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Enable Promotion</label>
-                    <input type="checkbox" checked={form.isPromoted} onChange={e => setForm({ ...form, isPromoted: e.target.checked })} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-medium mb-0.5">Enable Promotion</label>
+                    <input type="checkbox" className="w-4 h-4 accent-brand-primary mt-0.5" checked={form.isPromoted} onChange={e => setForm({ ...form, isPromoted: e.target.checked })} />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Promo Price (BDT)</label>
-                    <input type="number" className="border rounded-lg p-2 w-full" placeholder="Enter promo price" value={form.promoPrice} onChange={e => setForm({ ...form, promoPrice: e.target.value })} />
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-medium mb-0.5">Promo Price (BDT)</label>
+                    <input type="number" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" placeholder="Enter promo price" value={form.promoPrice} onChange={e => setForm({ ...form, promoPrice: e.target.value })} />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Badge</label>
-                    <select className="border rounded-lg p-2 w-full" value={form.promoBadge} onChange={e => setForm({ ...form, promoBadge: e.target.value })}>
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-medium mb-0.5">Badge</label>
+                    <select className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={form.promoBadge} onChange={e => setForm({ ...form, promoBadge: e.target.value })}>
                       <option value="">None</option>
                       <option value="Hot">Hot</option>
                       <option value="New">New</option>
@@ -359,50 +405,73 @@ export default function ProductsManager() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Start Date</label>
-                    <input type="datetime-local" className="border rounded-lg p-2 w-full" value={form.promoStart} onChange={e => setForm({ ...form, promoStart: e.target.value })} />
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-medium mb-0.5">Start Date</label>
+                    <input type="datetime-local" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={form.promoStart} onChange={e => setForm({ ...form, promoStart: e.target.value })} />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">End Date</label>
-                    <input type="datetime-local" className="border rounded-lg p-2 w-full" value={form.promoEnd} onChange={e => setForm({ ...form, promoEnd: e.target.value })} />
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-medium mb-0.5">End Date</label>
+                    <input type="datetime-local" className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={form.promoEnd} onChange={e => setForm({ ...form, promoEnd: e.target.value })} />
                   </div>
                 </div>
               </div>
 
-              <select className="border rounded-lg p-2" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                <option value="publish">Published</option><option value="draft">Draft</option><option value="private">Private</option>
-              </select>
-              <textarea className="border rounded-lg p-2 md:col-span-2" rows={2} placeholder="Short description" value={form.short_description} onChange={e => setForm({ ...form, short_description: e.target.value })} />
-              <textarea className="border rounded-lg p-2 md:col-span-2" rows={4} placeholder="Full description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-              <div className="md:col-span-2 border rounded-lg p-3">
-                <p className="text-sm font-medium mb-2">Categories (multiple)</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col">
+                <label className="text-[11px] font-medium mb-0.5 text-slate-600">Status</label>
+                <select className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  <option value="publish">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[11px] font-medium mb-0.5 text-slate-600">Short description</label>
+                <textarea className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none min-h-[80px] md:min-h-[60px] resize-y" rows={3} placeholder="Short description" value={form.short_description} onChange={e => setForm({ ...form, short_description: e.target.value })} />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-[11px] font-medium mb-0.5 text-slate-600">Full description</label>
+                <textarea className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none min-h-[140px] md:min-h-[100px] resize-y" rows={6} placeholder="Full description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+              </div>
+
+              <div className="md:col-span-2 border border-slate-200 rounded-lg p-2.5">
+                <p className="text-xs font-semibold mb-1.5 text-slate-700">Categories (multiple)</p>
+                <div className="flex flex-wrap gap-1.5">
                   {cats.map((c: any) => (
-                    <label key={c.id} className={`text-xs px-3 py-1.5 rounded-full border cursor-pointer ${form.categories.includes(String(c.id)) ? 'bg-brand-primary text-white border-brand-primary' : 'bg-gray-50'}`}>
+                    <label key={c.id} className={`text-[10px] px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${form.categories.includes(String(c.id)) ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
                       <input type="checkbox" className="hidden" checked={form.categories.includes(String(c.id))} onChange={() => toggleCat(String(c.id))} />{c.name}
                     </label>
                   ))}
-                  {cats.length === 0 && <span className="text-xs text-gray-400">Categories not loaded</span>}
+                  {cats.length === 0 && <span className="text-[10px] text-gray-400">Categories not loaded</span>}
                 </div>
               </div>
-              <div className="md:col-span-2 border rounded-lg p-3">
-                <p className="text-sm font-medium mb-2">Photos ({form.images.length})</p>
-                <div className="flex flex-wrap gap-2 mb-2">
+
+              <div className="md:col-span-2 border border-slate-200 rounded-lg p-2.5">
+                <p className="text-xs font-semibold mb-1.5 text-slate-700">Photos ({form.images.length})</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {form.images.map((u, i) => (
-                    <div key={i} className="relative"><ProductImage src={u} className="w-16 h-16 rounded-lg object-cover border" alt="" />
-                      <button onClick={() => rmImg(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-0.5"><X size={12} /></button></div>
+                    <div key={i} className="relative"><ProductImage src={u} className="w-12 h-12 rounded-lg object-cover border" alt="" />
+                      <button onClick={() => rmImg(i)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"><X size={10} /></button></div>
                   ))}
                 </div>
-                <div className="flex gap-2 items-start">
+                <div className="flex gap-1.5 items-start">
                   <div className="flex-1"><ImagePicker value={imgUrl} onChange={setImgUrl} /></div>
-                  <button onClick={addImgUrl} className="border px-3 py-2 rounded-lg text-sm whitespace-nowrap">Add</button>
+                  <button onClick={addImgUrl} className="border px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap hover:bg-slate-50 font-medium">Add</button>
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} /> Featured product</label>
+
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" className="w-4 h-4 accent-brand-primary" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} /> Featured product
+                </label>
+              </div>
+            </form>
+
+            <div className="mt-3 pt-2 border-t border-slate-100">
+              <button disabled={saving} onClick={save} className="w-full bg-brand-primary text-white py-2 rounded-xl disabled:opacity-50 hover:bg-brand-primary/90 transition-colors">{saving ? 'Saving...' : 'Save'}</button>
             </div>
-            <button disabled={saving} onClick={save} className="mt-4 w-full bg-brand-primary text-white py-2.5 rounded-xl disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
           </div>
         </div>
       )}
