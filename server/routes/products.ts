@@ -58,6 +58,8 @@ router.get("/products", async (req, res) => {
         available: avail,
         availability: avail ? 'in stock' : 'out of stock',
         delivery_fee: (p.delivery_fee != null && p.delivery_fee !== '') ? Number(p.delivery_fee) : null,
+        inside_delivery_fee: (p.inside_delivery_fee != null && p.inside_delivery_fee !== '') ? Number(p.inside_delivery_fee) : null,
+        outside_delivery_fee: (p.outside_delivery_fee != null && p.outside_delivery_fee !== '') ? Number(p.outside_delivery_fee) : null,
         effective_delivery_fee: effFee
       };
     });

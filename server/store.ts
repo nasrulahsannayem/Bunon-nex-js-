@@ -9,7 +9,7 @@ export const syncLocalDatabase = async () => {
     let [rows]: any = await productDbPool.execute(`
         SELECT 
             id, wc_product_id, name, slug, sku, price, regular_price, sale_price, 
-            on_sale, stock_status, stock_quantity, track_stock, delivery_fee, description, short_description, 
+            on_sale, stock_status, stock_quantity, track_stock, delivery_fee, inside_delivery_fee, outside_delivery_fee, description, short_description, 
             images, thumbnail, categories, tags, menu_order, date_created, total_sales,
             local_images
         FROM bunon_products WHERE status = 'publish'
@@ -19,7 +19,7 @@ export const syncLocalDatabase = async () => {
       const [fb]: any = await productDbPool.execute(`
         SELECT
             id, wc_product_id, name, slug, sku, price, regular_price, sale_price,
-            on_sale, stock_status, stock_quantity, track_stock, delivery_fee, description, short_description,
+            on_sale, stock_status, stock_quantity, track_stock, delivery_fee, inside_delivery_fee, outside_delivery_fee, description, short_description,
             images, thumbnail, categories, tags, menu_order, date_created, total_sales,
             local_images
         FROM wc_products_full
@@ -78,6 +78,8 @@ export const syncLocalDatabase = async () => {
           stock_quantity: p.stock_quantity,
           track_stock: p.track_stock == null ? 1 : Number(p.track_stock),
           delivery_fee: p.delivery_fee != null ? Number(p.delivery_fee) : null,
+          inside_delivery_fee: p.inside_delivery_fee != null ? Number(p.inside_delivery_fee) : null,
+          outside_delivery_fee: p.outside_delivery_fee != null ? Number(p.outside_delivery_fee) : null,
           available: (p.track_stock != null && Number(p.track_stock) === 0) ? true : Number(p.stock_quantity || 0) > 0,
           description: p.description || '',
           short_description: p.short_description || '',

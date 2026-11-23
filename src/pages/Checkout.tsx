@@ -224,7 +224,11 @@ export default function Checkout() {
   });
 
   // Per-product delivery fee calculation with fallback to default flat rate
-  const customFees = items.map(item => Number(item.delivery_fee) || 0);
+  const customFees = items.map(item => {
+    const inside = Number(item.inside_delivery_fee) || 0;
+    const outside = Number(item.outside_delivery_fee) || 0;
+    return shippingMethod === 'dhaka' ? (inside || Number(item.delivery_fee) || 0) : (outside || Number(item.delivery_fee) || 0);
+  });
   const hasCustomFees = customFees.some(f => f > 0);
   
   const shippingCost = hasFreeShippingItem 

@@ -38,7 +38,7 @@ const COLUMNS = [
   "short_description", "images", "thumbnail", "categories", "category_id",
   "blog_ids", "tags", "menu_order", "date_created", "total_sales",
   "local_images", "product_url", "cost_price", "weight", "status",
-  "featured", "track_stock", "delivery_fee", "isPromoted", "promoStart", "promoEnd", "promoBadge", "promoPrice", "created_at", "updated_at",
+  "featured", "track_stock", "delivery_fee", "inside_delivery_fee", "outside_delivery_fee", "isPromoted", "promoStart", "promoEnd", "promoBadge", "promoPrice", "created_at", "updated_at",
 ].join(", ");
 
 const ORDER_WHITELIST: Record<string, string> = {
@@ -167,12 +167,12 @@ router.post("/", async (req, res) => {
     const slug = slugify(b.slug || b.name);
     const [r]: any = await productDbPool.execute(
       "INSERT INTO bunon_products (name, slug, sku, price, regular_price, sale_price, on_sale, " +
-      "stock_status, stock_quantity, track_stock, delivery_fee, description, short_description, images, thumbnail, " +
+      "stock_status, stock_quantity, track_stock, delivery_fee, inside_delivery_fee, outside_delivery_fee, description, short_description, images, thumbnail, " +
       "categories, category_id, tags, menu_order, cost_price, weight, status, featured) " +
       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [b.name, slug, b.sku ?? null, b.price ?? null, b.regular_price ?? null, b.sale_price ?? null,
        b.on_sale ? 1 : 0, b.stock_status || "instock", b.stock_quantity ?? 0,
-       b.track_stock ?? 1, b.delivery_fee != null && b.delivery_fee !== "" ? Number(b.delivery_fee) : null,
+       b.track_stock ?? 1, b.delivery_fee != null && b.delivery_fee !== "" ? Number(b.delivery_fee) : null, b.inside_delivery_fee, b.outside_delivery_fee,
        b.description ?? null, b.short_description ?? null, toJSONString(b.images),
        b.thumbnail ?? null, toJSONString(b.categories), b.category_id ?? null,
        toJSONString(b.tags), b.menu_order ?? 0, b.cost_price ?? null, b.weight ?? null,
@@ -247,6 +247,16 @@ router.put("/:id", async (req, res) => {
       if (v !== null && isNaN(v)) return res.status(400).json({ ok: false, msg: "delivery_fee must be numeric" });
       await productDbPool.execute("UPDATE bunon_products SET delivery_fee = ? WHERE id = ?", [v, req.params.id]);
     }
+    if (b.inside_delivery_fee !== undefined) {
+      const v = (b.inside_delivery_fee === null || b.inside_delivery_fee === "") ? null : Number(b.inside_delivery_fee);
+      if (v !== null && isNaN(v)) return res.status(400).json({ ok: false, msg: "inside_delivery_fee must be numeric" });
+      await productDbPool.execute("UPDATE bunon_products SET inside_delivery_fee = ? WHERE id = ?", [v, req.params.id]);
+    }
+    if (b.outside_delivery_fee !== undefined) {
+      const v = (b.outside_delivery_fee === null || b.outside_delivery_fee === "") ? null : Number(b.outside_delivery_fee);
+      if (v !== null && isNaN(v)) return res.status(400).json({ ok: false, msg: "outside_delivery_fee must be numeric" });
+      await productDbPool.execute("UPDATE bunon_products SET outside_delivery_fee = ? WHERE id = ?", [v, req.params.id]);
+    }
     // Promotion fields
     if (b.isPromoted !== undefined) {
       await productDbPool.execute("UPDATE bunon_products SET isPromoted = ? WHERE id = ?", [b.isPromoted ? 1 : 0, req.params.id]);
@@ -308,11 +318,11 @@ router.post("/:id/duplicate", async (req, res) => {
     const newSlug = p.slug + "-copy-" + Date.now().toString(36);
     const [r]: any = await productDbPool.execute(
       "INSERT INTO bunon_products (name, slug, sku, price, regular_price, sale_price, on_sale, " +
-      "stock_status, stock_quantity, track_stock, delivery_fee, description, short_description, images, thumbnail, " +
+      "stock_status, stock_quantity, track_stock, delivery_fee, inside_delivery_fee, outside_delivery_fee, description, short_description, images, thumbnail, " +
       "categories, category_id, blog_ids, tags, menu_order, cost_price, weight, status, featured) " +
       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [p.name + " (Copy)", newSlug, p.sku ? p.sku + "-COPY" : null, p.price, p.regular_price,
-       p.sale_price, p.on_sale, "outofstock", 0, p.track_stock ?? 1, p.delivery_fee ?? null, p.isPromoted ?? 0, p.promoStart, p.promoEnd, p.promoBadge || null, p.promoPrice, p.description, p.short_description, p.images,
+       p.sale_price, p.on_sale, "outofstock", 0, p.track_stock ?? 1, p.delivery_fee ?? null, p.inside_delivery_fee ?? null, p.outside_delivery_fee ?? null, p.isPromoted ?? 0, p.promoStart, p.promoEnd, p.promoBadge || null, p.promoPrice, p.description, p.short_description, p.images,
        p.thumbnail, p.categories, p.category_id, p.blog_ids, p.tags, p.menu_order,
        p.cost_price, p.weight, "draft", 0]
     );

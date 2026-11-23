@@ -27,4 +27,4 @@ export const M0004 = {
   ],
 };
 
-module.exports = M0004;
+export default M0004;

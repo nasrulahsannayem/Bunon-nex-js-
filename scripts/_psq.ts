@@ -12,14 +12,9 @@ const P = '/www/wwwroot/bunon.shop/server/services/omnichannel.ts';
 let s = fs.readFileSync(P, 'utf8');
 
 // wrap the one list query so we can see sql + args
-const OLD = """  const limit = Math.min(Number(f.limit) || 50, 200);
-  const [rows] = await dbPool.query(""";
+const OLD = '  const limit = Math.min(Number(f.limit) || 50, 200);\n  const [rows] = await dbPool.query(';
 
-const NEW = """  const limit = Math.min(Number(f.limit) || 50, 200);
-  console.log('[SQLDBG] where.join length =', where.join(' AND ').length);
-  console.log('[SQLDBG] ? in joined where  =', (where.join(' AND ').match(/\\?/g) || []).length);
-  console.log('[SQLDBG] args.length         =', args.length);
-  const [rows] = await dbPool.query(""";
+const NEW = '  const limit = Math.min(Number(f.limit) || 50, 200);\n  console.log(\'[SQLDBG] where.join length =\', where.join(\' AND \').length);\n  console.log(\'[SQLDBG] ? in joined where  =\', (where.join(\' AND \').match(/\\\\?/g) || []).length);\n  console.log(\'[SQLDBG] args.length         =\', args.length);\n  const [rows] = await dbPool.query(';
 
 if (!s.includes('[SQLDBG]')) {
   if (!s.includes(OLD)) { console.log('ANCHOR NOT FOUND'); process.exit(1); }

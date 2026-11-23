@@ -33,7 +33,7 @@ const imgVal = (v: any): string => {
 // returns '' — an empty string rendered a broken <img> in the table.
 const imgSrc = (prod: any): string => bestProductImage(prod);
 
-const EMPTY = { name: '', slug: '', sku: '', price: '', regular_price: '', sale_price: '', stock_quantity: '0', stock_status: 'instock', track_stock: 1, delivery_fee: '', categories: [] as string[], tags: '', images: [] as string[], description: '', short_description: '', status: 'publish', featured: false };
+const EMPTY = { name: '', slug: '', sku: '', price: '', regular_price: '', sale_price: '', stock_quantity: '0', stock_status: 'instock', track_stock: 1, delivery_fee: '', inside_delivery_fee: '', outside_delivery_fee: '', categories: [] as string[], tags: '', images: [] as string[], description: '', short_description: '', status: 'publish', featured: false, isPromoted: false, promoPrice: '', promoBadge: '', promoStart: '', promoEnd: '' };
 
 import ProductImage, { bestProductImage, PRODUCT_PLACEHOLDER } from '../../components/ProductImage';
 import { SectionHeader, StatusPill } from '../../components/admin/ui';
@@ -83,7 +83,7 @@ export default function ProductsManager() {
         name: full.name || '', slug: full.slug || '', sku: full.sku || '',
         price: String(full.price ?? ''), regular_price: String(full.regular_price ?? ''), sale_price: String(full.sale_price ?? ''),
         stock_quantity: String(full.stock_quantity ?? 0), stock_status: full.stock_status || 'instock',
-        track_stock: full.track_stock ?? 1, delivery_fee: full.delivery_fee ?? '',
+        track_stock: full.track_stock ?? 1, delivery_fee: full.delivery_fee ?? '', inside_delivery_fee: full.inside_delivery_fee ?? '', outside_delivery_fee: full.outside_delivery_fee ?? '',
         categories: Array.isArray(full.categories) ? full.categories.map(String) : [],
         tags: Array.isArray(full.tags) ? full.tags.join(', ') : (full.tags || ''),
         images: (Array.isArray(full.images) && full.images.length) ? full.images : (full.image ? [full.image] : (full.thumbnail ? [full.thumbnail] : (Array.isArray(full.local_images) ? full.local_images : []))),
@@ -108,7 +108,7 @@ export default function ProductsManager() {
       price: Number(form.price), regular_price: form.regular_price ? Number(form.regular_price) : undefined,
       sale_price: form.sale_price ? Number(form.sale_price) : undefined,
       stock_quantity: Number(form.stock_quantity) || 0, stock_status: form.stock_status,
-      track_stock: Number(form.track_stock ?? 1), delivery_fee: form.delivery_fee === '' ? null : Number(form.delivery_fee),
+      track_stock: Number(form.track_stock ?? 1), delivery_fee: form.delivery_fee === '' ? null : Number(form.delivery_fee), inside_delivery_fee: form.inside_delivery_fee === '' ? null : Number(form.inside_delivery_fee), outside_delivery_fee: form.outside_delivery_fee === '' ? null : Number(form.outside_delivery_fee),
       categories: form.categories.map(Number).filter(Boolean),
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       images: form.images, description: form.description, short_description: form.short_description,
@@ -247,12 +247,16 @@ export default function ProductsManager() {
                     <td className="p-3"><input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSel(p.id)} /></td>
                     <td className="p-3"><ProductImage src={imgSrc(p)} loading="eager" className="w-11 h-11 rounded-lg object-cover" alt={p.name} /></td>
                     <td className="p-3"><div className="font-medium">{p.name}</div><div className="text-xs text-gray-400">{p.sku || `#${p.id}`} · {p.slug}</div></td>
-                    <td className="p-3 text-gray-600">{Array.isArray(p.categories) ? p.categories.map((c: any) => typeof c === 'object' ? c.name : c).join(', ') : (p.category || '—')}</td>
+                    <td className="p-3 text-gray-600">{Array.isArray(p.categories) ? p.categories.map((c: any) => { const cat = cats.find(cat => cat.id === c); return cat ? cat.name : c; }).join(', ') : (p.category || '—')}</td>
                     <td className="p-3"><span className="font-medium">৳{p.price}</span>{p.sale_price ? <span className="ml-1 text-xs text-green-600">Sale ৳{p.sale_price}</span> : null}</td>
                     <td className="p-3">
                       <input type="number" className="w-16 border rounded-lg px-1 py-0.5 text-center" defaultValue={p.stock_quantity ?? 0} key={`${p.id}-${p.stock_quantity}`} onBlur={e => { const v = Number(e.target.value); if (v !== p.stock_quantity) inlineStock(p.id, v); }} />
                       <div className="mt-1">{can('edit_products') && (<button onClick={() => toggleTrack(p)} title="Toggle stock tracking" className={`text-[11px] px-2 py-0.5 rounded-full border ${Number(p.track_stock) === 0 ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{Number(p.track_stock) === 0 ? 'Untracked' : 'Tracked'}</button>)}</div>
-                      <input type="number" title="Custom delivery fee (blank = default 80 Dhaka, 150 Outside)" placeholder="Default" className="w-24 border rounded-lg px-1 py-0.5 text-center text-[11px] mt-1" defaultValue={p.delivery_fee ?? ''} key={`${p.id}-fee-${p.delivery_fee ?? 'd'}`} onBlur={e => { const cur = p.delivery_fee ?? ''; if (e.target.value !== String(cur)) updateFee(p.id, e.target.value); }} />
+                      <div className="flex gap-1 items-center flex-wrap">
+                        {p.inside_delivery_fee != null && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Dhaka ৳{p.inside_delivery_fee}</span>}
+                        {p.outside_delivery_fee != null && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">Out ৳{p.outside_delivery_fee}</span>}
+                        {(p.inside_delivery_fee == null && p.outside_delivery_fee == null) && <span className="text-[10px] text-gray-400">Default</span>}
+                      </div>
                     </td>
                     <td className="p-3"><StatusPill status={p.status} /></td>
                     <td className="p-3">{p.featured ? '★' : '—'}</td>
@@ -308,9 +312,26 @@ export default function ProductsManager() {
               <select className="border rounded-lg p-2" value={String(form.track_stock ?? 1)} onChange={e => setForm({ ...form, track_stock: Number(e.target.value) })}>
                 <option value="1">Track (count stock)</option><option value="0">Untracked (unlimited)</option>
               </select>
-              <div>
-                <input type="number" className="border rounded-lg p-2 w-full" placeholder="Default rate" value={form.delivery_fee} onChange={e => setForm({ ...form, delivery_fee: e.target.value })} />
-                <span className="text-xs text-gray-500 mt-1 block">Leave empty for default (Dhaka ৳80, Outside ৳150)</span>
+              <div className="md:col-span-2">
+                <div className="bg-gradient-to-r from-emerald-50 to-sky-50 rounded-xl p-4 border border-emerald-200">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">🚚 Delivery Charge (optional — blank uses default Dhaka ৳80 / Outside ৳150)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <label className="block text-xs font-bold text-green-700 mb-1">Inside Dhaka</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-500 font-semibold">৳</span>
+                        <input type="number" className="border border-green-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-green-400 outline-none" placeholder="80" value={form.inside_delivery_fee} onChange={e => setForm({ ...form, inside_delivery_fee: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-sky-200">
+                      <label className="block text-xs font-bold text-sky-700 mb-1">Outside Dhaka</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sky-500 font-semibold">৳</span>
+                        <input type="number" className="border border-sky-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-sky-400 outline-none" placeholder="150" value={form.outside_delivery_fee} onChange={e => setForm({ ...form, outside_delivery_fee: e.target.value })} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4 border-t border-gray-200 pt-4 md:col-span-2">

@@ -1,110 +1,67 @@
-# 📚 Bunon.shop — সম্পূর্ণ ডকুমেন্টেশন
+# Admin Panel Documentation Index
 
-**ভার্সন:** 1.0 | **তারিখ:** ০৩ অক্টোবর ২০২৬ | **স্ট্যাটাস:** লাইভ-ভেরিফায়েড
+## Documents
 
-বুনন ফেব্রিক্স — COD (ক্যাশ অন ডেলিভারি) সেলুন ওয়্যার সাইটের সম্পূর্ণ প্রযুক্তিগত নথি।
+| Document | Lines | Description |
+|----------|-------|-------------|
+| [Admin Panel Comparison](./admin-panel-comparison.md) | 1,023 | Complete feature-by-feature comparison between reference repo (fatiha-salah-chair) and Bunon Shop |
+| [Implementation Plan](./admin-panel-implementation-plan.md) | 1,047 | Full phased implementation plan with DB schema, API routes, component library, verification checklist |
+| [Architecture Overview](./01-architecture.md) | 205 | Project architecture documentation |
+| [Pages & Routes](./02-pages-routes.md) | 159 | Admin page routing structure |
+| [Features List](./03-features.md) | 205 | Feature inventory |
+| [API Routes](./04-api-routes.md) | 259 | API endpoint documentation |
+| [Integrations](./05-integrations.md) | 215 | External service integrations |
+| [Database Schema](./06-database.md) | 191 | Database design |
+| [Cron Jobs](./07-cron-jobs.md) | 156 | Scheduled tasks |
+| [Deployment Guide](./08-deployment.md) | 212 | Production deployment |
 
----
+## Quick Start
 
-## 📂 ফাইল তালিকা
+### Read Sequence for Full Understanding
+1. **Start here**: [Admin Panel Comparison](./admin-panel-comparison.md) — understand what exists vs what's needed
+2. **Then**: [Implementation Plan](./admin-panel-implementation-plan.md) — follow the phased build order
+3. **Reference**: [Existing Architecture](./01-architecture.md) — understand Bunon's current stack
 
-| # | ফাইল | বিষয় |
-|---|---|---|
-| 00 | `README.md` | এই ফাইল — ইনডেক্স ও দ্রুত রেফারেন্স |
-| 01 | `01-architecture.md` | সিস্টেম আর্কিটেকচার, ইনফ্রাস্ট্রাকচার, ডেটাবেস |
-| 02 | `02-pages-routes.md` | সব পেইজ ও রুট (পাবলিক + অ্যাডমিন) |
-| 03 | `03-features.md` | সব ফিচার বিস্তারিত |
-| 04 | `04-api-routes.md` | সব API এন্ডপয়েন্ট |
-| 05 | `05-integrations.md` | Meta, GA4, TikTok, Steadfast, bKash, PayStation, Firebase |
-| 06 | `06-database.md` | ডেটাবেস স্কিমা ও টেবিল |
-| 07 | `07-cron-jobs.md` | সব ক্রন জব ও শিডিউল |
-| 08 | `08-deployment.md` | বিল্ড, ডিপ্লয়, PM2, nginx |
-| 09 | `09-operations.md` | দৈনিক অপারেশন ও ট্রাবলশুটিং |
-| 10 | `10-known-issues.md` | ⚠️ সব সমস্যা ও অমীমাণীকৃত কাজ |
-| 11 | `11-changelog.md` | কী কী পরিবর্তন হয়েছে, কখন |
-| 12 | `12-admin-login-fix.md` | অ্যাডমিন লগইন ফিক্স (০৩ অক্টো) |
+### Key Files Referenced
+- Reference repo: https://github.com/nasrulahsannayem/fatihaayatsalahchair/tree/main/fatiha-salah-chair/src/admin
+- Current Bunon admin pages: `src/pages/admin/*.tsx` (28 files)
+- Existing components: `src/components/ImagePicker.tsx`, `src/components/AdminRoute.tsx`, `src/pages/admin/AdminLayout.tsx`
 
----
+### Current Bunon Stack (Confirmed)
+- React 19 + TypeScript strict mode
+- Vite 6 + Tailwind CSS
+- Zustand + React Query (TanStack)
+- Express.js backend + MySQL (dual DB)
+- Redis caching
+- JWT + Refresh token auth
+- Prisma ORM
 
-## ⚡ দ্রুত রেফারেন্স
+### What's Already Built (Bunon vs Reference)
+| Feature | Bunon Status | Reference Has | Gap |
+|---------|-------------|---------------|-----|
+| Products CRUD | ✅ Page-based | ✅ Modal-driven | Convert to modal |
+| Categories CRUD | ✅ Page-based | ✅ Inline+Modal | Convert to modal |
+| Orders Management | ✅ Basic | ✅ Tabs+Courier+SMS | Missing courier/SMS |
+| Coupons CRUD | ✅ Basic | ✅ Targeting | Missing targeting |
+| Settings | ✅ Partial | ✅ KV 6-tab | Incomplete |
+| Team/Roles | ✅ Basic | ✅ Matrix | Missing visual matrix |
+| Complaints | ❌ Missing | ✅ Full workflow | Build from scratch |
+| SMS System | ❌ Missing | ✅ Gateway+Templates | Build from scratch |
+| Landing Pages | ✅ PageBuilder | ✅ Builder | Merge/enhance |
+| Homepage Editor | ✅ HeroManager | ✅ Section editor | Enhance |
+| Incomplete Orders | ✅ AbandonedCarts | ✅ Recovery flow | Verify parity |
+| Live Chat | ✅ InboxPage | ✅ AI config | Add AI config |
+| Courier Integration | ⚠️ Delivery fee only | ✅ Steadfast | Need integration |
+| Dashboard Insights | ✅ MetaKpi | ✅ Smart insights | Enhance |
+| Live Visitors | ❌ Missing | ✅ Presence | Build from scratch |
+| Backup/Restore | ❌ Missing | ✅ SQL dump | Build from scratch |
+| Universal Components | ❌ Missing | ✅ Modal,Field,Uploader | Build new lib |
 
-### মূল তথ্য
-```
-ডোমেইন      bunon.shop (legacy: bunonfabrics.com — একই অ্যাপ)
-হোস্ট       15.235.162.246
-পোর্ট       5001 (nginx proxy → 127.0.0.1:5001)
-প্রজেক্ট     /www/wwwroot/bunon.shop
-প্রসেস       PM2: bunon-site → dist/server.cjs
-Node        v24.18.0
-```
-
-### স্ট্যাক
-```
-ফ্রন্টএন্ড   React 19 + Vite 6 + Tailwind 4 + React Router 7
-ব্যাকএন্ড    Node.js + Express 4 + TypeScript (esbuild)
-ডেটাবেস     MySQL × 2  +  Redis 6
-কুরিয়ার     Steadfast
-পেমেন্ট     COD + bKash + PayStation
-মোবাইল      Capacitor Android
-ট্র্যাকিং   Meta Pixel + CAPI, GA4, TikTok
-```
-
-### ডেটা সংখ্যা (০৩ অক্টো ২০২৬)
-```
-পণ্য              368
-ক্যাটাগরি          34
-ব্লগ              100
-ইউজার             24
-অর্ডার (মোট)      7,334
-পণ্যের ছবি        892 (সব local, WP থেকে মুক্ত)
-```
-
----
-
-## 🚨 এখনই জানা দরকার
-
-| সমস্যা | অবস্থা | বিস্তারিত |
-|---|---|---|
-| **SMTP বন্ধ** — সব ইমেইল যাচ্ছে না | 🔴 | `10-known-issues.md` |
-| JWT_SECRET hardcoded | 🟠 | `10-known-issues.md` |
-| `webhook.ts` ভুল DB pool | 🟠 | `10-known-issues.md` |
-
-বিস্তারিত → **`10-known-issues.md`**
-
----
-
-## 🔧 দ্রুত কমান্ড
-
-```bash
-# সার্ভার
-ssh -i /opt/data/.ssh/id_host_root -p 45262 root@15.235.162.246
-cd /www/wwwroot/bunon.shop
-
-# অবস্থা দেখুন
-pm2 list
-pm2 logs bunon-site --lines 50
-
-# বিল্ড + ডিপ্লয়
-rm -rf dist && mkdir -p dist && chmod 777 dist
-npm run build
-pm2 flush bunon-site
-pm2 restart bunon-site --update-env
-
-# যাচাই
-curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:5001/api/products
-```
-
----
-
-## 📞 কে কী করে
-
-| বিষয় | দায়িত্ব |
-|---|---|
-| সাইট/সার্ভার কোড | নুপুর (Hermes Agent) |
-| VPS হোস্ট | Nasrul Ahsan Naim |
-| DB ক্রেডেনশিয়াল | `.env` (root-only, chmod 600) |
-| Meta Ads | `meta-ads-mcp` + Graph API |
-
----
-
-*নতুন সেশনে নুপুরকে বললেই `bunon-shop-ops` স্কিল থেকে পুরো অপারেশনাল কনটেক্সট পাওয়া যাবে।*
+### Phases Summary
+- **Phase 1**: Foundation (components, sync, auth) — Week 1-2
+- **Phase 2**: Core Entities (Products, Categories, Coupons) — Week 2-3
+- **Phase 3**: Orders + Courier + SMS — Week 3-4
+- **Phase 4**: Settings + Team + Permissions — Week 4
+- **Phase 5**: Advanced Features (Complaints, Landings, HomeEditor, Chat) — Week 5-6
+- **Phase 6**: Dashboard + Analytics + Polish — Week 6-7
+- **Phase 7**: Testing + Verification + Deployment — Week 7-8

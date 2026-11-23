@@ -35,10 +35,12 @@ const TABLE = 'bunon_schema_migrations';
 import M0002 from './0002_omnichannel_workflow';
 import M0003 from './0003_omnichannel_media';
 import M0004 from './0004_shipping_zones';
+import M0005 from './0005_admin_panel_full';
 
 export const migrations: Migration[] = [
   M0003,
   M0004,
+  M0005,
   {
     id: '0001',
     name: 'omnichannel_core',
