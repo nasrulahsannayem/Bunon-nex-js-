@@ -223,7 +223,15 @@ export default function Checkout() {
     return hasFreeCategory || item.shipping_class === 'free-shipping' || item.shipping_class === 'free' || item.free_shipping === true;
   });
 
-  const shippingCost = hasFreeShippingItem ? 0 : (shippingMethod === 'dhaka' ? 80 : 150);
+  // Per-product delivery fee calculation with fallback to default flat rate
+  const customFees = items.map(item => Number(item.delivery_fee) || 0);
+  const hasCustomFees = customFees.some(f => f > 0);
+  
+  const shippingCost = hasFreeShippingItem 
+    ? 0 
+    : (hasCustomFees 
+      ? customFees.reduce((a, b) => a + b, 0) 
+      : (shippingMethod === 'dhaka' ? 80 : 150));
   
   // Apply 50 BDT discount for both paystation and bkash
   const onlineDiscount = (formData.paymentMethod === 'paystation' || formData.paymentMethod === 'bkash') ? 50 : 0;
