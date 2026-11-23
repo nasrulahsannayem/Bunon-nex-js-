@@ -38,7 +38,7 @@ const COLUMNS = [
   "short_description", "images", "thumbnail", "categories", "category_id",
   "blog_ids", "tags", "menu_order", "date_created", "total_sales",
   "local_images", "product_url", "cost_price", "weight", "status",
-  "featured", "track_stock", "delivery_fee", "created_at", "updated_at",
+  "featured", "track_stock", "delivery_fee", "isPromoted", "promoStart", "promoEnd", "promoBadge", "promoPrice", "created_at", "updated_at",
 ].join(", ");
 
 const ORDER_WHITELIST: Record<string, string> = {
@@ -217,6 +217,8 @@ router.put("/:id", async (req, res) => {
       "menu_order = COALESCE(?, menu_order), cost_price = COALESCE(?, cost_price), " +
       "weight = COALESCE(?, weight), status = COALESCE(?, status), " +
       "featured = COALESCE(?, featured), track_stock = COALESCE(?, track_stock), total_sales = COALESCE(?, total_sales), " +
+      "isPromoted = COALESCE(?, isPromoted), promoStart = COALESCE(?, promoStart), promoEnd = COALESCE(?, promoEnd), " +
+      "promoBadge = COALESCE(?, promoBadge), promoPrice = COALESCE(?, promoPrice), " +
       "updated_at = NOW() " +
       "WHERE id = ?",
       [b.name ?? null, slug ?? null, b.sku ?? null, b.price ?? null, b.regular_price ?? null,
@@ -225,7 +227,10 @@ router.put("/:id", async (req, res) => {
        thumb, toJSONString(b.categories) ?? null, b.category_id ?? null,
        toJSONString(b.blog_ids) ?? null, toJSONString(b.tags) ?? null, b.menu_order ?? null,
        b.cost_price ?? null, b.weight ?? null, b.status ?? null, b.featured ?? null,
-       b.track_stock ?? null, b.total_sales ?? null, req.params.id]
+       b.track_stock ?? null, b.total_sales ?? null,
+       b.isPromoted ?? null, b.promoStart ?? null, b.promoEnd ?? null,
+       b.promoBadge ?? null, b.promoPrice ?? null,
+       req.params.id]
     );
     if ((r as any).affectedRows === 0) return res.status(404).json({ ok: false, msg: "Product not found" });
     // Dual-price explicit clear: empty sale_price removes the offer (COALESCE above can't NULL it)
@@ -241,6 +246,24 @@ router.put("/:id", async (req, res) => {
       const v = (b.delivery_fee === null || b.delivery_fee === "") ? null : Number(b.delivery_fee);
       if (v !== null && isNaN(v)) return res.status(400).json({ ok: false, msg: "delivery_fee must be numeric" });
       await productDbPool.execute("UPDATE bunon_products SET delivery_fee = ? WHERE id = ?", [v, req.params.id]);
+    }
+    // Promotion fields
+    if (b.isPromoted !== undefined) {
+      await productDbPool.execute("UPDATE bunon_products SET isPromoted = ? WHERE id = ?", [b.isPromoted ? 1 : 0, req.params.id]);
+    }
+    if (b.promoPrice !== undefined) {
+      const v = (b.promoPrice === null || b.promoPrice === "") ? null : Number(b.promoPrice);
+      if (v !== null && isNaN(v)) return res.status(400).json({ ok: false, msg: "promoPrice must be numeric" });
+      await productDbPool.execute("UPDATE bunon_products SET promoPrice = ? WHERE id = ?", [v, req.params.id]);
+    }
+    if (b.promoBadge !== undefined) {
+      await productDbPool.execute("UPDATE bunon_products SET promoBadge = ? WHERE id = ?", [b.promoBadge || null, req.params.id]);
+    }
+    if (b.promoStart !== undefined) {
+      await productDbPool.execute("UPDATE bunon_products SET promoStart = ? WHERE id = ?", [b.promoStart || null, req.params.id]);
+    }
+    if (b.promoEnd !== undefined) {
+      await productDbPool.execute("UPDATE bunon_products SET promoEnd = ? WHERE id = ?", [b.promoEnd || null, req.params.id]);
     }
     await invalidateProductsCache();
     res.json({ ok: true });
@@ -289,7 +312,7 @@ router.post("/:id/duplicate", async (req, res) => {
       "categories, category_id, blog_ids, tags, menu_order, cost_price, weight, status, featured) " +
       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [p.name + " (Copy)", newSlug, p.sku ? p.sku + "-COPY" : null, p.price, p.regular_price,
-       p.sale_price, p.on_sale, "outofstock", 0, p.track_stock ?? 1, p.delivery_fee ?? null, p.description, p.short_description, p.images,
+       p.sale_price, p.on_sale, "outofstock", 0, p.track_stock ?? 1, p.delivery_fee ?? null, p.isPromoted ?? 0, p.promoStart, p.promoEnd, p.promoBadge || null, p.promoPrice, p.description, p.short_description, p.images,
        p.thumbnail, p.categories, p.category_id, p.blog_ids, p.tags, p.menu_order,
        p.cost_price, p.weight, "draft", 0]
     );

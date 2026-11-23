@@ -312,6 +312,44 @@ export default function ProductsManager() {
                 <input type="number" className="border rounded-lg p-2 w-full" placeholder="Default rate" value={form.delivery_fee} onChange={e => setForm({ ...form, delivery_fee: e.target.value })} />
                 <span className="text-xs text-gray-500 mt-1 block">Leave empty for default (Dhaka ৳80, Outside ৳150)</span>
               </div>
+
+              <div className="mt-4 border-t border-gray-200 pt-4 md:col-span-2">
+                <h2 className="text-lg font-semibold mb-3">Promotion (Campaign)</h2>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Enable Promotion</label>
+                    <input type="checkbox" checked={form.isPromoted} onChange={e => setForm({ ...form, isPromoted: e.target.checked })} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Promo Price (BDT)</label>
+                    <input type="number" className="border rounded-lg p-2 w-full" placeholder="Enter promo price" value={form.promoPrice} onChange={e => setForm({ ...form, promoPrice: e.target.value })} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Badge</label>
+                    <select className="border rounded-lg p-2 w-full" value={form.promoBadge} onChange={e => setForm({ ...form, promoBadge: e.target.value })}>
+                      <option value="">None</option>
+                      <option value="Hot">Hot</option>
+                      <option value="New">New</option>
+                      <option value="Preorder">Preorder</option>
+                      <option value="Sale">Sale</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Start Date</label>
+                    <input type="datetime-local" className="border rounded-lg p-2 w-full" value={form.promoStart} onChange={e => setForm({ ...form, promoStart: e.target.value })} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">End Date</label>
+                    <input type="datetime-local" className="border rounded-lg p-2 w-full" value={form.promoEnd} onChange={e => setForm({ ...form, promoEnd: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
               <select className="border rounded-lg p-2" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 <option value="publish">Published</option><option value="draft">Draft</option><option value="private">Private</option>
               </select>
