@@ -4,6 +4,7 @@ import { logAudit, auditCtx } from '../../utils/audit';
 import { requirePermission } from '../../middleware/auth';
 import { waAutoNotifyStatus } from './whatsapp';
 import { bestImageFor, hydrateImageList, toAbsoluteImageUrl, parseMaybeJSON, PRODUCT_PLACEHOLDER } from '../../services/imageUrl';
+import { buildAdminOrdersListQuery, buildAdminOrdersExportQuery } from '../../utils/adminOrdersQuery.ts';
 
 // Normalize order-line-item image fields so the admin orders table and the
 // detail drawer always receive absolute, local-first URLs. bf_order_items stores
@@ -175,6 +176,7 @@ router.get('/', async (req, res) => {
     const search = req.query.search as string;
     const from = req.query.from as string; // YYYY-MM-DD
     const to = req.query.to as string;     // YYYY-MM-DD
+    const abroad = req.query.abroad;
 
     const whereClauses: string[] = [];
     const params: string[] = [];
@@ -221,21 +223,21 @@ router.get('/', async (req, res) => {
       params.push(`${to} 23:59:59`);
     }
 
-    const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const { whereString, params: allParams } = buildAdminOrdersListQuery(whereClauses, params, abroad);
 
     const [orders]: any = await dbPool.execute(
       `SELECT id, woo_order_id, invoice, created_at, updated_at, status, total_payable, subtotal,
               delivery_fee, discount, discount_amount, payment_status, is_paid,
-              customer_name, phone, city, address, consignment_id, tracking_code,
+              customer_name, phone, is_abroad, abroad_phone, city, address, consignment_id, tracking_code,
               courier_code, courier_name, notes, internal_note, source
        FROM bf_orders
        ${whereString}
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
-      [...params, limit.toString(), offset.toString()]
+      [...allParams, limit.toString(), offset.toString()]
     );
 
-    const [countResult]: any = await dbPool.execute(`SELECT COUNT(id) as total FROM bf_orders ${whereString}`, params);
+    const [countResult]: any = await dbPool.execute(`SELECT COUNT(id) as total FROM bf_orders ${whereString}`, allParams);
     const total = countResult[0].total;
 
     // Fetch Status Counts for the tabs (All + 11 canonical, trash separate)
@@ -500,6 +502,7 @@ router.get('/export', requireAny(['view_orders', 'edit_orders']), async (req, re
     const status = String((req.query as any).status || 'all');
     const from = String((req.query as any).from || '');
     const to = String((req.query as any).to || '');
+    const abroad = (req.query as any).abroad;
     const whereClauses: string[] = [];
     const params: any[] = [];
     if (status && status !== 'all' && status !== '') {
@@ -512,19 +515,19 @@ router.get('/export', requireAny(['view_orders', 'edit_orders']), async (req, re
     }
     if (from) { whereClauses.push('created_at >= ?'); params.push(from + ' 00:00:00'); }
     if (to) { whereClauses.push('created_at <= ?'); params.push(to + ' 23:59:59'); }
-    const whereString = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
+    const { whereString, params: allParams } = buildAdminOrdersExportQuery(whereClauses, params, abroad);
     const [rows]: any = await dbPool.execute(
-      'SELECT invoice, customer_name, phone, total_payable, status, courier_code, consignment_id FROM bf_orders ' + whereString + ' ORDER BY created_at DESC LIMIT 5000',
-      params
+      'SELECT invoice, customer_name, phone, is_abroad, abroad_phone, total_payable, status, courier_code, consignment_id FROM bf_orders ' + whereString + ' ORDER BY created_at DESC LIMIT 5000',
+      allParams
     );
     const esc = (v: any): string => {
       const t = String(v ?? '');
       return /[\",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
     };
-    const lines = ['invoice,customer,phone,amount,status,courier'];
+    const lines = ['invoice,customer,phone,is_abroad,abroad_phone,amount,status,courier'];
     for (const r of rows || []) {
       const courier = r.courier_code || r.consignment_id || '';
-      lines.push([esc(r.invoice), esc(r.customer_name), esc(r.phone), esc(r.total_payable), esc(r.status), esc(courier)].join(','));
+      lines.push([esc(r.invoice), esc(r.customer_name), esc(r.phone), esc(r.is_abroad), esc(r.abroad_phone), esc(r.total_payable), esc(r.status), esc(courier)].join(','));
     }
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="orders-export.csv"');

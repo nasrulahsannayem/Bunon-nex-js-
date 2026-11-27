@@ -5,6 +5,7 @@ import ConfirmModal from '../../components/admin/ConfirmModal';
 import { UserAvatar } from '../../components/admin/ui';
 import WAChatModal from '../../components/admin/WAChatModal';
 import { timeAgoBn } from '../../lib/timeAgoBn';
+import { getAbroadDisplayPhone } from "../../../server/utils/abroadOrders";
 import { FiSearch, FiRefreshCw, FiChevronLeft, FiChevronRight, FiX, FiTruck, FiMapPin, FiPhone, FiUser, FiPackage, FiFileText, FiPlus, FiPrinter, FiSend, FiMinus, FiTrash2 } from 'react-icons/fi';
 
 const authHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('bunon_token')}` });
@@ -933,7 +934,7 @@ const itemThumb = (i: any): string => bestProductImage({
                     <td className="px-4 py-3.5 align-middle"><input type="checkbox" className="rounded border-slate-300" checked={checked.has(String(order.id))} onChange={() => toggleCheck(String(order.id))} onClick={e=>e.stopPropagation()} /></td>
                     <td className="px-4 py-3.5 align-middle font-bold text-slate-700">#{order.invoice}</td>
                     <td className="px-4 py-3.5 align-middle font-medium text-slate-600">{order.customer_name}</td>
-                    <td className="px-4 py-3.5 align-middle text-slate-500 font-mono">{order.phone}</td>
+                    <td className="px-4 py-3.5 align-middle text-slate-500 font-mono flex flex-col gap-1"><span>{order.phone}</span>{order.is_abroad && order.abroad_phone && <span className="text-[11px] text-emerald-700 font-bold">🌍 {order.abroad_phone}</span>}{order.is_abroad && <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-700 border border-emerald-200" title="Overseas order">🌍 Abroad</span>}</td>
                     <td className="px-4 py-3.5 align-middle">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusPill(order.status)}`}>{order.status}</span>
                     </td>
@@ -970,7 +971,7 @@ const itemThumb = (i: any): string => bestProductImage({
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border shrink-0 ml-auto text-right ${statusPill(order.status)}`}>{order.status}</span>
                   </div>
                   <div className="text-sm font-medium text-slate-600 truncate mt-0.5 min-w-0">{order.customer_name}</div>
-                  <div className="text-xs text-slate-500 font-mono">{order.phone}</div>
+                  <div className="text-xs text-slate-500 font-mono flex flex-col gap-1"><span>📱 {order.phone}</span>{order.is_abroad && order.abroad_phone && <span className="text-emerald-700 font-bold">🌍 {order.abroad_phone}</span>}</div>
                   <div className="text-[11px] text-slate-400">{order.created_at ? timeAgoBn(order.created_at) : ''}</div>
                   <div className="flex items-center justify-between gap-2 mt-1.5 text-xs">
                     <span className="font-bold text-slate-800">৳{order.total_payable}</span>
@@ -1066,6 +1067,17 @@ const itemThumb = (i: any): string => bestProductImage({
                     {custPhone.trim() && (<button onClick={() => setWaOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500 hover:bg-green-600 text-white text-[11px] font-semibold shadow-sm whitespace-nowrap"><span>💬</span><span>WhatsApp</span></button>)}
                   </div>
                 </div>
+                {selectedOrder?.is_abroad && selectedOrder?.abroad_phone && (
+                  <div className="bg-emerald-50 p-2 rounded border border-emerald-200">
+                    <label className="text-[10px] text-emerald-700 font-bold">🌍 Overseas buyer (বিদেশের নম্বর)</label>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <span className="flex-1 font-mono text-sm font-bold text-emerald-800">{selectedOrder.abroad_phone}</span>
+                      <a href={String(selectedOrder.abroad_phone).replace(/[\s()-]/g, '') ? 'tel:' + String(selectedOrder.abroad_phone).replace(/[\s()-]/g, '') : '#'} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-[11px] font-semibold whitespace-nowrap"><span>📞</span><span>Call</span></a>
+                      <a href={'https://wa.me/' + String(selectedOrder.abroad_phone).replace(/\D/g, '')} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500 text-white text-[11px] font-semibold whitespace-nowrap"><span>💬</span><span>WhatsApp</span></a>
+                    </div>
+                    <p className="text-[10px] text-emerald-600 mt-1">Phone উপরে = বাংলাদেশের রিসিভার · এই নম্বর = ক্রেতার নিজের</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-[10px] text-slate-500 font-bold">Address</label>
                   <textarea rows={2} className="w-full mt-0.5 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" value={custAddr} onChange={e => setCustAddr(e.target.value)} />

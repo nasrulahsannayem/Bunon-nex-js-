@@ -4,6 +4,7 @@ import { ecomosProductMap } from "../store";
 import { sendToEcomOS } from "../services/ecomos";
 import { randomInt } from "crypto"; // secure ID generator
 import { getSecret } from "../utils/secrets";
+import { normalizeAbroadCustomer } from "../utils/abroadOrders";
 
 const router = express.Router();
 
@@ -13,6 +14,13 @@ router.post("/checkout/place-order", async (req, res) => {
 
     if (!customer || !cart || cart.length === 0) {
       return res.status(400).json({ ok: false, msg: "Cart or Customer details missing!" });
+    }
+
+    let abroadFields;
+    try {
+      abroadFields = normalizeAbroadCustomer(customer);
+    } catch (err) {
+      return res.status(400).json({ ok: false, msg: (err as Error).message });
     }
 
     const generatedOrderId = randomInt(100000, 1000000); // 6‑digit safe ID
@@ -68,8 +76,9 @@ router.post("/checkout/place-order", async (req, res) => {
       `INSERT INTO bf_orders (
         woo_order_id, invoice, customer_name, phone, address, 
         subtotal, delivery_fee, discount_amount, total_payable, 
-        payment_method, status, city, state, fbp, fbc, external_id, customer_type, source, is_paid, cod_amount
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, 'react_site', 0, ?)`,
+        payment_method, status, city, state, fbp, fbc, external_id, customer_type, source, is_paid, cod_amount,
+        is_abroad, abroad_phone
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, 'react_site', 0, ?, ?, ?)`,
       [
         generatedOrderId ?? null, 
         invoiceNumber ?? null, 
@@ -87,7 +96,9 @@ router.post("/checkout/place-order", async (req, res) => {
         customer.fbc ?? null,
         String(generatedOrderId), 
         customerType ?? 'new', 
-        totalAmount ?? 0
+        totalAmount ?? 0,
+        abroadFields.isAbroad,
+        abroadFields.abroadPhone
       ]
     );
 

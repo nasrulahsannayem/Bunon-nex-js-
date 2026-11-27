@@ -71,6 +71,8 @@ export default function Checkout() {
     district: '',
     note: '',
     paymentMethod: 'cod',
+    abroad: false,
+    abroadPhone: '',
   });
 
   const pixelFired = useRef(false);
@@ -574,6 +576,13 @@ export default function Checkout() {
       markError('phone', 'সঠিক ১১ ডিজিট মোবাইল নম্বর লিখুন (যেমন 01712345678)।');
       return;
     }
+    if (formData.abroad) {
+      const cleanAbroadPhone = formData.abroadPhone.replace(/[\s()-]/g, '');
+      if (!cleanAbroadPhone || !/^\+?\d{8,15}$/.test(cleanAbroadPhone)) {
+        markError('abroadPhone', 'বিদেশের ফোন বা WhatsApp নাম্বারটি দেশের কোডসহ দিন (যেমন +9665XXXXXXXX)');
+        return;
+      }
+    }
     if (!formData.district) {
       markError('area', 'ডেলিভারি এরিয়া নির্বাচন করুন।');
       return;
@@ -606,7 +615,9 @@ export default function Checkout() {
           address: formData.address1,
           note: formData.note,
           fbp: fbpToken,
-          fbc: fbcToken
+          fbc: fbcToken,
+          abroad: formData.abroad,
+          abroadPhone: formData.abroad ? formData.abroadPhone.replace(/[\s()-]/g, '') : ''
         },
         cart: items.map(item => ({
           id: item.id,
@@ -907,6 +918,62 @@ export default function Checkout() {
                     </p>
                   )}
                 </div>
+
+                {/* বিদেশ থেকে অর্ডার (Optional) */}
+                <div className="sm:col-span-2" id="checkout-abroad-anchor">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="checkout-abroad"
+                      name="abroad"
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary focus:ring-1 transition-colors"
+                      checked={formData.abroad}
+                      onChange={(e) => {
+                        setFormData({ ...formData, abroad: e.target.checked, abroadPhone: e.target.checked ? formData.abroadPhone : '' });
+                        if (!e.target.checked) clearError('abroadPhone');
+                      }}
+                    />
+                    <span className="text-sm text-gray-700 leading-relaxed">
+                      বাংলাদেশের বাইরে থেকে অর্ডার করছেন?{' '}
+                      <span className="font-semibold text-brand-primary">টিক দিন</span>
+                    </span>
+                  </label>
+                </div>
+
+                {/* অভিযোক্তার ফোন / WhatsApp নম্বর (দেশের কোডসহ) */}
+                {formData.abroad && (
+                  <div className="sm:col-span-2" id="checkout-abroad-phone-anchor">
+                    <label className="block">
+                      <span className="block text-xs font-semibold text-gray-600 mb-1">
+                        ফোন / WhatsApp নম্বর (দেশের কোডসহ) <span className="text-red-500">*</span>
+                      </span>
+                      <input
+                        required
+                        type="tel"
+                        id="checkout-abroad-phone"
+                        name="abroadPhone"
+                        autoComplete="tel"
+                        inputMode="tel"
+                        enterKeyHint="next"
+                        placeholder="+966 5X XXX XXXX"
+                        className={"w-full h-11 sm:h-10 px-3 rounded-xl border bg-white text-[15px] sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 transition-all shadow-sm " + (fieldErrors.abroadPhone ? "border-red-400 focus:border-red-500 focus:ring-red-400" : "border-gray-200 focus:border-brand-primary focus:ring-brand-primary")}
+                        aria-invalid={!!fieldErrors.abroadPhone}
+                        value={formData.abroadPhone}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[\s()-]/g, '');
+                          setFormData({ ...formData, abroadPhone: val });
+                          if (val && /^\+?\d{8,15}$/.test(val)) clearError('abroadPhone');
+                          else if (fieldErrors.abroadPhone) clearError('abroadPhone');
+                        }}
+                      />
+                    </label>
+                    {fieldErrors.abroadPhone && (
+                      <p role="alert" className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-red-600">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {fieldErrors.abroadPhone}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* সম্পূর্ণ ঠিকানা */}
                 <div className="sm:col-span-2" id="checkout-address-anchor">
