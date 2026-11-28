@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import { useLocation, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { CheckCircle2, ChevronRight, Home as HomeIcon, Clipboard, Check } from 'lucide-react';
@@ -52,7 +53,8 @@ export default function OrderReceived() {
     }
   };
 
-  return (
+  <SeoHead noindex={true} />
+    return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="relative overflow-hidden border-b border-black/5 bg-white py-8 text-center shadow-sm">

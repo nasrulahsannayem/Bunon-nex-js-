@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import { useNavigate } from 'react-router-dom';
 import { User, MapPin, Package, LogOut, Ticket, Heart, ShieldCheck, Mail, Phone, ShoppingBag, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +48,7 @@ export default function Profile() {
   };
 
   if (loading) {
+    <SeoHead noindex={true} />
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getProduct, getProducts, Product, trackPixel } from '../lib/woocommerce';
 import { useCart } from '../lib/store'; // Removed useWishlist
@@ -31,8 +32,8 @@ export default function ProductDetail() {
       setLoading(true);
       const p = await getProduct(id);
       setProduct(p);
-      if (p) {
-        document.title = `${p.name} | Bunon`;
+
+                // title managed by SeoHead
         trackPixel('ViewContent', {
           content_name: p.name,
           content_category: p.categories[0]?.name,

@@ -41,7 +41,19 @@ export default function CategoryPage() {
 
   return (
     <>
-      <SeoHead title={title} description={description} />
+      <SeoHead
+      title={title}
+      description={description}
+      ogImage="https://bunon.shop/image/Bestselling-Saree-banner-1-mobie-768x912.jpg"
+      ogType="website"
+      canonicalUrl={window.location.origin + window.location.pathname}
+      jsonLd={[{
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: label,
+        url: window.location.origin + window.location.pathname
+      }]}
+    />
       <Shop fixedCategory={slug} />
     </>
   );

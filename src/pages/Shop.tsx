@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import ProductCard from '../components/products/ProductCard';
 import { getProducts, getCategories, Product } from '../lib/woocommerce';
 import { motion, AnimatePresence } from 'motion/react';
@@ -156,6 +157,15 @@ export default function Shop({ fixedCategory }: { fixedCategory?: string } = {})
     });
     
     if (observerTarget.current) observer.observe(observerTarget.current);
+    const shopJsonLd = [{
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Bunon Fabrics Shop',
+      url: 'https://bunon.shop/shop',
+      description: 'Browse the full collection of Bunon Fabrics sarees, textiles, and ready-made products'
+    }];
+
+    
     return () => {
       if (observerTarget.current) observer.unobserve(observerTarget.current);
     };
@@ -187,6 +197,15 @@ export default function Shop({ fixedCategory }: { fixedCategory?: string } = {})
   );
 
   return (
+    <>
+      <SeoHead
+      title="Shop All Products | Bunon Fabrics"
+      description="Browse the full collection of Bunon Fabrics sarees, textiles, and ready-made products"
+      ogImage="https://bunon.shop/image/Bestselling-Saree-banner-1-mobie-768x912.jpg"
+      ogType="website"
+      canonicalUrl="https://bunon.shop/shop"
+      jsonLd={shopJsonLd}
+    />
     <div className="min-h-screen bg-white dark:bg-zinc-950 pb-24 text-slate-900 dark:text-zinc-100 selection:bg-[#0C1E4E] selection:text-white">
       
       {/* 🌟 Ultra-Minimalist Header */}
@@ -427,5 +446,5 @@ export default function Shop({ fixedCategory }: { fixedCategory?: string } = {})
       </AnimatePresence>
 
     </div>
-  );
+</>  );
 }

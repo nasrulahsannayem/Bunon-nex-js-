@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import { useCart } from '../lib/store';
 import { trackPixel } from '../lib/woocommerce';
 import { motion } from 'framer-motion';
@@ -188,6 +189,7 @@ export default function Checkout() {
       }
     }, 400);
 
+    <SeoHead noindex={true} />
     return () => window.clearTimeout(timer);
   }, []);
 

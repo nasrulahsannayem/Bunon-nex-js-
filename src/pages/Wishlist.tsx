@@ -1,4 +1,5 @@
 import { useWishlist } from '@/src/lib/store';
+import { SeoHead } from '../components/SeoHead';
 import ProductCard from '../components/products/ProductCard';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -8,6 +9,7 @@ export default function Wishlist() {
   const { items } = useWishlist();
 
   if (items.length === 0) {
+    <SeoHead noindex={true} />
     return (
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div 

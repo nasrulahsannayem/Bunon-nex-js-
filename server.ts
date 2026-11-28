@@ -233,7 +233,7 @@ async function startServer() {
   // Build the per-route <head> block that replaces the static default tags.
   const buildMetaBlock = (m: {
     title: string; description: string; url: string; image: string;
-    ogType?: string; jsonLd?: any;
+    ogType?: string; jsonLd?: any; noindex?: boolean;
   }): string => {
     const parts: string[] = [];
     parts.push(`<title>${escHtml(m.title)}</title>`);
@@ -251,6 +251,9 @@ async function startServer() {
     parts.push(`<meta name="twitter:title" content="${escHtml(m.title)}" />`);
     parts.push(`<meta name="twitter:description" content="${escHtml(m.description)}" />`);
     parts.push(`<meta name="twitter:image" content="${escHtml(m.image)}" />`);
+    if (m.noindex) {
+      parts.push(`<meta name="robots" content="noindex,nofollow" />`);
+    }
     if (m.jsonLd) {
       parts.push(`<script type="application/ld+json">${JSON.stringify(m.jsonLd).replace(/</g, '\\u003c')}</script>`);
     }
@@ -359,6 +362,138 @@ async function startServer() {
     }
   };
 
+  // Resolve /shop meta for crawlers.
+  const getShopMeta = () => {
+    const url = `${SITE_URL}/shop`;
+    return {
+      title: 'Shop All Products | Bunon Fabrics',
+      description: 'Browse the full collection of Bunon Fabrics sarees, textiles, and ready-made products',
+      url,
+      image: `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`,
+      ogType: 'website',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'Bunon Fabrics Shop',
+        url,
+        description: 'Browse the full collection of Bunon Fabrics sarees, textiles, and ready-made products'
+      }
+    };
+  };
+
+  // Resolve /product-category/:slug meta for crawlers.
+  const getCategoryMeta = async (slug: string) => {
+    try {
+      const { productDbPool } = await import('./server/db');
+      const [rows]: any = await productDbPool.execute(
+        'SELECT id, name, slug FROM bunon_categories WHERE slug = ? LIMIT 1',
+        [slug]
+      );
+      if (!rows || !rows.length) return null;
+      const cat = rows[0];
+      const catName = cat.name || slug;
+      const url = `${SITE_URL}/product-category/${slug}`;
+      return {
+        title: `${catName} | Bunon Fabrics`,
+        description: `Browse our ${catName} collection at Bunon Fabrics - handpicked fabrics and textiles`,
+        url,
+        image: `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`,
+        ogType: 'website',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: `${catName} Collection`,
+          url,
+          description: `Browse our ${catName} collection at Bunon Fabrics`
+        }
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  // Resolve /blog meta for crawlers.
+  const getBlogIndexMeta = async () => {
+    try {
+      const { productDbPool } = await import('./server/db');
+      const [rows]: any = await productDbPool.execute(
+        'SELECT title, slug FROM bunon_blogs WHERE status = \'publish\' ORDER BY created_at DESC LIMIT 10'
+      );
+      const items = (rows || []).map((r: any) => ({
+        '@type': 'ListItem',
+        position: 1,
+        name: r.title,
+        url: `${SITE_URL}/blog/${r.slug}`
+      }));
+      const url = `${SITE_URL}/blog`;
+      return {
+        title: 'Blog | Bunon Fabrics',
+        description: 'Stories, guides, and insights from the Bunon Fabrics team',
+        url,
+        image: `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`,
+        ogType: 'website',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: 'Bunon Fabrics Blog',
+          url,
+          itemListElement: items
+        }
+      };
+    } catch {
+      return {
+        title: 'Blog | Bunon Fabrics',
+        description: 'Stories, guides, and insights from the Bunon Fabrics team',
+        url: `${SITE_URL}/blog`,
+        image: `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`,
+        ogType: 'website',
+        jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Bunon Fabrics Blog', url: `${SITE_URL}/blog` }
+      };
+    }
+  };
+
+  // Resolve /blog/:slug meta for crawlers.
+  const getBlogPostMeta = async (slug: string) => {
+    try {
+      const { productDbPool } = await import('./server/db');
+      const [rows]: any = await productDbPool.execute(
+        'SELECT title, excerpt, content, featured_image, created_at, updated_at, status FROM bunon_blogs WHERE slug = ? LIMIT 1',
+        [slug]
+      );
+      if (!rows || !rows.length) return null;
+      const post = rows[0];
+      const postTitle = post.title || slug;
+      const desc = (post.excerpt || (post.content || '').slice(0, 200) || 'Read more on the Bunon Fabrics blog').slice(0, 300);
+      const image = post.featured_image
+        ? (post.featured_image.startsWith('http') ? post.featured_image : `${SITE_URL}/${post.featured_image}`)
+        : `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`;
+      const url = `${SITE_URL}/blog/${slug}`;
+      return {
+        title: `${postTitle} | Bunon Fabrics`,
+        description: desc,
+        url,
+        image,
+        ogType: 'article',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: postTitle,
+          description: desc,
+          image: [image],
+          datePublished: post.created_at ? new Date(post.created_at).toISOString() : undefined,
+          dateModified: post.updated_at ? new Date(post.updated_at).toISOString() : undefined,
+          author: { '@type': 'Organization', name: 'Bunon Fabrics' },
+          publisher: { '@type': 'Organization', name: 'Bunon Fabrics', url: SITE_URL }
+        }
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  // Noindex routes - transactional/private pages
+  const NOINDEX_PATHS = new Set(['/checkout', '/order-received', '/track', '/wishlist', '/login', '/profile']);
+
   // HTML shell served to crawlers with per-route meta injected.
   // During `npm run build` Vite empties dist/ before writing the new bundle, so a
   // crawler arriving in that ~1-2s window used to get ENOENT -> HTTP 500 (Google
@@ -431,6 +566,44 @@ async function startServer() {
       });
     }
     const pathOnly = String(req.path || '/');
+
+    // Noindex for transactional/private pages
+    if (NOINDEX_PATHS.has(pathOnly)) {
+      const meta = {
+        title: 'বুনন ফেব্রিক্স | Bunon Fabrics',
+        description: '',
+        url: SITE_URL + pathOnly,
+        image: `${SITE_URL}/image/Bestselling-Saree-banner-1-mobie-768x912.jpg`,
+        ogType: 'website',
+        noindex: true
+      };
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      return renderCrawlerHtml(req, res, meta);
+    }
+
+    // Route-specific meta for crawlers
+    if (pathOnly === '/shop') {
+      const meta = getShopMeta();
+      return renderCrawlerHtml(req, res, meta);
+    }
+    if (pathOnly.startsWith('/product-category/')) {
+      const slug = pathOnly.replace('/product-category/', '');
+      const meta = await getCategoryMeta(slug);
+      if (!meta) return next();
+      return renderCrawlerHtml(req, res, meta);
+    }
+    if (pathOnly === '/blog') {
+      const meta = await getBlogIndexMeta();
+      return renderCrawlerHtml(req, res, meta);
+    }
+    if (pathOnly.startsWith('/blog/')) {
+      const slug = pathOnly.replace('/blog/', '');
+      const meta = await getBlogPostMeta(slug);
+      if (!meta) return next();
+      return renderCrawlerHtml(req, res, meta);
+    }
+
+    // Default: home page meta for all other routes
     const meta = {
       title: 'বুনন ফেব্রিক্স | Bunon Fabrics - পুরোটাই সুতি শাড়ী',
       description: 'বাংলাদেশের অনলাইন সুতি শাড়ী ও ফ্যাব্রিক্স শপ। ৬৪ জেলায় হোম ডেলিভারি, ১০০% কটন, ক্যাশ অন ডেলিভারি।',

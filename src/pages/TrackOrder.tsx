@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SeoHead } from '../components/SeoHead';
 import { Search, Package, CheckCircle2, Clock, Truck, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -41,7 +42,8 @@ export default function TrackOrder() {
     return 1; // pending/on-hold
   };
 
-  return (
+  <SeoHead noindex={true} />
+    return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         

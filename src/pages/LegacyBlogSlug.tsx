@@ -46,7 +46,21 @@ export default function LegacyBlogSlug() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <SeoHead title={seoTitle} description={seoDesc} />
+      <SeoHead
+      title={seoTitle}
+      description={seoDesc}
+      ogImage={blog?.featured_image || 'https://bunon.shop/image/Bestselling-Saree-banner-1-mobie-768x912.jpg'}
+      ogType="article"
+      jsonLd={[{
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: blog.title || '',
+        description: blog?.excerpt || '',
+        image: [blog?.featured_image || ''],
+        datePublished: blog?.created_at ? new Date(blog.created_at).toISOString() : undefined,
+        author: 'Bunon Fabrics'
+      }]}
+    />
       <Link to="/blog" className="text-brand-primary text-sm mb-4 inline-block">← ব্লগে ফিরুন</Link>
       {blog.featured_image && (
         <img src={blog.featured_image} alt={blog.title} className="w-full h-64 object-cover rounded-2xl mb-6" />
