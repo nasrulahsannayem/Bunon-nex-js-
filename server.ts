@@ -32,6 +32,7 @@ import { productDbPool } from "./server/db";
 import blogRoutes from "./server/routes/blog";
 import categoriesRoutes from "./server/routes/categories";
 import metaPublicRoutes from "./server/routes/metaPublic";
+import pinterestFeedRoute from "./server/routes/pinterestFeed";
 
 import sitemapRoute from "./server/routes/sitemap";
 import { getCachedProducts } from "./server/services/redisClient";
@@ -120,6 +121,7 @@ async function startServer() {
   app.use("/api/blog", blogRoutes);
   app.use("/api/categories", categoriesRoutes);
   app.use("/api/meta", metaPublicRoutes);
+  pinterestFeedRoute(app);
 
   app.use("/", sitemapRoute);
 
