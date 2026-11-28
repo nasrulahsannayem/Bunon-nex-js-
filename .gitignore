@@ -48,3 +48,11 @@ bunonfabrics-update.json
 *.bak3*
 .env.bak*
 crontab.bak*
+scripts/__pycache__/
+public/demo-modal.html
+public/uploads/bunon-admin-rebuild.html
+public/uploads/bunon-admin-redesign.html
+public/uploads/bunon-modals.html
+public/uploads/modal-demo.html
+public/uploads/demo-modal.html
+.well-known/acme-challenge/
